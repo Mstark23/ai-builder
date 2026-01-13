@@ -3,12 +3,9 @@
 import { useState } from "react";
 import { supabase } from "@/app/lib/supabaseClient";
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
-  const [businessName, setBusinessName] = useState("");
-  const [industry, setIndustry] = useState("");
-  const [style, setStyle] = useState("");
-  const [plan, setPlan] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,38 +14,24 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase
-      .from("projects")
-      .insert([
-        {
-          email,
-          business_name: businessName,
-          industry,
-          style,
-          plan,
-          status: "QUEUED",
-          paid: false,
-        },
-      ] as any); // ✅ FIX: tell TypeScript to stop guessing
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     setLoading(false);
 
     if (error) {
       setError(error.message);
     } else {
-      alert("Project submitted successfully!");
-      setEmail("");
-      setBusinessName("");
-      setIndustry("");
-      setStyle("");
-      setPlan("");
+      window.location.href = "/admin/projects";
     }
   }
 
   return (
-    <main style={{ padding: 40, maxWidth: 500 }}>
+    <main style={{ padding: 40, maxWidth: 400 }}>
       <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 20 }}>
-        Create Your Website
+        Admin Login
       </h1>
 
       {error && (
@@ -60,47 +43,32 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit}>
         <input
           type="email"
-          placeholder="Email"
+          placeholder="Admin email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          style={{ width: "100%", padding: 12, marginBottom: 10 }}
+          style={{
+            width: "100%",
+            padding: 12,
+            marginBottom: 12,
+            borderRadius: 8,
+            border: "1px solid #ccc",
+          }}
         />
 
         <input
-          type="text"
-          placeholder="Business name"
-          value={businessName}
-          onChange={(e) => setBusinessName(e.target.value)}
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           required
-          style={{ width: "100%", padding: 12, marginBottom: 10 }}
-        />
-
-        <input
-          type="text"
-          placeholder="Industry"
-          value={industry}
-          onChange={(e) => setIndustry(e.target.value)}
-          required
-          style={{ width: "100%", padding: 12, marginBottom: 10 }}
-        />
-
-        <input
-          type="text"
-          placeholder="Style"
-          value={style}
-          onChange={(e) => setStyle(e.target.value)}
-          required
-          style={{ width: "100%", padding: 12, marginBottom: 10 }}
-        />
-
-        <input
-          type="text"
-          placeholder="Plan"
-          value={plan}
-          onChange={(e) => setPlan(e.target.value)}
-          required
-          style={{ width: "100%", padding: 12, marginBottom: 20 }}
+          style={{
+            width: "100%",
+            padding: 12,
+            marginBottom: 20,
+            borderRadius: 8,
+            border: "1px solid #ccc",
+          }}
         />
 
         <button
@@ -112,10 +80,11 @@ export default function LoginPage() {
             background: "#111",
             color: "white",
             border: "none",
+            borderRadius: 8,
             cursor: "pointer",
           }}
         >
-          {loading ? "Submitting..." : "Submit"}
+          {loading ? "Signing in..." : "Login"}
         </button>
       </form>
     </main>
