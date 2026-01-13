@@ -1,123 +1,123 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabaseClient";
 
-export default function AdminLoginPage() {
-  const router = useRouter();
-
+export default function LoginPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [style, setStyle] = useState("");
+  const [plan, setPlan] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
     setLoading(true);
+    setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase
+      .from("projects")
+      .insert([
+        {
+          email,
+          business_name: businessName,
+          industry,
+          style,
+          plan,
+          status: "QUEUED",
+          paid: false,
+        },
+      ] as any); // ✅ FIX: tell TypeScript to stop guessing
+
+    setLoading(false);
 
     if (error) {
       setError(error.message);
-      setLoading(false);
-      return;
+    } else {
+      alert("Project submitted successfully!");
+      setEmail("");
+      setBusinessName("");
+      setIndustry("");
+      setStyle("");
+      setPlan("");
     }
-
-    router.push("/admin/projects");
   }
 
   return (
-    <main
-      suppressHydrationWarning
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#f5f5f5",
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 420,
-          background: "white",
-          padding: 32,
-          borderRadius: 12,
-          boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-        }}
-      >
-        <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
-          Admin Login
-        </h1>
+    <main style={{ padding: 40, maxWidth: 500 }}>
+      <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 20 }}>
+        Create Your Website
+      </h1>
 
-        <p style={{ color: "#666", marginBottom: 24 }}>
-          Sign in to access the admin dashboard
+      {error && (
+        <p style={{ color: "red", marginBottom: 12 }}>
+          {error}
         </p>
+      )}
 
-        <form onSubmit={handleSubmit}>
-          <input
-            suppressHydrationWarning
-            type="email"
-            placeholder="Admin email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            style={input}
-          />
+      <form onSubmit={handleSubmit}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          style={{ width: "100%", padding: 12, marginBottom: 10 }}
+        />
 
-          <input
-            suppressHydrationWarning
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            style={input}
-          />
+        <input
+          type="text"
+          placeholder="Business name"
+          value={businessName}
+          onChange={(e) => setBusinessName(e.target.value)}
+          required
+          style={{ width: "100%", padding: 12, marginBottom: 10 }}
+        />
 
-          {error && (
-            <p style={{ color: "crimson", marginBottom: 8 }}>{error}</p>
-          )}
+        <input
+          type="text"
+          placeholder="Industry"
+          value={industry}
+          onChange={(e) => setIndustry(e.target.value)}
+          required
+          style={{ width: "100%", padding: 12, marginBottom: 10 }}
+        />
 
-          <button
-            suppressHydrationWarning
-            type="submit"
-            disabled={loading}
-            style={button}
-          >
-            {loading ? "Signing in…" : "Login"}
-          </button>
-        </form>
-      </div>
+        <input
+          type="text"
+          placeholder="Style"
+          value={style}
+          onChange={(e) => setStyle(e.target.value)}
+          required
+          style={{ width: "100%", padding: 12, marginBottom: 10 }}
+        />
+
+        <input
+          type="text"
+          placeholder="Plan"
+          value={plan}
+          onChange={(e) => setPlan(e.target.value)}
+          required
+          style={{ width: "100%", padding: 12, marginBottom: 20 }}
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: "100%",
+            padding: 14,
+            background: "#111",
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          {loading ? "Submitting..." : "Submit"}
+        </button>
+      </form>
     </main>
   );
 }
-
-const input: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 14px",
-  marginBottom: 12,
-  borderRadius: 8,
-  border: "1px solid #ddd",
-  fontSize: 14,
-};
-
-const button: React.CSSProperties = {
-  width: "100%",
-  padding: "12px",
-  borderRadius: 8,
-  background: "#111",
-  color: "white",
-  border: "none",
-  cursor: "pointer",
-  fontSize: 15,
-};
