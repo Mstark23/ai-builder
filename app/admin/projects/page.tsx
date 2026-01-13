@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import Link from "next/link";
 import { supabaseServer } from "@/app/lib/supabaseServer";
 
@@ -18,44 +16,54 @@ export default async function AdminProjectsPage() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return (
-      <main style={{ padding: 40 }}>
-        <h1>Error loading projects</h1>
-        <p>{error.message}</p>
-      </main>
-    );
+    return <p style={{ padding: 32 }}>Error loading projects</p>;
   }
 
   return (
-    <main style={{ padding: 40 }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900 }}>
+    <main style={{ padding: "32px", maxWidth: 900 }}>
+      <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 24 }}>
         Admin Projects
       </h1>
 
-      <ul style={{ marginTop: 30 }}>
-        {projects?.map((project) => (
-          <li
-            key={project.id}
-            style={{
-              padding: 20,
-              marginBottom: 12,
-              border: "1px solid #ddd",
-              borderRadius: 8,
-            }}
-          >
-            <p><strong>ID:</strong> {project.id}</p>
-            <p><strong>Status:</strong> {project.status}</p>
-            <p>
-              <strong>Created:</strong>{" "}
-              {new Date(project.created_at).toLocaleString()}
-            </p>
+      {!projects || projects.length === 0 ? (
+        <p>No projects found.</p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {projects.map((project: Project) => (
+            <div
+              key={project.id}
+              style={{
+                border: "1px solid #e5e5e5",
+                borderRadius: 12,
+                padding: 20,
+              }}
+            >
+              <p>
+                <strong>ID:</strong> {project.id}
+              </p>
+              <p>
+                <strong>Status:</strong> {project.status}
+              </p>
+              <p>
+                <strong>Created:</strong>{" "}
+                {new Date(project.created_at).toLocaleString()}
+              </p>
 
-            <Link href={`/admin/projects/${project.id}`}>
-              View →
-            </Link>
-          </li>
-        ))}
-      </ul>
+              <Link
+                href={`/admin/projects/${project.id}`}
+                style={{
+                  display: "inline-block",
+                  marginTop: 8,
+                  fontWeight: 600,
+                  textDecoration: "underline",
+                }}
+              >
+                View →
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

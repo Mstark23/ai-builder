@@ -1,9 +1,8 @@
-export const dynamic = "force-dynamic";
-
-import React from "react";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/app/lib/supabaseServer";
-import { updateProjectStatus } from "@/app/admin/projects/actions";
+import { updateProjectStatus } from "../actions";
+
+export const dynamic = "force-dynamic";
 
 type Project = {
   id: string;
@@ -17,8 +16,8 @@ export default async function AdminProjectDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // ✅ Next.js 16: params is a Promise
-  const { id } = React.use(params);
+  // ✅ NEXT.JS 16 FIX — params IS A PROMISE
+  const { id } = await params;
 
   const supabase = supabaseServer();
 
@@ -38,14 +37,8 @@ export default async function AdminProjectDetailPage({
         Project Details
       </h1>
 
-      <p>
-        <strong>ID:</strong> {project.id}
-      </p>
-
-      <p>
-        <strong>Status:</strong> {project.status}
-      </p>
-
+      <p><strong>ID:</strong> {project.id}</p>
+      <p><strong>Status:</strong> {project.status}</p>
       <p>
         <strong>Created:</strong>{" "}
         {new Date(project.created_at).toLocaleString()}
@@ -58,7 +51,6 @@ export default async function AdminProjectDetailPage({
             href={project.preview_url}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "blue", textDecoration: "underline" }}
           >
             Open preview →
           </a>
@@ -67,37 +59,16 @@ export default async function AdminProjectDetailPage({
 
       <hr style={{ margin: "30px 0" }} />
 
-      <h2>Update Status</h2>
-
       <form action={updateProjectStatus}>
         <input type="hidden" name="id" value={project.id} />
 
-        <select
-          name="status"
-          defaultValue={project.status}
-          style={{
-            padding: 10,
-            borderRadius: 6,
-            border: "1px solid #ccc",
-            marginRight: 12,
-          }}
-        >
+        <select name="status" defaultValue={project.status}>
           <option value="QUEUED">QUEUED</option>
           <option value="IN_PROGRESS">IN_PROGRESS</option>
           <option value="DELIVERED">DELIVERED</option>
         </select>
 
-        <button
-          type="submit"
-          style={{
-            padding: "10px 16px",
-            borderRadius: 6,
-            background: "#111",
-            color: "white",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
+        <button type="submit" style={{ marginLeft: 12 }}>
           Save
         </button>
       </form>
