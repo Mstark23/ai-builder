@@ -1,95 +1,99 @@
-import { notFound } from "next/navigation";
-import { supabaseServer } from "@/app/lib/supabaseServer";
+export const dynamic = "force-dynamic";
 
-type ProjectRow = {
-  id: string;
-  created_at: string;
-  status: "QUEUED" | "IN_PROGRESS" | "DELIVERED";
-};
+"use client";
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString();
-}
+import { useState } from "react";
+import { supabase } from "@/app/lib/supabaseClient";
 
-export default async function PreviewPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const supabase = supabaseServer();
+export default function AdminLoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const { data: project, error } = await supabase
-    .from("projects")
-    .select("id, created_at, status")
-    .eq("id", params.id)
-    .single();
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
 
-  if (error || !project) {
-    notFound();
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      window.location.href = "/admin/projects";
+    }
   }
 
   return (
     <main
       style={{
         minHeight: "100vh",
-        background: "#fafafa",
-        padding: 40,
         display: "flex",
+        alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <div
-        style={{
-          maxWidth: 900,
-          width: "100%",
-          background: "white",
-          padding: 40,
-          borderRadius: 16,
-          boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-        }}
-      >
-        <h1 style={{ fontSize: 36, fontWeight: 900 }}>
-          Website Preview
+      <div style={{ width: 360 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 20 }}>
+          Admin Login
         </h1>
 
-        <p style={{ marginTop: 8, color: "#555" }}>
-          This is a live preview of your website.
-        </p>
-
-        <hr style={{ margin: "24px 0" }} />
-
-        <p>
-          <strong>Project ID:</strong>{" "}
-          <span style={{ fontFamily: "monospace" }}>{project.id}</span>
-        </p>
-
-        <p>
-          <strong>Status:</strong> {project.status}
-        </p>
-
-        <p>
-          <strong>Created:</strong> {formatDate(project.created_at)}
-        </p>
-
-        <div
-          style={{
-            marginTop: 40,
-            padding: 24,
-            borderRadius: 12,
-            background: "#f0f0f0",
-            textAlign: "center",
-          }}
-        >
-          <h2 style={{ fontSize: 22, fontWeight: 700 }}>
-            🚧 Preview Content Placeholder
-          </h2>
-
-          <p style={{ marginTop: 8, color: "#666" }}>
-            The generated website will appear here.
-            <br />
-            This page is already live and deployed.
+        {error && (
+          <p style={{ color: "red", marginBottom: 12 }}>
+            {error}
           </p>
-        </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <input
+            type="email"
+            placeholder="Admin email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={{
+              width: "100%",
+              padding: "12px 14px",
+              marginBottom: 12,
+              borderRadius: 8,
+              border: "1px solid #ccc",
+              fontSize: 14,
+            }}
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={{
+              width: "100%",
+              padding: "12px 14px",
+              marginBottom: 12,
+              borderRadius: 8,
+              border: "1px solid #ccc",
+              fontSize: 14,
+            }}
+          />
+
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: 8,
+              background: "#111",
+              color: "white",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            Login
+          </button>
+        </form>
       </div>
     </main>
   );
