@@ -17,6 +17,8 @@ type Project = {
   generated_html: string | null;
   preview_url: string | null;
   status: string;
+  feedback_notes: string | null;
+  revision_count: number;
   customers?: {
     name: string;
     email: string;
