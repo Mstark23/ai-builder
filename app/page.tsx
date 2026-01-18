@@ -1,1397 +1,289 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-export default function Page() {
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
-    // Smooth scroll
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const anchor = target.closest('a[href^="#"]') as HTMLAnchorElement;
-      if (anchor) {
-        e.preventDefault();
-        const targetElement = document.querySelector(anchor.getAttribute('href') || '');
-        if (targetElement) {
-          targetElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }
-      }
-    };
+    const shop = searchParams.get('shop');
+    const hmac = searchParams.get('hmac');
+    if (shop && hmac) {
+      sessionStorage.setItem('shopify_shop', shop);
+      router.push('/portal?shopify_connected=true&shop=' + encodeURIComponent(shop));
+    }
+  }, [searchParams, router]);
 
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <>
+    <div className="min-h-screen bg-[#fafafa] antialiased">
+      {/* CUSTOM STYLES */}
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+        
+        .font-display { font-family: 'Playfair Display', Georgia, serif; }
+        .font-body { font-family: 'Inter', -apple-system, sans-serif; }
+        
+        .gradient-text {
+          background: linear-gradient(135deg, #1a1a1a 0%, #666 50%, #1a1a1a 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
-
-        :root {
-          --slate: #0F172A;
-          --blue: #3B82F6;
-          --green: #10B981;
-          --white: #ffffff;
-          --gray-50: #F8FAFC;
-          --gray-100: #F1F5F9;
-          --gray-600: #475569;
-          --gray-900: #0F172A;
+        
+        .shimmer {
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+          background-size: 200% 100%;
+          animation: shimmer 2s infinite;
         }
-
-        html {
-          scroll-behavior: smooth;
+        
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
         }
-
-        body {
-          font-family: 'Space Grotesk', -apple-system, sans-serif;
-          background: var(--slate);
-          color: var(--white);
-          line-height: 1.6;
-          -webkit-font-smoothing: antialiased;
-          overflow-x: hidden;
+        
+        .float {
+          animation: float 6s ease-in-out infinite;
         }
-
-        .bg-animation {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          z-index: 0;
-          opacity: 0.4;
-          background: 
-            radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-            radial-gradient(circle at 80% 70%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
-            radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
-          animation: float 20s ease-in-out infinite;
-        }
-
+        
         @keyframes float {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -30px) scale(1.05); }
-          66% { transform: translate(-20px, 20px) scale(0.95); }
-        }
-
-        nav {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          background: rgba(15, 23, 42, 0.8);
-          backdrop-filter: blur(12px);
-          z-index: 1000;
-          border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-        }
-
-        .nav-container {
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: 20px 60px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .logo {
-          font-size: 24px;
-          font-weight: 700;
-          background: linear-gradient(135deg, var(--blue) 0%, var(--green) 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          letter-spacing: -0.5px;
-        }
-
-        .nav-menu {
-          display: flex;
-          gap: 40px;
-          list-style: none;
-          align-items: center;
-        }
-
-        .nav-menu a {
-          color: rgba(255, 255, 255, 0.8);
-          text-decoration: none;
-          font-size: 15px;
-          font-weight: 500;
-          transition: color 0.3s ease;
-        }
-
-        .nav-menu a:hover {
-          color: var(--blue);
-        }
-
-        .nav-cta {
-          background: linear-gradient(135deg, var(--blue) 0%, var(--green) 100%);
-          color: var(--white);
-          padding: 12px 28px;
-          border-radius: 8px;
-          text-decoration: none;
-          font-weight: 700;
-          font-size: 14px;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
-        }
-
-        .nav-cta:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 30px rgba(59, 130, 246, 0.5);
-        }
-
-        .hero {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          position: relative;
-          padding: 140px 60px 100px;
-          overflow: hidden;
-        }
-
-        .hero-container {
-          max-width: 1400px;
-          margin: 0 auto;
-          text-align: center;
-          position: relative;
-          z-index: 1;
-        }
-
-        .ai-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: rgba(59, 130, 246, 0.1);
-          border: 1px solid rgba(59, 130, 246, 0.3);
-          padding: 10px 24px;
-          border-radius: 50px;
-          font-size: 14px;
-          font-weight: 600;
-          margin-bottom: 32px;
-          animation: glow 2s ease-in-out infinite;
-        }
-
-        @keyframes glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
-          50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
-        }
-
-        .ai-badge::before {
-          content: '⚡';
-          font-size: 16px;
-        }
-
-        .hero h1 {
-          font-size: 80px;
-          font-weight: 700;
-          line-height: 1.1;
-          letter-spacing: -0.04em;
-          margin-bottom: 28px;
-          background: linear-gradient(135deg, var(--white) 0%, var(--blue) 50%, var(--green) 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: fadeInUp 0.8s ease-out;
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .hero-subtitle {
-          font-size: 24px;
-          color: rgba(255, 255, 255, 0.7);
-          margin-bottom: 48px;
-          max-width: 800px;
-          margin-left: auto;
-          margin-right: auto;
-          animation: fadeInUp 0.8s ease-out 0.2s both;
-        }
-
-        .hero-cta-group {
-          display: flex;
-          gap: 20px;
-          justify-content: center;
-          margin-bottom: 60px;
-          animation: fadeInUp 0.8s ease-out 0.4s both;
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, var(--green) 0%, #059669 100%);
-          color: var(--white);
-          padding: 18px 48px;
-          border-radius: 10px;
-          text-decoration: none;
-          font-weight: 700;
-          font-size: 17px;
-          transition: all 0.3s ease;
-          box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
-        }
-
-        .btn-primary:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 12px 40px rgba(16, 185, 129, 0.6);
-        }
-
-        .btn-secondary {
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(10px);
-          color: var(--white);
-          padding: 18px 48px;
-          border-radius: 10px;
-          text-decoration: none;
-          font-weight: 700;
-          font-size: 17px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          transition: all 0.3s ease;
-        }
-
-        .btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: var(--blue);
-        }
-
-        .hero-stats {
-          display: flex;
-          gap: 60px;
-          justify-content: center;
-          margin-top: 80px;
-          animation: fadeInUp 0.8s ease-out 0.6s both;
-        }
-
-        .stat-item {
-          text-align: center;
-        }
-
-        .stat-number {
-          font-size: 48px;
-          font-weight: 700;
-          background: linear-gradient(135deg, var(--blue) 0%, var(--green) 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          display: block;
-          margin-bottom: 8px;
-        }
-
-        .stat-label {
-          font-size: 14px;
-          color: rgba(255, 255, 255, 0.6);
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-
-        .section {
-          padding: 120px 60px;
-          position: relative;
-        }
-
-        .section-container {
-          max-width: 1400px;
-          margin: 0 auto;
-          position: relative;
-          z-index: 1;
-        }
-
-        .section-header {
-          text-align: center;
-          max-width: 800px;
-          margin: 0 auto 80px;
-        }
-
-        .section-label {
-          color: var(--green);
-          font-size: 14px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          margin-bottom: 20px;
-        }
-
-        .section-title {
-          font-size: 56px;
-          font-weight: 700;
-          letter-spacing: -0.03em;
-          margin-bottom: 24px;
-        }
-
-        .section-subtitle {
-          font-size: 20px;
-          color: rgba(255, 255, 255, 0.7);
-        }
-
-        .how-it-works {
-          background: rgba(15, 23, 42, 0.5);
-        }
-
-        .steps-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 40px;
-        }
-
-        .step-card {
-          background: rgba(59, 130, 246, 0.05);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(59, 130, 246, 0.2);
-          padding: 48px;
-          border-radius: 16px;
-          text-align: center;
-          transition: all 0.3s ease;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .step-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, var(--blue) 0%, var(--green) 100%);
-          transform: scaleX(0);
-          transition: transform 0.3s ease;
-        }
-
-        .step-card:hover::before {
-          transform: scaleX(1);
-        }
-
-        .step-card:hover {
-          transform: translateY(-10px);
-          border-color: var(--blue);
-          box-shadow: 0 20px 50px rgba(59, 130, 246, 0.2);
-        }
-
-        .step-number {
-          width: 64px;
-          height: 64px;
-          background: linear-gradient(135deg, var(--blue) 0%, var(--green) 100%);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 32px;
-          font-weight: 700;
-          margin: 0 auto 24px;
-        }
-
-        .step-card h3 {
-          font-size: 24px;
-          margin-bottom: 16px;
-        }
-
-        .step-card p {
-          color: rgba(255, 255, 255, 0.7);
-          line-height: 1.7;
-        }
-
-        .features-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 32px;
-        }
-
-        .feature-card {
-          background: rgba(255, 255, 255, 0.02);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          padding: 40px;
-          border-radius: 16px;
-          transition: all 0.3s ease;
-        }
-
-        .feature-card:hover {
-          background: rgba(59, 130, 246, 0.05);
-          border-color: rgba(59, 130, 246, 0.3);
-          transform: translateY(-5px);
-        }
-
-        .feature-icon {
-          font-size: 40px;
-          margin-bottom: 24px;
-          display: block;
-        }
-
-        .feature-card h3 {
-          font-size: 22px;
-          margin-bottom: 12px;
-        }
-
-        .feature-card p {
-          color: rgba(255, 255, 255, 0.7);
-          line-height: 1.7;
-        }
-
-        .comparison {
-          background: linear-gradient(180deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%);
-        }
-
-        .comparison-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 60px;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-
-        .comparison-card {
-          background: rgba(255, 255, 255, 0.02);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          padding: 48px;
-          border-radius: 20px;
-        }
-
-        .comparison-card.traditional {
-          border-color: rgba(239, 68, 68, 0.3);
-        }
-
-        .comparison-card.verktor {
-          border-color: var(--green);
-          background: rgba(16, 185, 129, 0.05);
-        }
-
-        .comparison-label {
-          font-size: 14px;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          font-weight: 700;
-          margin-bottom: 24px;
-        }
-
-        .comparison-card.traditional .comparison-label {
-          color: #EF4444;
-        }
-
-        .comparison-card.verktor .comparison-label {
-          color: var(--green);
-        }
-
-        .comparison-card h3 {
-          font-size: 36px;
-          margin-bottom: 32px;
-        }
-
-        .comparison-list {
-          list-style: none;
-        }
-
-        .comparison-list li {
-          padding: 16px 0;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-          display: flex;
-          gap: 16px;
-          align-items: start;
-        }
-
-        .comparison-list li::before {
-          content: '✓';
-          color: var(--green);
-          font-weight: 700;
-          font-size: 20px;
-          flex-shrink: 0;
-        }
-
-        .comparison-card.traditional .comparison-list li::before {
-          content: '✗';
-          color: #EF4444;
-        }
-
-        .portfolio {
-          background: rgba(15, 23, 42, 0.8);
-        }
-
-        .portfolio-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 40px;
-        }
-
-        .portfolio-item {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 16px;
-          overflow: hidden;
-          transition: all 0.3s ease;
-        }
-
-        .portfolio-item:hover {
-          transform: translateY(-10px);
-          box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3);
-          border-color: var(--blue);
-        }
-
-        .portfolio-preview {
-          aspect-ratio: 16/10;
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .portfolio-preview::before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 200px;
-          height: 200px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
-          border-radius: 50%;
-        }
-
-        .portfolio-info {
-          padding: 32px;
-        }
-
-        .portfolio-info h3 {
-          font-size: 24px;
-          margin-bottom: 12px;
-        }
-
-        .portfolio-info p {
-          color: rgba(255, 255, 255, 0.6);
-          margin-bottom: 20px;
-        }
-
-        .portfolio-link {
-          color: var(--blue);
-          text-decoration: none;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          transition: gap 0.3s ease;
-        }
-
-        .portfolio-link:hover {
-          gap: 12px;
-        }
-
-        .use-cases-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 40px;
-        }
-
-        .use-case-card {
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
-          border: 1px solid rgba(59, 130, 246, 0.2);
-          padding: 48px;
-          border-radius: 20px;
-          transition: all 0.3s ease;
-        }
-
-        .use-case-card:hover {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+        
+        .slide-up {
+          animation: slideUp 0.8s ease-out forwards;
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        
+        @keyframes slideUp {
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .glow {
+          box-shadow: 0 0 60px rgba(0,0,0,0.1);
+        }
+        
+        .card-hover {
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
           transform: translateY(-8px);
-          border-color: var(--blue);
-          box-shadow: 0 20px 50px rgba(59, 130, 246, 0.2);
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
         }
-
-        .use-case-icon {
-          font-size: 48px;
-          margin-bottom: 24px;
-        }
-
-        .use-case-card h3 {
-          font-size: 28px;
-          margin-bottom: 16px;
-        }
-
-        .use-case-card p {
-          color: rgba(255, 255, 255, 0.7);
-          line-height: 1.7;
-          margin-bottom: 24px;
-        }
-
-        .use-case-benefits {
-          list-style: none;
-        }
-
-        .use-case-benefits li {
-          padding: 8px 0;
-          padding-left: 28px;
-          position: relative;
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        .use-case-benefits li::before {
-          content: '→';
-          position: absolute;
-          left: 0;
-          color: var(--green);
-          font-weight: 700;
-        }
-
-        .pricing {
-          background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%);
-        }
-
-        .pricing-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 32px;
-        }
-
-        .pricing-card {
-          background: rgba(255, 255, 255, 0.02);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 20px;
-          padding: 48px;
-          transition: all 0.3s ease;
-        }
-
-        .pricing-card:hover {
-          transform: translateY(-10px);
-          border-color: var(--blue);
-          box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3);
-        }
-
-        .pricing-card.featured {
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
-          border-color: var(--green);
-          transform: scale(1.05);
-        }
-
-        .popular-badge {
-          background: var(--green);
-          color: var(--white);
-          padding: 6px 16px;
-          border-radius: 20px;
-          font-size: 12px;
-          font-weight: 700;
-          text-transform: uppercase;
-          display: inline-block;
-          margin-bottom: 24px;
-        }
-
-        .pricing-card h3 {
-          font-size: 28px;
-          margin-bottom: 12px;
-        }
-
-        .pricing-card .description {
-          color: rgba(255, 255, 255, 0.6);
-          margin-bottom: 32px;
-        }
-
-        .price {
-          font-size: 64px;
-          font-weight: 700;
-          background: linear-gradient(135deg, var(--blue) 0%, var(--green) 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          margin-bottom: 8px;
-        }
-
-        .price-period {
-          color: rgba(255, 255, 255, 0.6);
-          margin-bottom: 32px;
-        }
-
-        .pricing-features {
-          list-style: none;
-          margin-bottom: 32px;
-        }
-
-        .pricing-features li {
-          padding: 12px 0;
-          padding-left: 32px;
-          position: relative;
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        .pricing-features li::before {
-          content: '✓';
-          position: absolute;
-          left: 0;
-          color: var(--green);
-          font-weight: 700;
-          font-size: 18px;
-        }
-
-        .pricing-cta {
-          width: 100%;
-          padding: 16px;
-          border-radius: 10px;
-          font-weight: 700;
-          text-align: center;
-          text-decoration: none;
-          display: block;
-          transition: all 0.3s ease;
-        }
-
-        .pricing-card:not(.featured) .pricing-cta {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: var(--white);
-        }
-
-        .pricing-card:not(.featured) .pricing-cta:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        .pricing-card.featured .pricing-cta {
-          background: linear-gradient(135deg, var(--green) 0%, #059669 100%);
-          color: var(--white);
-          box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
-        }
-
-        .pricing-card.featured .pricing-cta:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 40px rgba(16, 185, 129, 0.6);
-        }
-
-        .testimonials {
-          background: rgba(15, 23, 42, 0.5);
-        }
-
-        .testimonials-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 32px;
-        }
-
-        .testimonial-card {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          padding: 40px;
-          border-radius: 16px;
-        }
-
-        .testimonial-stars {
-          color: var(--green);
-          font-size: 18px;
-          margin-bottom: 20px;
-          letter-spacing: 4px;
-        }
-
-        .testimonial-text {
-          color: rgba(255, 255, 255, 0.8);
-          line-height: 1.7;
-          margin-bottom: 24px;
-          font-size: 16px;
-        }
-
-        .testimonial-author {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .author-avatar {
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, var(--blue) 0%, var(--green) 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 18px;
-        }
-
-        .author-info h4 {
-          font-size: 16px;
-          margin-bottom: 4px;
-        }
-
-        .author-info p {
-          font-size: 14px;
-          color: rgba(255, 255, 255, 0.6);
-        }
-
-        .faq {
-          background: rgba(15, 23, 42, 0.8);
-        }
-
-        .faq-container {
-          max-width: 900px;
-          margin: 0 auto;
-        }
-
-        .faq-item {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          padding: 32px;
-          border-radius: 16px;
-          margin-bottom: 20px;
-          transition: all 0.3s ease;
-        }
-
-        .faq-item:hover {
-          background: rgba(59, 130, 246, 0.05);
-          border-color: var(--blue);
-        }
-
-        .faq-question {
-          font-size: 20px;
-          font-weight: 700;
-          margin-bottom: 16px;
-          color: var(--white);
-        }
-
-        .faq-answer {
-          color: rgba(255, 255, 255, 0.7);
-          line-height: 1.7;
-        }
-
-        .final-cta {
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%);
-          text-align: center;
+        
+        .line-reveal {
           position: relative;
           overflow: hidden;
         }
-
-        .final-cta::before {
+        
+        .line-reveal::after {
           content: '';
           position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
-          animation: rotate 30s linear infinite;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 1px;
+          background: #000;
+          transform: scaleX(0);
+          transform-origin: right;
+          transition: transform 0.5s ease;
         }
-
-        @keyframes rotate {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+        
+        .line-reveal:hover::after {
+          transform: scaleX(1);
+          transform-origin: left;
         }
-
-        .final-cta-content {
-          position: relative;
-          z-index: 1;
-        }
-
-        .final-cta h2 {
-          font-size: 64px;
-          margin-bottom: 24px;
-        }
-
-        .final-cta p {
-          font-size: 24px;
-          color: rgba(255, 255, 255, 0.8);
-          margin-bottom: 48px;
-        }
-
-        footer {
-          background: rgba(15, 23, 42, 0.95);
-          padding: 80px 60px 40px;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .footer-container {
-          max-width: 1400px;
-          margin: 0 auto;
-        }
-
-        .footer-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1fr 1fr;
-          gap: 60px;
-          margin-bottom: 60px;
-        }
-
-        .footer-brand .logo {
-          font-size: 28px;
-          margin-bottom: 20px;
-        }
-
-        .footer-description {
-          color: rgba(255, 255, 255, 0.6);
-          line-height: 1.7;
-          margin-bottom: 24px;
-        }
-
-        .footer-column h4 {
-          font-size: 14px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: 20px;
-        }
-
-        .footer-links {
-          list-style: none;
-        }
-
-        .footer-links li {
-          margin-bottom: 12px;
-        }
-
-        .footer-links a {
-          color: rgba(255, 255, 255, 0.6);
-          text-decoration: none;
-          transition: color 0.3s ease;
-        }
-
-        .footer-links a:hover {
-          color: var(--blue);
-        }
-
-        .footer-bottom {
-          padding-top: 40px;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          color: rgba(255, 255, 255, 0.5);
-          font-size: 14px;
-        }
-
-        .powered-by {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        @media (max-width: 1200px) {
-          .steps-grid,
-          .features-grid,
-          .pricing-grid,
-          .testimonials-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .comparison-grid,
-          .portfolio-grid,
-          .use-cases-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .nav-container,
-          .section {
-            padding-left: 24px;
-            padding-right: 24px;
-          }
-
-          .nav-menu {
-            display: none;
-          }
-
-          .hero h1 {
-            font-size: 48px;
-          }
-
-          .section-title {
-            font-size: 36px;
-          }
-
-          .hero-cta-group,
-          .hero-stats {
-            flex-direction: column;
-            gap: 20px;
-          }
-
-          .footer-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .footer-bottom {
-            flex-direction: column;
-            gap: 20px;
-            text-align: center;
-          }
+        
+        .noise {
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+          opacity: 0.03;
         }
       `}</style>
 
-      <div className="bg-animation"></div>
+      {/* NOISE OVERLAY */}
+      <div className="fixed inset-0 pointer-events-none noise z-50"></div>
 
-      <nav>
-        <div className="nav-container">
-          <div className="logo">Verktorlabs.ai</div>
-          <ul className="nav-menu">
-            <li><a href="#how-it-works">How It Works</a></li>
-            <li><a href="#features">Features</a></li>
-            <li><a href="#portfolio">Portfolio</a></li>
-            <li><a href="#pricing">Pricing</a></li>
-          </ul>
-          <a href="#pricing" className="nav-cta">Get Started Free</a>
-        </div>
-      </nav>
-
-      <section className="hero">
-        <div className="hero-container">
-          <div className="ai-badge">Powered by Claude AI • 10+ Years Experience</div>
-          
-          <h1>AI-Powered. Human-Perfected.<br/>Instantly Delivered.</h1>
-          
-          <p className="hero-subtitle">$50,000 agency-quality websites delivered in 60 minutes. See your website before you pay. Revolutionary AI meets decades of expertise.</p>
-          
-          <div className="hero-cta-group">
-            <a href="#pricing" className="btn-primary">Start Your Website Now</a>
-            <a href="#portfolio" className="btn-secondary">View Portfolio</a>
-          </div>
-
-          <div className="hero-stats">
-            <div className="stat-item">
-              <span className="stat-number">60min</span>
-              <span className="stat-label">Preview Delivery</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-number">$50K</span>
-              <span className="stat-label">Agency Quality</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-number">10+</span>
-              <span className="stat-label">Years Experience</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="how-it-works section" id="how-it-works">
-        <div className="section-container">
-          <div className="section-header">
-            <div className="section-label">How It Works</div>
-            <h2 className="section-title">From Concept to Live Website in 3 Steps</h2>
-            <p className="section-subtitle">The future of web development is here. No more weeks of waiting. No more massive upfront costs.</p>
-          </div>
-
-          <div className="steps-grid">
-            <div className="step-card">
-              <div className="step-number">1</div>
-              <h3>Fill Quick Form</h3>
-              <p>Tell us about your business in 5 minutes. We need your name, business details, style preferences, and content requirements.</p>
-            </div>
-
-            <div className="step-card">
-              <div className="step-number">2</div>
-              <h3>AI Builds Your Site</h3>
-              <p>Our advanced AI system combined with 10+ years of expertise creates your custom website. Preview ready in 60 minutes.</p>
-            </div>
-
-            <div className="step-card">
-              <div className="step-number">3</div>
-              <h3>Test & Pay Only If You Love It</h3>
-              <p>Review your live website. Test on all devices. Show your team. Pay only if you're thrilled. Zero risk.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section" id="features">
-        <div className="section-container">
-          <div className="section-header">
-            <div className="section-label">Features</div>
-            <h2 className="section-title">Revolutionary Technology Meets Expert Craftsmanship</h2>
-            <p className="section-subtitle">Everything you need to dominate your market online</p>
-          </div>
-
-          <div className="features-grid">
-            <div className="feature-card">
-              <span className="feature-icon">⚡</span>
-              <h3>60-Minute Previews</h3>
-              <p>See your complete website in 60 minutes. Not a mockup. Not wireframes. Your actual website, live and ready to test.</p>
-            </div>
-
-            <div className="feature-card">
-              <span className="feature-icon">💎</span>
-              <h3>$50K Agency Quality</h3>
-              <p>Premium designs that look and perform like sites costing $50,000+. Professional, polished, and proven to convert.</p>
-            </div>
-
-            <div className="feature-card">
-              <span className="feature-icon">🎯</span>
-              <h3>Try Before You Buy</h3>
-              <p>Zero risk. See your website first, then decide. No payment until you're completely satisfied with the result.</p>
-            </div>
-
-            <div className="feature-card">
-              <span className="feature-icon">🤖</span>
-              <h3>AI-Powered Technology</h3>
-              <p>Powered by Claude AI, the world's most advanced language model. Combined with human expertise for perfection.</p>
-            </div>
-
-            <div className="feature-card">
-              <span className="feature-icon">📱</span>
-              <h3>Mobile-Responsive</h3>
-              <p>Flawless on every device. Desktop, tablet, mobile. Your website adapts perfectly to any screen size automatically.</p>
-            </div>
-
-            <div className="feature-card">
-              <span className="feature-icon">🔒</span>
-              <h3>Full Code Ownership</h3>
-              <p>You own everything. All files, all code, forever. No subscriptions, no lock-in, no ongoing fees to us.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="comparison section">
-        <div className="section-container">
-          <div className="section-header">
-            <div className="section-label">Comparison</div>
-            <h2 className="section-title">Traditional Agencies vs. Verktorlabs.ai</h2>
-            <p className="section-subtitle">See why thousands choose us over traditional web development</p>
-          </div>
-
-          <div className="comparison-grid">
-            <div className="comparison-card traditional">
-              <div className="comparison-label">Traditional Agencies</div>
-              <h3>$5,000-$50,000</h3>
-              <ul className="comparison-list">
-                <li>2-8 weeks delivery time</li>
-                <li>Pay 50% upfront before seeing anything</li>
-                <li>Limited revisions (2-3 rounds max)</li>
-                <li>Expensive rush fees</li>
-                <li>Hidden costs and upsells</li>
-                <li>Locked into their platform</li>
-                <li>Ongoing maintenance fees</li>
-              </ul>
-            </div>
-
-            <div className="comparison-card verktor">
-              <div className="comparison-label">Verktorlabs.ai</div>
-              <h3>$299-$999</h3>
-              <ul className="comparison-list">
-                <li>60-minute preview delivery</li>
-                <li>See your website before paying anything</li>
-                <li>Multiple revision rounds included</li>
-                <li>Same-day turnaround standard</li>
-                <li>Transparent, all-inclusive pricing</li>
-                <li>Full code ownership, no lock-in</li>
-                <li>No ongoing fees to us</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="portfolio section" id="portfolio">
-        <div className="section-container">
-          <div className="section-header">
-            <div className="section-label">Portfolio</div>
-            <h2 className="section-title">See What We Build</h2>
-            <p className="section-subtitle">Real examples of $50,000 agency-quality websites we create</p>
-          </div>
-
-          <div className="portfolio-grid">
-            <div className="portfolio-item">
-              <div className="portfolio-preview"></div>
-              <div className="portfolio-info">
-                <h3>Business Consulting</h3>
-                <p>Professional service landing page with lead generation focus</p>
-                <a href="https://progrowth-demo.netlify.app" target="_blank" rel="noopener noreferrer" className="portfolio-link">View Live Demo →</a>
-              </div>
-            </div>
-
-            <div className="portfolio-item">
-              <div className="portfolio-preview"></div>
-              <div className="portfolio-info">
-                <h3>E-Commerce Store</h3>
-                <p>Bold editorial fashion site with product showcase</p>
-                <a href="https://luxe-demo1.netlify.app" target="_blank" rel="noopener noreferrer" className="portfolio-link">View Live Demo →</a>
-              </div>
-            </div>
-
-            <div className="portfolio-item">
-              <div className="portfolio-preview"></div>
-              <div className="portfolio-info">
-                <h3>Professional Services</h3>
-                <p>Premium law firm website with trust-building design</p>
-                <a href="https://sterling-demo.netlify.app" target="_blank" rel="noopener noreferrer" className="portfolio-link">View Live Demo →</a>
-              </div>
-            </div>
-
-            <div className="portfolio-item">
-              <div className="portfolio-preview"></div>
-              <div className="portfolio-info">
-                <h3>SaaS Product</h3>
-                <p>Modern tech landing page with interactive pricing</p>
-                <a href="https://flowmetrics-demo.netlify.app" target="_blank" rel="noopener noreferrer" className="portfolio-link">View Live Demo →</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-container">
-          <div className="section-header">
-            <div className="section-label">Use Cases</div>
-            <h2 className="section-title">Built for Your Business Model</h2>
-            <p className="section-subtitle">Whether you're an agency, freelancer, or business owner</p>
-          </div>
-
-          <div className="use-cases-grid">
-            <div className="use-case-card">
-              <div className="use-case-icon">🏢</div>
-              <h3>For Agencies</h3>
-              <p>Scale your client work without hiring more developers. White-label our service and deliver professional websites in hours, not weeks.</p>
-              <ul className="use-case-benefits">
-                <li>Take on 10x more clients</li>
-                <li>Increase profit margins</li>
-                <li>Faster turnaround = happier clients</li>
-                <li>Focus on strategy, we handle execution</li>
-              </ul>
-            </div>
-
-            <div className="use-case-card">
-              <div className="use-case-icon">💼</div>
-              <h3>For Freelancers</h3>
-              <p>Compete with agencies without their overhead. Deliver premium quality that justifies premium prices.</p>
-              <ul className="use-case-benefits">
-                <li>Charge agency rates ($2K-$5K+)</li>
-                <li>Deliver same-day results</li>
-                <li>Scale without hiring</li>
-                <li>Build passive income streams</li>
-              </ul>
-            </div>
-
-            <div className="use-case-card">
-              <div className="use-case-icon">🚀</div>
-              <h3>For Businesses</h3>
-              <p>Get a professional online presence without breaking the bank. Perfect for startups, small businesses, and entrepreneurs.</p>
-              <ul className="use-case-benefits">
-                <li>Save $40K+ vs. agencies</li>
-                <li>Launch in days, not months</li>
-                <li>Professional quality guaranteed</li>
-                <li>Try before you commit</li>
-              </ul>
-            </div>
-
-            <div className="use-case-card">
-              <div className="use-case-icon">🎯</div>
-              <h3>For Startups</h3>
-              <p>Make a powerful first impression with a professional website. Validate your idea fast with a live site.</p>
-              <ul className="use-case-benefits">
-                <li>Launch MVP in 60 minutes</li>
-                <li>Test market before big investment</li>
-                <li>Professional brand from day 1</li>
-                <li>Iterate quickly based on feedback</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="pricing section" id="pricing">
-        <div className="section-container">
-          <div className="section-header">
-            <div className="section-label">Pricing</div>
-            <h2 className="section-title">Transparent, Fair, Revolutionary</h2>
-            <p className="section-subtitle">Agency quality at a fraction of the cost. No hidden fees, ever.</p>
-          </div>
-
-          <div className="pricing-grid">
-            <div className="pricing-card">
-              <h3>Basic</h3>
-              <p className="description">Perfect for landing pages and portfolios</p>
-              <div className="price">$299</div>
-              <p className="price-period">one-time payment</p>
-              <ul className="pricing-features">
-                <li>Single-page website</li>
-                <li>Mobile-responsive design</li>
-                <li>60-minute preview</li>
-                <li>1 revision round</li>
-                <li>Same-day delivery</li>
-                <li>Full code ownership</li>
-                <li>SEO-optimized</li>
-              </ul>
-              <a href="#contact" className="pricing-cta">Get Started</a>
-            </div>
-
-            <div className="pricing-card featured">
-              <div className="popular-badge">Most Popular</div>
-              <h3>Professional</h3>
-              <p className="description">For established businesses</p>
-              <div className="price">$599</div>
-              <p className="price-period">one-time payment</p>
-              <ul className="pricing-features">
-                <li>Multi-page website (5-8 pages)</li>
-                <li>Mobile-responsive design</li>
-                <li>60-minute preview</li>
-                <li>2 revision rounds</li>
-                <li>24-hour delivery</li>
-                <li>Full code ownership</li>
-                <li>SEO-optimized</li>
-                <li>Contact forms included</li>
-                <li>Priority support</li>
-              </ul>
-              <a href="#contact" className="pricing-cta">Get Started</a>
-            </div>
-
-            <div className="pricing-card">
-              <h3>Premium</h3>
-              <p className="description">For complex sites and e-commerce</p>
-              <div className="price">$999</div>
-              <p className="price-period">one-time payment</p>
-              <ul className="pricing-features">
-                <li>Full custom website (8-12+ pages)</li>
-                <li>Mobile-responsive design</li>
-                <li>60-minute preview</li>
-                <li>3 revision rounds</li>
-                <li>24-hour delivery</li>
-                <li>Full code ownership</li>
-                <li>SEO-optimized</li>
-                <li>E-commerce ready</li>
-                <li>Advanced features</li>
-                <li>Premium support</li>
-              </ul>
-              <a href="#contact" className="pricing-cta">Get Started</a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="testimonials section">
-        <div className="section-container">
-          <div className="section-header">
-            <div className="section-label">Testimonials</div>
-            <h2 className="section-title">Trusted by Thousands</h2>
-            <p className="section-subtitle">See what our clients say about working with us</p>
-          </div>
-
-          <div className="testimonials-grid">
-            <div className="testimonial-card">
-              <div className="testimonial-stars">★★★★★</div>
-              <p className="testimonial-text">&quot;I was skeptical about AI-generated websites, but Verktorlabs blew me away. The quality is indistinguishable from a $20K agency site. Delivered in 3 hours!&quot;</p>
-              <div className="testimonial-author">
-                <div className="author-avatar">JD</div>
-                <div className="author-info">
-                  <h4>Jason Davis</h4>
-                  <p>Founder, TechStart Inc</p>
+      {/* HEADER */}
+      <header className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${scrolled ? 'bg-white/90 backdrop-blur-xl shadow-sm' : 'bg-transparent'}`}>
+        <nav className="max-w-[1400px] mx-auto px-8 lg:px-12">
+          <div className="flex items-center justify-between h-20">
+            {/* LOGO */}
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="relative w-11 h-11">
+                <div className="absolute inset-0 bg-black rounded-xl transition-transform duration-300 group-hover:rotate-6"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-white font-display text-xl font-semibold">V</span>
                 </div>
               </div>
+              <div className="hidden sm:block">
+                <span className="font-body text-[15px] font-semibold tracking-wide text-black">VERKTORLABS</span>
+              </div>
+            </Link>
+
+            {/* NAV LINKS */}
+            <div className="hidden lg:flex items-center gap-12">
+              {['Services', 'Process', 'Pricing', 'About'].map((item) => (
+                <a 
+                  key={item} 
+                  href={`#${item.toLowerCase()}`} 
+                  className="font-body text-[13px] font-medium tracking-wide text-neutral-500 hover:text-black transition-colors duration-300 line-reveal pb-1"
+                >
+                  {item}
+                </a>
+              ))}
             </div>
 
-            <div className="testimonial-card">
-              <div className="testimonial-stars">★★★★★</div>
-              <p className="testimonial-text">&quot;As an agency owner, this has been game-changing. We can now take on 3x more clients. Our margins are higher and clients are happier with faster delivery.&quot;</p>
-              <div className="testimonial-author">
-                <div className="author-avatar">SM</div>
-                <div className="author-info">
-                  <h4>Sarah Mitchell</h4>
-                  <p>CEO, Digital Solutions Agency</p>
-                </div>
+            {/* CTA */}
+            <div className="flex items-center gap-6">
+              <Link href="/login" className="font-body text-[13px] font-medium text-neutral-500 hover:text-black transition-colors hidden sm:block">
+                Sign In
+              </Link>
+              <Link href="/register" className="group relative px-6 py-3 bg-black text-white font-body text-[13px] font-medium tracking-wide rounded-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-black/20">
+                <span className="relative z-10">Start Project</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-neutral-800 to-black opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              </Link>
+            </div>
+          </div>
+        </nav>
+      </header>
+
+      {/* HERO SECTION */}
+      <section className="relative min-h-screen flex items-center pt-20">
+        {/* BACKGROUND ELEMENTS */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 -right-64 w-[800px] h-[800px] bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-full blur-3xl opacity-60 float"></div>
+          <div className="absolute -bottom-32 -left-64 w-[600px] h-[600px] bg-gradient-to-tr from-neutral-100 to-neutral-200 rounded-full blur-3xl opacity-40"></div>
+        </div>
+
+        <div className="relative max-w-[1400px] mx-auto px-8 lg:px-12 py-24 lg:py-32">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* LEFT: TEXT */}
+            <div className="space-y-8">
+              {/* BADGE */}
+              <div className="slide-up inline-flex items-center gap-3 px-5 py-2.5 bg-white rounded-full border border-neutral-200 shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="font-body text-xs font-medium tracking-wide text-neutral-600">ACCEPTING NEW CLIENTS</span>
+              </div>
+
+              {/* HEADLINE */}
+              <h1 className="slide-up font-display text-5xl sm:text-6xl lg:text-7xl font-medium leading-[1.05] tracking-tight text-black" style={{ animationDelay: '0.1s' }}>
+                We craft digital
+                <br />
+                <span className="gradient-text">experiences</span>
+                <br />
+                that perform
+              </h1>
+
+              {/* SUBHEADLINE */}
+              <p className="slide-up font-body text-lg sm:text-xl text-neutral-500 max-w-lg leading-relaxed" style={{ animationDelay: '0.2s' }}>
+                Premium web design for visionary brands. We transform your vision into 
+                high-converting digital experiences that captivate and convert.
+              </p>
+
+              {/* CTA BUTTONS */}
+              <div className="slide-up flex flex-col sm:flex-row gap-4 pt-4" style={{ animationDelay: '0.3s' }}>
+                <Link href="/register" className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-black text-white font-body text-sm font-medium tracking-wide rounded-full transition-all duration-300 hover:gap-5 hover:shadow-xl hover:shadow-black/20">
+                  <span>Start Your Project</span>
+                  <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+                <a href="#process" className="inline-flex items-center justify-center gap-2 px-8 py-4 font-body text-sm font-medium text-neutral-600 hover:text-black transition-colors">
+                  <span>See How It Works</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                </a>
+              </div>
+
+              {/* STATS */}
+              <div className="slide-up grid grid-cols-3 gap-8 pt-12 border-t border-neutral-200" style={{ animationDelay: '0.4s' }}>
+                {[
+                  { value: '200+', label: 'Projects Delivered' },
+                  { value: '98%', label: 'Client Satisfaction' },
+                  { value: '72h', label: 'Average Turnaround' },
+                ].map((stat) => (
+                  <div key={stat.label}>
+                    <div className="font-display text-3xl sm:text-4xl font-semibold text-black">{stat.value}</div>
+                    <div className="font-body text-xs text-neutral-400 mt-1 tracking-wide">{stat.label}</div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="testimonial-card">
-              <div className="testimonial-stars">★★★★★</div>
-              <p className="testimonial-text">&quot;The 'try before you buy' approach removed all risk. I saw my website, loved it, and paid immediately. Best $599 I've ever spent on my business.&quot;</p>
-              <div className="testimonial-author">
-                <div className="author-avatar">MR</div>
-                <div className="author-info">
-                  <h4>Michael Rodriguez</h4>
-                  <p>Owner, Rodriguez Law Firm</p>
+            {/* RIGHT: VISUAL */}
+            <div className="relative hidden lg:block">
+              <div className="relative">
+                {/* MAIN CARD */}
+                <div className="relative bg-white rounded-3xl p-8 shadow-2xl shadow-neutral-200/50 glow">
+                  <div className="aspect-[4/3] bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-2xl flex items-center justify-center overflow-hidden">
+                    <div className="text-center p-8">
+                      <div className="w-20 h-20 bg-black rounded-2xl flex items-center justify-center mx-auto mb-6">
+                        <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="font-body text-sm text-neutral-400">Your website preview</p>
+                    </div>
+                  </div>
+                  
+                  {/* CARD FOOTER */}
+                  <div className="flex items-center justify-between mt-6 pt-6 border-t border-neutral-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-neutral-100 rounded-full"></div>
+                      <div>
+                        <div className="font-body text-sm font-medium text-black">Project Preview</div>
+                        <div className="font-body text-xs text-neutral-400">In Progress</div>
+                      </div>
+                    </div>
+                    <div className="px-4 py-2 bg-emerald-50 rounded-full">
+                      <span className="font-body text-xs font-medium text-emerald-600">Active</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* FLOATING ELEMENTS */}
+                <div className="absolute -top-6 -right-6 bg-white rounded-2xl p-4 shadow-lg shadow-neutral-200/50 float" style={{ animationDelay: '1s' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="font-body text-xs font-medium text-black">Payment Received</div>
+                      <div className="font-body text-xs text-neutral-400">Just now</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="absolute -bottom-4 -left-8 bg-white rounded-2xl p-4 shadow-lg shadow-neutral-200/50 float" style={{ animationDelay: '2s' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="font-body text-xs font-medium text-black">Site Live!</div>
+                      <div className="font-body text-xs text-neutral-400">72h delivery</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1399,112 +291,371 @@ export default function Page() {
         </div>
       </section>
 
-      <section className="faq section">
-        <div className="section-container">
-          <div className="section-header">
-            <div className="section-label">FAQ</div>
-            <h2 className="section-title">Frequently Asked Questions</h2>
-          </div>
-
-          <div className="faq-container">
-            <div className="faq-item">
-              <div className="faq-question">How can you deliver professional websites so fast?</div>
-              <div className="faq-answer">We combine cutting-edge Claude AI technology with 10+ years of web development expertise. The AI handles the heavy lifting while our human expertise ensures perfection. This allows us to deliver in hours what traditionally takes weeks.</div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-question">What if I don't like the website you build?</div>
-              <div className="faq-answer">Then you don't pay. Simple as that. Our &quot;try before you buy&quot; approach means zero financial risk. You see your complete website before making any payment decision.</div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-question">Do I really own the code and files?</div>
-              <div className="faq-answer">100% yes. You receive all files, all code, and have complete ownership. No subscriptions, no ongoing fees to us, no restrictions. Host it anywhere, modify it anytime. It's yours forever.</div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-question">Can you match my existing brand?</div>
-              <div className="faq-answer">Absolutely. Just provide your brand guidelines, colors, fonts, and style preferences in the form. We'll match your existing brand perfectly or help you create a new one.</div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-question">What about hosting and domain setup?</div>
-              <div className="faq-answer">We can guide you through self-hosting (free), or handle everything for you as an optional add-on ($50). Either way, you maintain full control and ownership.</div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-question">Is this really AI-powered?</div>
-              <div className="faq-answer">Yes! We're powered by Claude AI from Anthropic, one of the world's most advanced AI systems. But we don't stop there - every website is refined by our team to ensure it meets our $50K quality standards.</div>
+      {/* TRUSTED BY */}
+      <section className="py-16 border-y border-neutral-200 bg-white">
+        <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+            <p className="font-body text-sm text-neutral-400 tracking-wide">TRUSTED BY INDUSTRY LEADERS</p>
+            <div className="flex flex-wrap justify-center items-center gap-12 lg:gap-16">
+              {['ACME', 'QUANTUM', 'NEXUS', 'VERTEX', 'PRISM'].map((brand) => (
+                <span key={brand} className="font-body text-xl font-semibold text-neutral-300 hover:text-neutral-400 transition-colors cursor-default tracking-wide">
+                  {brand}
+                </span>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      <section className="final-cta section">
-        <div className="section-container">
-          <div className="final-cta-content">
-            <h2>Ready to Launch Your Website?</h2>
-            <p>Join thousands who've transformed their business with Verktorlabs.ai</p>
-            <div className="hero-cta-group">
-              <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=PZnWtxiLQ0insaB_C5pAjmz9CURoBGBKjZSFZ8OMckRURjQyTE4wNkdCNTNKRFRTMEtaTllQS1pHVi4u" target="_blank" rel="noopener noreferrer" className="btn-primary">Start Your Website Now</a>
-              <a href="#portfolio" className="btn-secondary">View More Examples</a>
+      {/* SERVICES SECTION */}
+      <section id="services" className="py-24 lg:py-32 bg-white">
+        <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+          {/* SECTION HEADER */}
+          <div className="max-w-2xl mb-16 lg:mb-24">
+            <span className="font-body text-xs font-medium tracking-[0.2em] text-neutral-400 uppercase">Services</span>
+            <h2 className="font-display text-4xl lg:text-5xl font-medium text-black mt-4 leading-tight">
+              Everything you need to dominate online
+            </h2>
+          </div>
+
+          {/* SERVICES GRID */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                icon: (
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                ),
+                title: 'Web Design',
+                description: 'Bespoke designs that capture your brand essence and create lasting impressions on every visitor.',
+              },
+              {
+                icon: (
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                ),
+                title: 'Development',
+                description: 'Clean, performant code built on modern frameworks. Fast, secure, and infinitely scalable.',
+              },
+              {
+                icon: (
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                ),
+                title: 'Performance',
+                description: 'Lightning-fast load times and Core Web Vitals optimization for maximum search visibility.',
+              },
+              {
+                icon: (
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                ),
+                title: 'Responsive',
+                description: 'Flawless experiences across all devices. Desktop, tablet, and mobile perfection.',
+              },
+              {
+                icon: (
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                ),
+                title: 'Analytics',
+                description: 'Integrated tracking and insights to measure performance and optimize conversion.',
+              },
+              {
+                icon: (
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ),
+                title: 'Support',
+                description: 'Dedicated support and maintenance to keep your digital presence running smoothly.',
+              },
+            ].map((service, i) => (
+              <div 
+                key={i} 
+                className="group p-8 lg:p-10 bg-neutral-50 rounded-3xl card-hover border border-transparent hover:border-neutral-200 hover:bg-white"
+              >
+                <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center text-white mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  {service.icon}
+                </div>
+                <h3 className="font-display text-xl font-medium text-black mb-3">{service.title}</h3>
+                <p className="font-body text-neutral-500 leading-relaxed">{service.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PROCESS SECTION */}
+      <section id="process" className="py-24 lg:py-32 bg-black text-white overflow-hidden">
+        <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+          {/* SECTION HEADER */}
+          <div className="max-w-2xl mb-16 lg:mb-24">
+            <span className="font-body text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase">Process</span>
+            <h2 className="font-display text-4xl lg:text-5xl font-medium text-white mt-4 leading-tight">
+              From vision to reality in four simple steps
+            </h2>
+          </div>
+
+          {/* PROCESS STEPS */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
+            {[
+              { step: '01', title: 'Discovery', desc: 'Share your vision, goals, and brand identity through our streamlined questionnaire.' },
+              { step: '02', title: 'Design', desc: 'Our team crafts a custom design tailored to your unique business needs.' },
+              { step: '03', title: 'Refine', desc: 'Preview your site and request refinements until it is perfect.' },
+              { step: '04', title: 'Launch', desc: 'Go live with a stunning website ready to convert visitors into customers.' },
+            ].map((item, i) => (
+              <div key={i} className="relative group">
+                <div className="font-display text-8xl lg:text-9xl font-bold text-white/5 leading-none">{item.step}</div>
+                <div className="mt-[-40px] lg:mt-[-50px] relative z-10">
+                  <h3 className="font-display text-2xl font-medium text-white mb-3">{item.title}</h3>
+                  <p className="font-body text-neutral-400 leading-relaxed">{item.desc}</p>
+                </div>
+                {i < 3 && (
+                  <div className="hidden lg:block absolute top-12 left-full w-full h-px bg-gradient-to-r from-white/20 to-transparent"></div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING SECTION */}
+      <section id="pricing" className="py-24 lg:py-32 bg-[#fafafa]">
+        <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+          {/* SECTION HEADER */}
+          <div className="text-center max-w-2xl mx-auto mb-16 lg:mb-24">
+            <span className="font-body text-xs font-medium tracking-[0.2em] text-neutral-400 uppercase">Pricing</span>
+            <h2 className="font-display text-4xl lg:text-5xl font-medium text-black mt-4 leading-tight">
+              Investment in your success
+            </h2>
+            <p className="font-body text-lg text-neutral-500 mt-6">
+              Transparent pricing. No hidden fees. Pay only when you are completely satisfied.
+            </p>
+          </div>
+
+          {/* PRICING CARDS */}
+          <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+            {/* STARTER */}
+            <div className="bg-white rounded-3xl p-8 lg:p-10 border border-neutral-200 card-hover">
+              <div className="mb-8">
+                <span className="font-body text-xs font-medium tracking-[0.15em] text-neutral-400 uppercase">Starter</span>
+                <div className="mt-4 flex items-baseline gap-2">
+                  <span className="font-display text-5xl font-semibold text-black">$299</span>
+                </div>
+                <p className="font-body text-neutral-400 mt-3">Perfect for landing pages and MVPs</p>
+              </div>
+              
+              <ul className="space-y-4 mb-10">
+                {['Single page website', 'Mobile responsive design', 'Contact form integration', '2 rounds of revisions', '48-hour turnaround'].map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="font-body text-neutral-600">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              
+              <Link href="/register" className="block w-full py-4 text-center border-2 border-black text-black font-body text-sm font-medium rounded-full hover:bg-black hover:text-white transition-all duration-300">
+                Get Started
+              </Link>
+            </div>
+
+            {/* PROFESSIONAL */}
+            <div className="relative bg-black rounded-3xl p-8 lg:p-10 text-white lg:scale-105 shadow-2xl shadow-black/20">
+              <div className="absolute top-6 right-6">
+                <span className="px-3 py-1.5 bg-white text-black font-body text-xs font-semibold rounded-full">POPULAR</span>
+              </div>
+              
+              <div className="mb-8">
+                <span className="font-body text-xs font-medium tracking-[0.15em] text-neutral-400 uppercase">Professional</span>
+                <div className="mt-4 flex items-baseline gap-2">
+                  <span className="font-display text-5xl font-semibold text-white">$599</span>
+                </div>
+                <p className="font-body text-neutral-400 mt-3">For growing businesses ready to scale</p>
+              </div>
+              
+              <ul className="space-y-4 mb-10">
+                {['Up to 5 pages', 'Custom UI/UX design', 'SEO optimization', 'Analytics integration', '72-hour delivery'].map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="font-body text-neutral-300">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              
+              <Link href="/register" className="block w-full py-4 text-center bg-white text-black font-body text-sm font-medium rounded-full hover:bg-neutral-100 transition-all duration-300">
+                Get Started
+              </Link>
+            </div>
+
+            {/* ENTERPRISE */}
+            <div className="bg-white rounded-3xl p-8 lg:p-10 border border-neutral-200 card-hover">
+              <div className="mb-8">
+                <span className="font-body text-xs font-medium tracking-[0.15em] text-neutral-400 uppercase">Enterprise</span>
+                <div className="mt-4 flex items-baseline gap-2">
+                  <span className="font-display text-5xl font-semibold text-black">$999</span>
+                </div>
+                <p className="font-body text-neutral-400 mt-3">Complete e-commerce solution</p>
+              </div>
+              
+              <ul className="space-y-4 mb-10">
+                {['Unlimited pages', 'E-commerce integration', 'Payment processing', 'Unlimited revisions', 'Priority support'].map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="font-body text-neutral-600">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              
+              <Link href="/register" className="block w-full py-4 text-center border-2 border-black text-black font-body text-sm font-medium rounded-full hover:bg-black hover:text-white transition-all duration-300">
+                Get Started
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      <footer>
-        <div className="footer-container">
-          <div className="footer-grid">
-            <div className="footer-brand">
-              <div className="logo">Verktorlabs.ai</div>
-              <p className="footer-description">Revolutionary AI-powered web development platform. $50,000 agency quality at a fraction of the cost. See your website before you pay.</p>
+      {/* GUARANTEE SECTION */}
+      <section className="py-24 lg:py-32 bg-white">
+        <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-black rounded-full mb-8">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            
+            <h2 className="font-display text-4xl lg:text-6xl font-medium text-black leading-tight mb-6">
+              Love it, or do not pay
+            </h2>
+            
+            <p className="font-body text-xl text-neutral-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+              We build your website before you pay a dime. Only invest when you are 100% satisfied 
+              with the design. Zero risk. Zero commitment. Just results.
+            </p>
+            
+            <Link href="/register" className="group inline-flex items-center gap-3 px-8 py-4 bg-black text-white font-body text-sm font-medium tracking-wide rounded-full transition-all duration-300 hover:gap-5 hover:shadow-xl hover:shadow-black/20">
+              <span>Start Your Risk-Free Project</span>
+              <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="py-24 lg:py-32 bg-black text-white">
+        <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="font-display text-4xl sm:text-5xl lg:text-7xl font-medium leading-tight mb-8">
+              Ready to transform
+              <br />
+              <span className="text-neutral-500">your digital presence?</span>
+            </h2>
+            
+            <p className="font-body text-xl text-neutral-400 max-w-xl mx-auto mb-12">
+              Join hundreds of ambitious brands that have elevated their online presence with Verktorlabs.
+            </p>
+            
+            <Link href="/register" className="group inline-flex items-center gap-3 px-10 py-5 bg-white text-black font-body text-sm font-medium tracking-wide rounded-full transition-all duration-300 hover:gap-5 hover:shadow-xl hover:shadow-white/20">
+              <span>Get Started Today</span>
+              <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="py-16 bg-neutral-950 text-white">
+        <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+          <div className="grid lg:grid-cols-4 gap-12 lg:gap-8 mb-16">
+            {/* BRAND */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center">
+                  <span className="text-black font-display text-xl font-semibold">V</span>
+                </div>
+                <span className="font-body text-[15px] font-semibold tracking-wide">VERKTORLABS</span>
+              </div>
+              <p className="font-body text-neutral-400 max-w-md leading-relaxed">
+                Premium web design agency crafting high-converting digital experiences for ambitious brands worldwide.
+              </p>
             </div>
 
-            <div className="footer-column">
-              <h4>Product</h4>
-              <ul className="footer-links">
-                <li><a href="#how-it-works">How It Works</a></li>
-                <li><a href="#features">Features</a></li>
-                <li><a href="#portfolio">Portfolio</a></li>
-                <li><a href="#pricing">Pricing</a></li>
+            {/* LINKS */}
+            <div>
+              <h4 className="font-body text-xs font-semibold tracking-[0.15em] text-neutral-500 uppercase mb-6">Company</h4>
+              <ul className="space-y-4">
+                {['About', 'Services', 'Pricing', 'Contact'].map((link) => (
+                  <li key={link}>
+                    <a href={`#${link.toLowerCase()}`} className="font-body text-neutral-400 hover:text-white transition-colors">
+                      {link}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
 
-            <div className="footer-column">
-              <h4>Company</h4>
-              <ul className="footer-links">
-                <li><a href="#about">About</a></li>
-                <li><a href="#contact">Contact</a></li>
-                <li><a href="#careers">Careers</a></li>
-                <li><a href="#blog">Blog</a></li>
-              </ul>
-            </div>
-
-            <div className="footer-column">
-              <h4>Legal</h4>
-              <ul className="footer-links">
-                <li><a href="#terms">Terms of Service</a></li>
-                <li><a href="#privacy">Privacy Policy</a></li>
-                <li><a href="#refund">Refund Policy</a></li>
+            {/* LEGAL */}
+            <div>
+              <h4 className="font-body text-xs font-semibold tracking-[0.15em] text-neutral-500 uppercase mb-6">Legal</h4>
+              <ul className="space-y-4">
+                {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((link) => (
+                  <li key={link}>
+                    <a href="#" className="font-body text-neutral-400 hover:text-white transition-colors">
+                      {link}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
 
-          <div className="footer-bottom">
-            <div>&copy; 2026 Verktorlabs.ai. All rights reserved.</div>
-            <div className="powered-by">
-              <span>Powered by</span>
-              <span style={{
-                background: 'linear-gradient(135deg, var(--blue) 0%, var(--green) 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontWeight: 700
-              }}>Claude AI</span>
+          {/* BOTTOM */}
+          <div className="pt-8 border-t border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="font-body text-sm text-neutral-500">© 2024 Verktorlabs. All rights reserved.</p>
+            <div className="flex items-center gap-6">
+              {['Twitter', 'LinkedIn', 'Instagram'].map((social) => (
+                <a key={social} href="#" className="font-body text-sm text-neutral-500 hover:text-white transition-colors">
+                  {social}
+                </a>
+              ))}
             </div>
           </div>
         </div>
       </footer>
-    </>
+    </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+        <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
