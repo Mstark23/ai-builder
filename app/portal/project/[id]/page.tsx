@@ -43,11 +43,9 @@ export default function CustomerProjectDetailPage() {
     checkAuth();
   }, []);
 
-  // Handle payment status from URL
   useEffect(() => {
     if (paymentStatus === 'success') {
       setMessage({ type: 'success', text: '🎉 Payment successful! Your website is now ready.' });
-      // Reload project to get updated paid status
       setTimeout(() => checkAuth(), 1000);
     } else if (paymentStatus === 'cancelled') {
       setMessage({ type: 'error', text: 'Payment was cancelled. You can try again anytime.' });
@@ -73,14 +71,10 @@ export default function CustomerProjectDetailPage() {
         .single();
 
       if (error || !data) {
-        console.error('Project load error:', error);
         router.push('/portal');
         return;
       }
 
-      console.log('Project loaded:', data); // Debug log
-      console.log('Generated HTML exists:', !!data.generated_html); // Debug log
-      
       setProject(data);
     } catch (err) {
       console.error('Error loading project:', err);
@@ -147,7 +141,6 @@ export default function CustomerProjectDetailPage() {
         throw new Error(data.error || 'Failed to create checkout session');
       }
 
-      // Redirect to Stripe Checkout
       window.location.href = data.url;
 
     } catch (err: any) {
@@ -191,7 +184,6 @@ export default function CustomerProjectDetailPage() {
     return progress[status] || 0;
   };
 
-  // Add watermark to HTML
   const getWatermarkedHtml = (html: string) => {
     if (!html) return '';
     
@@ -251,7 +243,6 @@ export default function CustomerProjectDetailPage() {
       </div>
     `;
 
-    // Insert before closing body tag
     if (html.includes('</body>')) {
       return html.replace('</body>', `${watermarkStyles}</body>`);
     }
@@ -409,15 +400,6 @@ export default function CustomerProjectDetailPage() {
           </div>
         </div>
 
-        {/* DEBUG INFO - Remove in production */}
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs font-mono">
-          <p>Debug: hasPreview = {hasPreview ? 'true' : 'false'}</p>
-          <p>Debug: generated_html = {project.generated_html ? `${project.generated_html.length} chars` : 'null'}</p>
-          <p>Debug: preview_url = {project.preview_url || 'null'}</p>
-          <p>Debug: paid = {project.paid ? 'true' : 'false'}</p>
-          <p>Debug: showPayButton = {showPayButton ? 'true' : 'false'}</p>
-        </div>
-
         {/* PREVIEW OR STATUS */}
         {hasPreview ? (
           <div className="grid lg:grid-cols-3 gap-6">
@@ -562,6 +544,21 @@ export default function CustomerProjectDetailPage() {
                   </div>
                 </div>
               </div>
+
+              {/* HELP */}
+              <div className="bg-blue-50 rounded-2xl border border-blue-200 p-6">
+                <h3 className="font-body font-medium text-blue-900 mb-1">Need Help?</h3>
+                <p className="font-body text-sm text-blue-700 mb-3">Our team is here to assist you.</p>
+                <a
+                  href="mailto:support@verktorlabs.com"
+                  className="inline-flex items-center gap-2 font-body text-sm text-blue-600 hover:underline"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Contact Support
+                </a>
+              </div>
             </div>
           </div>
         ) : (
@@ -577,10 +574,10 @@ export default function CustomerProjectDetailPage() {
               {project.status === 'REVISION_REQUESTED' && 'Working on Your Revisions'}
             </h2>
             <p className="font-body text-neutral-500 max-w-md mx-auto mb-6">
-              {project.status === 'QUEUED' && 'Our team will start working on your website soon.'}
-              {project.status === 'IN_PROGRESS' && 'Our designers are crafting your perfect website.'}
-              {project.status === 'PREVIEW_READY' && 'Your preview is almost ready!'}
-              {project.status === 'REVISION_REQUESTED' && 'We\'re applying your requested changes.'}
+              {project.status === 'QUEUED' && 'Our team will start working on your website soon. You\'ll receive a notification when your preview is ready.'}
+              {project.status === 'IN_PROGRESS' && 'Our designers are crafting your perfect website. You\'ll be notified when it\'s ready for review.'}
+              {project.status === 'PREVIEW_READY' && 'Your preview is almost ready! Please refresh in a moment.'}
+              {project.status === 'REVISION_REQUESTED' && 'We\'re applying your requested changes. You\'ll be notified when the updated preview is ready.'}
             </p>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 rounded-full">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -596,29 +593,33 @@ export default function CustomerProjectDetailPage() {
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full">
             <h2 className="font-display text-xl font-medium text-black mb-2">Request Revision</h2>
             <p className="font-body text-sm text-neutral-500 mb-4">
-              Tell us what changes you'd like.
+              Tell us what changes you'd like. Be as specific as possible for best results.
             </p>
             
             <textarea
               value={revisionNotes}
               onChange={(e) => setRevisionNotes(e.target.value)}
-              placeholder="e.g., Change the header color to blue..."
+              placeholder="e.g., Change the header color to blue, make the logo larger, add a contact form to the footer..."
               className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 resize-none h-32 focus:outline-none focus:border-black"
             />
+            
+            <p className="font-body text-xs text-neutral-400 mt-2 mb-4">
+              Revision {(project.revision_count || 0) + 1} of {MAX_FREE_REVISIONS} free revisions
+            </p>
 
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowRevisionModal(false)}
-                className="flex-1 px-4 py-3 bg-neutral-100 text-neutral-700 font-body font-medium rounded-xl hover:bg-neutral-200"
+                className="flex-1 px-4 py-3 bg-neutral-100 text-neutral-700 font-body font-medium rounded-xl hover:bg-neutral-200 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleRequestRevision}
                 disabled={submitting || !revisionNotes.trim()}
-                className="flex-1 px-4 py-3 bg-black text-white font-body font-medium rounded-xl hover:bg-black/80 disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-black text-white font-body font-medium rounded-xl hover:bg-black/80 transition-colors disabled:opacity-50"
               >
-                {submitting ? 'Submitting...' : 'Submit'}
+                {submitting ? 'Submitting...' : 'Submit Request'}
               </button>
             </div>
           </div>
