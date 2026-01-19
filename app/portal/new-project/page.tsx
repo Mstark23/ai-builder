@@ -6,30 +6,110 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
 type FormData = {
+  // Step 1: Business Basics
   businessName: string;
   industry: string;
   description: string;
   websiteGoal: string;
+  targetCustomer: string;
+  
+  // Step 2: Style & Vibe
   style: string;
-  plan: string;
+  colorPreference: string;
+  moodTags: string[];
   inspirations: string;
+  
+  // Step 3: Plan
+  plan: string;
+  
+  // Step 4: Features & Contact
   features: string[];
+  contactEmail: string;
+  contactPhone: string;
+  address: string;
+  uniqueValue: string;
 };
 
+// Enhanced industries with icons and better categorization
 const industries = [
-  'Technology', 'E-commerce', 'Healthcare', 'Finance', 'Education',
-  'Real Estate', 'Restaurant', 'Fitness', 'Beauty', 'Legal',
-  'Marketing', 'Consulting', 'Photography', 'Construction', 'Other'
+  { id: 'restaurant', name: 'Restaurant / Food', icon: '🍽️' },
+  { id: 'local-services', name: 'Local Services', icon: '🔧' },
+  { id: 'professional', name: 'Professional Services', icon: '💼' },
+  { id: 'health-beauty', name: 'Health & Beauty', icon: '💆' },
+  { id: 'real-estate', name: 'Real Estate', icon: '🏠' },
+  { id: 'ecommerce', name: 'E-commerce', icon: '🛒' },
+  { id: 'portfolio', name: 'Portfolio / Creative', icon: '🎨' },
+  { id: 'banking', name: 'Finance / Banking', icon: '🏦' },
+  { id: 'fitness', name: 'Fitness / Gym', icon: '💪' },
+  { id: 'education', name: 'Education / Coaching', icon: '📚' },
+  { id: 'medical', name: 'Medical / Healthcare', icon: '⚕️' },
+  { id: 'tech-startup', name: 'Tech / Startup', icon: '🚀' },
+  { id: 'construction', name: 'Construction', icon: '🏗️' },
+  { id: 'nonprofit', name: 'Nonprofit / Charity', icon: '❤️' },
+  { id: 'automotive', name: 'Automotive', icon: '🚗' },
+  { id: 'other', name: 'Other', icon: '✨' },
 ];
 
-const styles = [
-  { id: 'minimal', name: 'Minimal', desc: 'Clean, simple, lots of whitespace', icon: '◻️' },
-  { id: 'bold', name: 'Bold', desc: 'Strong colors, big typography', icon: '🔥' },
-  { id: 'elegant', name: 'Elegant', desc: 'Sophisticated, refined details', icon: '✨' },
-  { id: 'playful', name: 'Playful', desc: 'Fun, colorful, energetic', icon: '🎨' },
-  { id: 'corporate', name: 'Corporate', desc: 'Professional, trustworthy', icon: '🏢' },
-  { id: 'creative', name: 'Creative', desc: 'Unique, artistic, experimental', icon: '💡' },
+// Website goals with descriptions
+const websiteGoals = [
+  { id: 'leads', name: 'Generate Leads', desc: 'Get inquiries & contact form submissions', icon: '📩' },
+  { id: 'bookings', name: 'Get Bookings', desc: 'Let customers schedule appointments', icon: '📅' },
+  { id: 'sales', name: 'Sell Products', desc: 'Showcase products & drive purchases', icon: '💰' },
+  { id: 'showcase', name: 'Showcase Work', desc: 'Display portfolio & attract clients', icon: '🖼️' },
+  { id: 'inform', name: 'Inform & Educate', desc: 'Share information about services', icon: '📖' },
+  { id: 'brand', name: 'Build Brand', desc: 'Establish online presence', icon: '⭐' },
 ];
+
+// Enhanced styles with visual preview colors
+const styles = [
+  { id: 'modern', name: 'Modern & Clean', desc: 'Bold typography, clean lines, whitespace', icon: '◻️', gradient: 'from-blue-500 to-cyan-400' },
+  { id: 'elegant', name: 'Elegant & Luxurious', desc: 'Refined, sophisticated, premium feel', icon: '✨', gradient: 'from-amber-500 to-yellow-400' },
+  { id: 'bold', name: 'Bold & Dynamic', desc: 'High contrast, oversized text, energetic', icon: '🔥', gradient: 'from-red-500 to-orange-400' },
+  { id: 'minimal', name: 'Minimal & Simple', desc: 'Maximum whitespace, essential only', icon: '○', gradient: 'from-gray-400 to-gray-500' },
+  { id: 'playful', name: 'Playful & Fun', desc: 'Bright colors, rounded shapes, friendly', icon: '🎨', gradient: 'from-pink-500 to-purple-400' },
+  { id: 'corporate', name: 'Corporate & Professional', desc: 'Traditional, trustworthy, structured', icon: '🏢', gradient: 'from-slate-600 to-slate-700' },
+  { id: 'dark', name: 'Dark & Premium', desc: 'Dark backgrounds, glowing accents', icon: '🌙', gradient: 'from-violet-600 to-indigo-800' },
+];
+
+// Color palettes
+const colorOptions = [
+  { id: 'auto', name: 'AI Picks Best', desc: 'Based on your industry', colors: ['#6366F1', '#8B5CF6', '#A855F7'] },
+  { id: 'blue', name: 'Professional Blues', desc: 'Trust & reliability', colors: ['#1E3A5F', '#3B82F6', '#60A5FA'] },
+  { id: 'green', name: 'Natural Greens', desc: 'Growth & wellness', colors: ['#1B4332', '#22C55E', '#4ADE80'] },
+  { id: 'red', name: 'Bold Reds', desc: 'Energy & passion', colors: ['#991B1B', '#EF4444', '#FCA5A5'] },
+  { id: 'purple', name: 'Creative Purples', desc: 'Luxury & creativity', colors: ['#581C87', '#A855F7', '#D8B4FE'] },
+  { id: 'orange', name: 'Warm Oranges', desc: 'Friendly & energetic', colors: ['#9A3412', '#F97316', '#FDBA74'] },
+  { id: 'neutral', name: 'Elegant Neutrals', desc: 'Minimal & timeless', colors: ['#1F2937', '#6B7280', '#D1D5DB'] },
+  { id: 'gold', name: 'Luxury Gold', desc: 'Premium & exclusive', colors: ['#78350F', '#D97706', '#FCD34D'] },
+];
+
+// Mood tags
+const moodTags = [
+  'Trustworthy', 'Innovative', 'Friendly', 'Luxurious', 
+  'Professional', 'Creative', 'Warm', 'Bold', 'Calm',
+  'Energetic', 'Sophisticated', 'Approachable', 'Modern',
+  'Traditional', 'Fun', 'Serious', 'Inspiring', 'Edgy'
+];
+
+// Dynamic features based on industry
+const featuresByIndustry: Record<string, string[]> = {
+  'restaurant': ['Online Menu', 'Reservation Form', 'Photo Gallery', 'Customer Reviews', 'Location Map', 'Social Media Feed', 'Special Offers', 'Hours Display'],
+  'local-services': ['Quote Request Form', 'Service Area Map', 'Before/After Gallery', 'Testimonials', 'FAQ Section', 'Emergency Contact', 'Trust Badges', 'Pricing Table'],
+  'professional': ['Team Profiles', 'Case Studies', 'Client Logos', 'Testimonials', 'Contact Form', 'Blog Section', 'Service Descriptions', 'Credentials'],
+  'health-beauty': ['Service Menu', 'Online Booking', 'Photo Gallery', 'Team Profiles', 'Testimonials', 'Gift Cards', 'Pricing Packages', 'Special Offers'],
+  'real-estate': ['Property Listings', 'Search Filters', 'Agent Profile', 'Testimonials', 'Neighborhood Guide', 'Contact Form', 'Virtual Tour', 'Market Stats'],
+  'ecommerce': ['Product Grid', 'Categories', 'Newsletter Signup', 'Customer Reviews', 'Instagram Feed', 'Sale Banner', 'Featured Products', 'Trust Badges'],
+  'portfolio': ['Project Gallery', 'About Section', 'Services List', 'Testimonials', 'Contact Form', 'Resume/CV', 'Client List', 'Process Section'],
+  'banking': ['Product Features', 'Security Badges', 'How It Works', 'FAQ Section', 'App Download', 'Calculator', 'Testimonials', 'Contact Form'],
+  'fitness': ['Class Schedule', 'Membership Plans', 'Trainer Profiles', 'Testimonials', 'Photo Gallery', 'Contact Form', 'Free Trial CTA', 'Results Showcase'],
+  'education': ['Course Catalog', 'Instructor Profiles', 'Testimonials', 'FAQ Section', 'Enrollment Form', 'Blog', 'Success Stories', 'Pricing'],
+  'medical': ['Services List', 'Doctor Profiles', 'Patient Testimonials', 'Insurance Info', 'Appointment Booking', 'Contact', 'Location Map', 'FAQ'],
+  'tech-startup': ['Feature Showcase', 'Pricing Table', 'Testimonials', 'FAQ Section', 'Newsletter', 'Demo Request', 'Integration Logos', 'Stats Counter'],
+  'construction': ['Project Gallery', 'Services List', 'Testimonials', 'Contact Form', 'Quote Request', 'Team Section', 'Certifications', 'Service Areas'],
+  'nonprofit': ['Mission Statement', 'Impact Stats', 'Donation Form', 'Volunteer Signup', 'Event Calendar', 'Success Stories', 'Team Section', 'Newsletter'],
+  'automotive': ['Inventory Display', 'Service Menu', 'Contact Form', 'Testimonials', 'Financing Info', 'Location Map', 'Special Offers', 'About Section'],
+  'other': ['Contact Form', 'About Section', 'Services', 'Testimonials', 'FAQ', 'Social Links', 'Newsletter', 'Gallery'],
+};
 
 const plans = [
   {
@@ -56,12 +136,6 @@ const plans = [
   },
 ];
 
-const featureOptions = [
-  'Contact Form', 'Newsletter Signup', 'Social Media Links', 'Blog Section',
-  'Testimonials', 'Team Section', 'FAQ Section', 'Pricing Table',
-  'Image Gallery', 'Video Background', 'Live Chat Widget', 'Booking System'
-];
-
 export default function NewProjectPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -72,15 +146,34 @@ export default function NewProjectPage() {
     industry: '',
     description: '',
     websiteGoal: '',
+    targetCustomer: '',
     style: '',
-    plan: 'professional',
+    colorPreference: 'auto',
+    moodTags: [],
     inspirations: '',
+    plan: 'professional',
     features: [],
+    contactEmail: '',
+    contactPhone: '',
+    address: '',
+    uniqueValue: '',
   });
 
   useEffect(() => {
     checkUser();
   }, []);
+
+  // Auto-select common features when industry changes
+  useEffect(() => {
+    if (formData.industry && formData.features.length === 0) {
+      const industryFeatures = featuresByIndustry[formData.industry] || featuresByIndustry['other'];
+      // Pre-select first 4 common features
+      setFormData(prev => ({
+        ...prev,
+        features: industryFeatures.slice(0, 4)
+      }));
+    }
+  }, [formData.industry]);
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -89,6 +182,10 @@ export default function NewProjectPage() {
       return;
     }
     setUser(user);
+    // Pre-fill email if available
+    if (user.email) {
+      setFormData(prev => ({ ...prev, contactEmail: user.email || '' }));
+    }
   };
 
   const totalSteps = 4;
@@ -106,9 +203,20 @@ export default function NewProjectPage() {
     }));
   };
 
+  const toggleMoodTag = (tag: string) => {
+    setFormData(prev => ({
+      ...prev,
+      moodTags: prev.moodTags.includes(tag)
+        ? prev.moodTags.filter(t => t !== tag)
+        : prev.moodTags.length < 3 
+          ? [...prev.moodTags, tag]
+          : prev.moodTags
+    }));
+  };
+
   const canProceed = () => {
     switch (step) {
-      case 1: return formData.businessName.trim() && formData.industry;
+      case 1: return formData.businessName.trim() && formData.industry && formData.description.trim();
       case 2: return formData.style;
       case 3: return formData.plan;
       case 4: return true;
@@ -121,7 +229,6 @@ export default function NewProjectPage() {
     
     setLoading(true);
     try {
-      // Build project data - only include fields that exist in your table
       const projectData: any = {
         customer_id: user.id,
         business_name: formData.businessName.trim(),
@@ -132,18 +239,39 @@ export default function NewProjectPage() {
         paid: false,
       };
 
-      // Add optional fields if they have values
+      // Add all the enhanced fields
       if (formData.description.trim()) {
         projectData.description = formData.description.trim();
       }
-      if (formData.websiteGoal.trim()) {
-        projectData.website_goal = formData.websiteGoal.trim();
+      if (formData.websiteGoal) {
+        projectData.website_goal = formData.websiteGoal;
+      }
+      if (formData.targetCustomer.trim()) {
+        projectData.target_customer = formData.targetCustomer.trim();
+      }
+      if (formData.colorPreference) {
+        projectData.color_preference = formData.colorPreference;
+      }
+      if (formData.moodTags.length > 0) {
+        projectData.mood_tags = formData.moodTags;
       }
       if (formData.inspirations.trim()) {
         projectData.inspirations = formData.inspirations.trim();
       }
       if (formData.features.length > 0) {
         projectData.features = formData.features;
+      }
+      if (formData.contactEmail.trim()) {
+        projectData.contact_email = formData.contactEmail.trim();
+      }
+      if (formData.contactPhone.trim()) {
+        projectData.contact_phone = formData.contactPhone.trim();
+      }
+      if (formData.address.trim()) {
+        projectData.address = formData.address.trim();
+      }
+      if (formData.uniqueValue.trim()) {
+        projectData.unique_value = formData.uniqueValue.trim();
       }
 
       const { data, error } = await supabase
@@ -154,7 +282,7 @@ export default function NewProjectPage() {
 
       if (error) {
         console.error('Supabase error:', error);
-        alert(`Error: ${error.message}\n\nDetails: ${error.details || 'None'}\n\nHint: ${error.hint || 'Check if all columns exist in your projects table'}`);
+        alert(`Error: ${error.message}\n\nHint: You may need to add new columns to your projects table.`);
         return;
       }
 
@@ -166,6 +294,9 @@ export default function NewProjectPage() {
       setLoading(false);
     }
   };
+
+  // Get features for current industry
+  const currentFeatures = featuresByIndustry[formData.industry] || featuresByIndustry['other'];
 
   return (
     <div className="min-h-screen bg-[#fafafa] antialiased">
@@ -208,6 +339,23 @@ export default function NewProjectPage() {
           transform: translateY(-1px);
           box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
+        
+        .gradient-border {
+          position: relative;
+        }
+        
+        .gradient-border::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          padding: 2px;
+          background: linear-gradient(135deg, var(--tw-gradient-from), var(--tw-gradient-to));
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+        }
       `}</style>
 
       {/* NOISE OVERLAY */}
@@ -246,12 +394,26 @@ export default function NewProjectPage() {
               style={{ width: `${(step / totalSteps) * 100}%` }}
             />
           </div>
+          {/* Step Labels */}
+          <div className="flex justify-between mt-3">
+            {['Business', 'Style', 'Plan', 'Details'].map((label, i) => (
+              <span 
+                key={label} 
+                className={`font-body text-xs ${step > i ? 'text-black font-medium' : step === i + 1 ? 'text-black' : 'text-neutral-400'}`}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* MAIN */}
       <main className="max-w-4xl mx-auto px-6 py-12">
+        
+        {/* ============================================ */}
         {/* STEP 1: BUSINESS INFO */}
+        {/* ============================================ */}
         {step === 1 && (
           <div className="slide-up">
             <div className="text-center mb-10">
@@ -259,7 +421,7 @@ export default function NewProjectPage() {
                 Tell us about your business
               </h1>
               <p className="font-body text-lg text-neutral-500">
-                This helps us understand your needs better
+                This helps our AI create the perfect website for you
               </p>
             </div>
 
@@ -273,28 +435,29 @@ export default function NewProjectPage() {
                   type="text"
                   value={formData.businessName}
                   onChange={(e) => updateForm('businessName', e.target.value)}
-                  placeholder="Acme Inc."
+                  placeholder="e.g., Sunrise Bakery"
                   className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
                 />
               </div>
 
-              {/* INDUSTRY */}
+              {/* INDUSTRY - Visual Grid */}
               <div>
-                <label className="block font-body text-sm font-medium text-black mb-2">
-                  Industry *
+                <label className="block font-body text-sm font-medium text-black mb-3">
+                  What industry are you in? *
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {industries.map(ind => (
                     <button
-                      key={ind}
-                      onClick={() => updateForm('industry', ind)}
-                      className={`px-4 py-3 rounded-xl font-body text-sm font-medium transition-all ${
-                        formData.industry === ind
+                      key={ind.id}
+                      onClick={() => updateForm('industry', ind.id)}
+                      className={`p-3 rounded-xl font-body text-sm font-medium transition-all text-left ${
+                        formData.industry === ind.id
                           ? 'bg-black text-white'
-                          : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                          : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300'
                       }`}
                     >
-                      {ind}
+                      <span className="text-lg block mb-1">{ind.icon}</span>
+                      <span className="text-xs leading-tight block">{ind.name}</span>
                     </button>
                   ))}
                 </div>
@@ -303,12 +466,12 @@ export default function NewProjectPage() {
               {/* DESCRIPTION */}
               <div>
                 <label className="block font-body text-sm font-medium text-black mb-2">
-                  What does your business do?
+                  What does your business do? *
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => updateForm('description', e.target.value)}
-                  placeholder="Tell us about your products or services..."
+                  placeholder="Tell us about your products, services, and what makes your business special..."
                   rows={3}
                   className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black resize-none"
                 />
@@ -316,22 +479,53 @@ export default function NewProjectPage() {
 
               {/* WEBSITE GOAL */}
               <div>
-                <label className="block font-body text-sm font-medium text-black mb-2">
-                  What is the main goal of your website?
+                <label className="block font-body text-sm font-medium text-black mb-3">
+                  What's the main goal of your website?
                 </label>
-                <textarea
-                  value={formData.websiteGoal}
-                  onChange={(e) => updateForm('websiteGoal', e.target.value)}
-                  placeholder="e.g., Generate leads, sell products, showcase portfolio..."
-                  rows={2}
-                  className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black resize-none"
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {websiteGoals.map(goal => (
+                    <button
+                      key={goal.id}
+                      onClick={() => updateForm('websiteGoal', goal.id)}
+                      className={`p-3 rounded-xl font-body text-left transition-all ${
+                        formData.websiteGoal === goal.id
+                          ? 'bg-black text-white'
+                          : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                      }`}
+                    >
+                      <span className="text-lg block mb-1">{goal.icon}</span>
+                      <span className="text-sm font-medium block">{goal.name}</span>
+                      <span className={`text-xs block mt-0.5 ${formData.websiteGoal === goal.id ? 'text-white/70' : 'text-neutral-400'}`}>
+                        {goal.desc}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* TARGET CUSTOMER - THE MAGIC QUESTION */}
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                <label className="block font-body text-sm font-medium text-amber-900 mb-2">
+                  ✨ Describe your ideal customer in one sentence
+                </label>
+                <input
+                  type="text"
+                  value={formData.targetCustomer}
+                  onChange={(e) => updateForm('targetCustomer', e.target.value)}
+                  placeholder="e.g., Busy professionals who want healthy meals without cooking"
+                  className="w-full px-4 py-3 bg-white border border-amber-300 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
                 />
+                <p className="font-body text-xs text-amber-700 mt-2">
+                  This helps us write copy that speaks directly to your audience
+                </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* STEP 2: STYLE */}
+        {/* ============================================ */}
+        {/* STEP 2: STYLE & VIBE */}
+        {/* ============================================ */}
         {step === 2 && (
           <div className="slide-up">
             <div className="text-center mb-10">
@@ -339,39 +533,105 @@ export default function NewProjectPage() {
                 Choose your style
               </h1>
               <p className="font-body text-lg text-neutral-500">
-                What vibe do you want for your website?
+                What vibe should your website have?
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl mx-auto">
-              {styles.map(style => (
-                <button
-                  key={style.id}
-                  onClick={() => updateForm('style', style.id)}
-                  className={`card-hover p-6 rounded-2xl text-left transition-all ${
-                    formData.style === style.id
-                      ? 'bg-black text-white'
-                      : 'bg-white border border-neutral-200 hover:border-black'
-                  }`}
-                >
-                  <div className="text-3xl mb-3">{style.icon}</div>
-                  <h3 className="font-body font-semibold text-lg mb-1">{style.name}</h3>
-                  <p className={`font-body text-sm ${formData.style === style.id ? 'text-white/70' : 'text-neutral-500'}`}>
-                    {style.desc}
-                  </p>
-                </button>
-              ))}
+            {/* STYLE SELECTION */}
+            <div className="mb-10">
+              <label className="block font-body text-sm font-medium text-black mb-4 text-center">
+                Website Style *
+              </label>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                {styles.map(style => (
+                  <button
+                    key={style.id}
+                    onClick={() => updateForm('style', style.id)}
+                    className={`card-hover rounded-2xl text-left transition-all overflow-hidden ${
+                      formData.style === style.id
+                        ? 'ring-2 ring-black ring-offset-2'
+                        : 'border border-neutral-200 hover:border-neutral-300'
+                    }`}
+                  >
+                    {/* Gradient Preview */}
+                    <div className={`h-16 bg-gradient-to-br ${style.gradient}`}></div>
+                    <div className="p-4 bg-white">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">{style.icon}</span>
+                        <h3 className="font-body font-semibold text-sm text-black">{style.name}</h3>
+                      </div>
+                      <p className="font-body text-xs text-neutral-500">{style.desc}</p>
+                    </div>
+                    {formData.style === style.id && (
+                      <div className="absolute top-2 right-2 w-6 h-6 bg-black rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* COLOR PREFERENCE */}
+            <div className="max-w-3xl mx-auto mb-10">
+              <label className="block font-body text-sm font-medium text-black mb-4 text-center">
+                Color Palette
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {colorOptions.map(color => (
+                  <button
+                    key={color.id}
+                    onClick={() => updateForm('colorPreference', color.id)}
+                    className={`p-3 rounded-xl transition-all ${
+                      formData.colorPreference === color.id
+                        ? 'bg-black text-white'
+                        : 'bg-white border border-neutral-200 hover:border-neutral-300'
+                    }`}
+                  >
+                    <div className="flex gap-1 mb-2 justify-center">
+                      {color.colors.map((c, i) => (
+                        <div key={i} className="w-5 h-5 rounded-full border border-white/20" style={{ backgroundColor: c }} />
+                      ))}
+                    </div>
+                    <span className="font-body text-xs font-medium block">{color.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* MOOD TAGS */}
+            <div className="max-w-2xl mx-auto mb-10">
+              <label className="block font-body text-sm font-medium text-black mb-2 text-center">
+                How should your website feel? <span className="text-neutral-400 font-normal">(pick up to 3)</span>
+              </label>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {moodTags.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => toggleMoodTag(tag)}
+                    className={`px-4 py-2 rounded-full font-body text-sm transition-all ${
+                      formData.moodTags.includes(tag)
+                        ? 'bg-black text-white'
+                        : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                    }`}
+                  >
+                    {formData.moodTags.includes(tag) && '✓ '}{tag}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* INSPIRATIONS */}
-            <div className="max-w-xl mx-auto mt-10">
+            <div className="max-w-xl mx-auto">
               <label className="block font-body text-sm font-medium text-black mb-2">
-                Any websites you love? (optional)
+                Any websites you love? <span className="text-neutral-400 font-normal">(optional)</span>
               </label>
               <textarea
                 value={formData.inspirations}
                 onChange={(e) => updateForm('inspirations', e.target.value)}
-                placeholder="Share links to websites that inspire you..."
+                placeholder="Share links to websites that inspire you, e.g., apple.com, airbnb.com"
                 rows={2}
                 className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black resize-none"
               />
@@ -379,7 +639,9 @@ export default function NewProjectPage() {
           </div>
         )}
 
+        {/* ============================================ */}
         {/* STEP 3: PLAN */}
+        {/* ============================================ */}
         {step === 3 && (
           <div className="slide-up">
             <div className="text-center mb-10">
@@ -425,7 +687,7 @@ export default function NewProjectPage() {
                   <ul className="space-y-2">
                     {plan.features.map((feature, i) => (
                       <li key={i} className="flex items-center gap-2 font-body text-sm">
-                        <svg className={`w-4 h-4 ${formData.plan === plan.id ? 'text-white' : 'text-emerald-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`w-4 h-4 flex-shrink-0 ${formData.plan === plan.id ? 'text-white' : 'text-emerald-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         <span className={formData.plan === plan.id ? 'text-white/90' : 'text-neutral-600'}>
@@ -447,65 +709,138 @@ export default function NewProjectPage() {
               </div>
               <h3 className="font-body font-semibold text-emerald-900 mb-1">100% Risk-Free Guarantee</h3>
               <p className="font-body text-sm text-emerald-700">
-                We will design your website first. You only pay if you love it.
+                We'll design your website first. You only pay if you love it.
               </p>
             </div>
           </div>
         )}
 
-        {/* STEP 4: FEATURES */}
+        {/* ============================================ */}
+        {/* STEP 4: FEATURES & CONTACT */}
+        {/* ============================================ */}
         {step === 4 && (
           <div className="slide-up">
             <div className="text-center mb-10">
               <h1 className="font-display text-4xl lg:text-5xl font-medium text-black mb-3">
-                Select features
+                Final details
               </h1>
               <p className="font-body text-lg text-neutral-500">
-                What would you like included? (optional)
+                Help us make your website perfect
               </p>
             </div>
 
-            <div className="max-w-2xl mx-auto">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {featureOptions.map(feature => (
-                  <button
-                    key={feature}
-                    onClick={() => toggleFeature(feature)}
-                    className={`p-4 rounded-xl font-body text-sm font-medium transition-all ${
-                      formData.features.includes(feature)
-                        ? 'bg-black text-white'
-                        : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-                    }`}
-                  >
-                    {formData.features.includes(feature) && (
-                      <span className="mr-2">✓</span>
-                    )}
-                    {feature}
-                  </button>
-                ))}
+            <div className="max-w-2xl mx-auto space-y-8">
+              {/* FEATURES */}
+              <div>
+                <label className="block font-body text-sm font-medium text-black mb-3">
+                  Select features for your website
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {currentFeatures.map(feature => (
+                    <button
+                      key={feature}
+                      onClick={() => toggleFeature(feature)}
+                      className={`p-3 rounded-xl font-body text-sm transition-all ${
+                        formData.features.includes(feature)
+                          ? 'bg-black text-white'
+                          : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                      }`}
+                    >
+                      {formData.features.includes(feature) && (
+                        <span className="mr-1">✓</span>
+                      )}
+                      {feature}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* UNIQUE VALUE */}
+              <div>
+                <label className="block font-body text-sm font-medium text-black mb-2">
+                  What makes you different from competitors?
+                </label>
+                <textarea
+                  value={formData.uniqueValue}
+                  onChange={(e) => updateForm('uniqueValue', e.target.value)}
+                  placeholder="e.g., 20 years experience, family-owned, eco-friendly materials, fastest delivery..."
+                  rows={2}
+                  className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black resize-none"
+                />
+              </div>
+
+              {/* CONTACT INFORMATION */}
+              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6">
+                <h3 className="font-body font-semibold text-black mb-4">Contact Information</h3>
+                <p className="font-body text-sm text-neutral-500 mb-4">This will appear on your website</p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-body text-sm text-neutral-600 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={formData.contactEmail}
+                      onChange={(e) => updateForm('contactEmail', e.target.value)}
+                      placeholder="hello@yourbusiness.com"
+                      className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-body text-sm text-neutral-600 mb-1">Phone</label>
+                      <input
+                        type="tel"
+                        value={formData.contactPhone}
+                        onChange={(e) => updateForm('contactPhone', e.target.value)}
+                        placeholder="(555) 123-4567"
+                        className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-body text-sm text-neutral-600 mb-1">Address</label>
+                      <input
+                        type="text"
+                        value={formData.address}
+                        onChange={(e) => updateForm('address', e.target.value)}
+                        placeholder="City, State"
+                        className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* SUMMARY */}
-              <div className="mt-12 p-6 bg-white border border-neutral-200 rounded-3xl">
+              <div className="p-6 bg-white border border-neutral-200 rounded-3xl">
                 <h3 className="font-display text-xl font-medium text-black mb-6">Project Summary</h3>
                 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex justify-between py-3 border-b border-neutral-100">
                     <span className="font-body text-neutral-500">Business</span>
                     <span className="font-body font-medium text-black">{formData.businessName || '—'}</span>
                   </div>
                   <div className="flex justify-between py-3 border-b border-neutral-100">
                     <span className="font-body text-neutral-500">Industry</span>
-                    <span className="font-body font-medium text-black">{formData.industry || '—'}</span>
+                    <span className="font-body font-medium text-black">
+                      {industries.find(i => i.id === formData.industry)?.name || '—'}
+                    </span>
                   </div>
                   <div className="flex justify-between py-3 border-b border-neutral-100">
                     <span className="font-body text-neutral-500">Style</span>
-                    <span className="font-body font-medium text-black capitalize">{formData.style || '—'}</span>
+                    <span className="font-body font-medium text-black">
+                      {styles.find(s => s.id === formData.style)?.name || '—'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-3 border-b border-neutral-100">
+                    <span className="font-body text-neutral-500">Colors</span>
+                    <span className="font-body font-medium text-black">
+                      {colorOptions.find(c => c.id === formData.colorPreference)?.name || '—'}
+                    </span>
                   </div>
                   <div className="flex justify-between py-3 border-b border-neutral-100">
                     <span className="font-body text-neutral-500">Plan</span>
                     <span className="font-body font-medium text-black">
-                      {plans.find(p => p.id === formData.plan)?.name} (${plans.find(p => p.id === formData.plan)?.price})
+                      {plans.find(p => p.id === formData.plan)?.name} — ${plans.find(p => p.id === formData.plan)?.price}
                     </span>
                   </div>
                   {formData.features.length > 0 && (
