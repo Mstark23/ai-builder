@@ -41,22 +41,40 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    console.log('🔵 Google login button clicked'); // Debug
     setGoogleLoading(true);
     setError('');
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log('🔵 Supabase client:', supabase); // Debug
+      console.log('🔵 Window origin:', window.location.origin); // Debug
+      
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+      console.log('🔵 Redirect URL:', redirectUrl); // Debug
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectUrl,
         },
       });
 
+      console.log('🔵 OAuth response - data:', data); // Debug
+      console.log('🔵 OAuth response - error:', error); // Debug
+
       if (error) {
+        console.error('🔴 Google OAuth error:', error);
         setError(error.message);
         setGoogleLoading(false);
       }
+      
+      // If successful, the browser will redirect automatically
+      // The data.url contains the Google OAuth URL
+      if (data?.url) {
+        console.log('🟢 Redirecting to:', data.url);
+      }
     } catch (err) {
+      console.error('🔴 Unexpected error:', err);
       setError('Failed to sign in with Google');
       setGoogleLoading(false);
     }
@@ -210,6 +228,7 @@ export default function LoginPage() {
           {/* GOOGLE LOGIN - FIRST */}
           <div className="slide-up space-y-3" style={{ animationDelay: '0.1s' }}>
             <button 
+              type="button"
               onClick={handleGoogleLogin}
               disabled={googleLoading}
               className="w-full py-4 bg-white border border-neutral-200 rounded-full font-body font-medium text-black hover:bg-neutral-50 hover:border-neutral-300 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
