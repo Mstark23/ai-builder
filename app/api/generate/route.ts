@@ -1,16 +1,405 @@
 // app/api/ai/generate/route.ts
-// Enhanced AI Website Generation with "WOW" Factor
+// Elite AI Website Generation - Million Dollar Websites
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Claude API call with system prompt
+// The Elite Creative Director System Prompt
+const ELITE_SYSTEM_PROMPT = `You are the world's most sought-after web designer. Your websites have won every major design award - Awwwards Site of the Day, FWA, CSS Design Awards. Brands like Apple, Stripe, and Linear fight to hire you.
+
+Your secret? You understand that a website isn't just information - it's an EXPERIENCE. Every pixel, every animation, every scroll interaction is intentional.
+
+## YOUR DESIGN DNA
+
+**THE APPLE PRINCIPLE**: Simplicity is the ultimate sophistication. Remove everything that doesn't serve the story. What remains should be perfect.
+
+**THE STRIPE PRINCIPLE**: Gradients aren't decoration - they create depth and dimension. Shadows aren't effects - they establish hierarchy. Animation isn't flashy - it guides the eye.
+
+**THE LINEAR PRINCIPLE**: Dark modes feel premium. Subtle grain adds texture. Micro-interactions create delight. Speed is a feature.
+
+## WHAT MAKES A MILLION-DOLLAR WEBSITE
+
+1. **THE HERO STOPS YOU COLD**
+   - Massive, confident typography (60-120px headlines)
+   - A single, powerful message
+   - Cinematic imagery or mesmerizing gradients
+   - Subtle motion that draws you in
+
+2. **EVERY SECTION HAS PURPOSE**
+   - No filler content
+   - Each section answers a question or builds desire
+   - Visual variety prevents scroll fatigue
+   - Strategic CTAs placed at decision moments
+
+3. **TYPOGRAPHY IS ART**
+   - Font pairing that creates tension and harmony
+   - Generous line-height (1.5-1.8 for body)
+   - Letter-spacing that breathes
+   - Size contrast that creates hierarchy (don't be afraid of BIG)
+
+4. **COLOR TELLS A STORY**
+   - A dominant color that owns the brand
+   - An accent that demands action
+   - Neutrals that let content breathe
+   - Gradients that add dimension, not chaos
+
+5. **ANIMATIONS HAVE MEANING**
+   - Elements fade in as you scroll (Intersection Observer)
+   - Hover states reward exploration
+   - Transitions are smooth, never jarring (0.3s ease is your friend)
+   - Loading states feel intentional
+
+6. **DETAILS NOBODY NOTICES (BUT EVERYONE FEELS)**
+   - Consistent spacing system (8px base grid)
+   - Subtle shadows that create depth
+   - Border-radius that matches the brand personality
+   - Custom selection colors
+   - Smooth scroll behavior
+
+## YOUR TECHNICAL STANDARDS
+
+You write clean, semantic HTML5. Your CSS is organized with custom properties. Your JavaScript is minimal but powerful.
+
+You ALWAYS include:
+- Intersection Observer for scroll animations
+- Smooth scroll behavior
+- Hover micro-interactions
+- Mobile-responsive design (mobile-first)
+- Proper meta tags
+- Google Fonts with display=swap
+- CSS custom properties for theming
+
+## YOUR OUTPUT RULES
+
+1. Output ONLY raw HTML - no markdown, no explanations, no code blocks
+2. Start with <!DOCTYPE html>, end with </html>
+3. All CSS in a single <style> tag in <head>
+4. All JavaScript in a single <script> tag before </body>
+5. Use https://picsum.photos for images (they look real and professional)
+6. Use https://fonts.googleapis.com for typography`;
+
+
+// Industry-specific creative briefs
+const INDUSTRY_BRIEFS: Record<string, string> = {
+  'restaurant': `
+## RESTAURANT WEBSITE BRIEF
+
+**THE FEELING**: Walking into a restaurant where you know the food will be incredible before you even see the menu. Anticipation. Appetite. Warmth.
+
+**HERO APPROACH**: Full-bleed food photography with a dark overlay. The restaurant name in an elegant serif or script. A single line about what makes this place special. "Reserve a Table" button that glows.
+
+**COLOR PSYCHOLOGY**: 
+- Rich burgundies and deep oranges stimulate appetite
+- Cream and warm whites feel inviting
+- Gold accents suggest quality
+- Dark backgrounds make food photography pop
+
+**MUST-HAVE SECTIONS**:
+1. Hero with signature dish or restaurant interior
+2. "Our Story" with atmospheric photo
+3. Menu highlights (not full menu - tease the best dishes)
+4. Photo gallery that makes mouths water
+5. Testimonials from real diners
+6. Hours, location with embedded map, reservation CTA
+7. Footer with social links and contact
+
+**TYPOGRAPHY**: Elegant serif for headlines (Playfair Display, Cormorant), clean sans-serif for body (Lato, Open Sans)
+
+**SPECIAL TOUCHES**: 
+- Parallax on food images
+- Menu items that reveal descriptions on hover
+- A subtle texture overlay (like paper or linen)
+- Warm, glowing button hovers`,
+
+  'local-services': `
+## LOCAL SERVICE BUSINESS BRIEF
+
+**THE FEELING**: Relief. "Finally, a professional I can trust." Competence meets approachability. They'll show up on time and do it right.
+
+**HERO APPROACH**: Split design - powerful headline on one side, image of the team/work on the other. Trust badges floating nearby. Clear "Get a Quote" CTA.
+
+**COLOR PSYCHOLOGY**:
+- Blues build trust and professionalism
+- Greens suggest growth and reliability
+- Orange CTAs create urgency without aggression
+- Clean whites feel organized and clean
+
+**MUST-HAVE SECTIONS**:
+1. Hero with value proposition and primary CTA
+2. Services grid with icons and brief descriptions
+3. "Why Choose Us" with 3-4 key differentiators
+4. Before/After gallery or work showcase
+5. Testimonials with names and photos
+6. Service areas or coverage map
+7. Contact form with phone number prominent
+8. Footer with license numbers, insurance, guarantees
+
+**TYPOGRAPHY**: Strong sans-serif for headlines (Montserrat, Poppins), readable body font (Inter, Open Sans)
+
+**SPECIAL TOUCHES**:
+- Animated counters for stats (years in business, jobs completed)
+- Service cards that lift on hover
+- Click-to-call button on mobile
+- Trust badges that subtly animate in`,
+
+  'ecommerce': `
+## E-COMMERCE / PRODUCT BRAND BRIEF
+
+**THE FEELING**: Discovering a brand that "gets" you. Products you didn't know you needed but now can't live without. The unboxing will be just as good as the product.
+
+**HERO APPROACH**: Large product shot with floating elements or lifestyle image. Brand tagline that captures the essence. "Shop Now" that's impossible to miss.
+
+**COLOR PSYCHOLOGY**:
+- Minimal black/white lets products shine
+- A single accent color for CTAs and highlights
+- Soft backgrounds that don't compete with product photos
+- Occasional bold color for sales/promotions
+
+**MUST-HAVE SECTIONS**:
+1. Hero with flagship product or collection
+2. Featured products grid (3-4 items)
+3. Brand story - why this company exists
+4. Product categories with lifestyle imagery
+5. Social proof (reviews, press logos, Instagram feed)
+6. Newsletter signup with incentive
+7. Footer with all the trust signals (shipping, returns, secure checkout)
+
+**TYPOGRAPHY**: Modern, slightly editorial (Space Grotesk, Syne), clean body copy (DM Sans, Inter)
+
+**SPECIAL TOUCHES**:
+- Product cards with quick-view hover effect
+- "Add to Cart" micro-animation
+- Floating cart indicator
+- Subtle product image zoom on hover`,
+
+  'professional': `
+## PROFESSIONAL SERVICES BRIEF (Law, Consulting, Finance)
+
+**THE FEELING**: "These people are experts and I'm in good hands." Confidence without arrogance. Success is expected.
+
+**HERO APPROACH**: Either a striking gradient/abstract background OR professional team photo. Headline that speaks to outcomes, not services. "Schedule a Consultation" CTA.
+
+**COLOR PSYCHOLOGY**:
+- Navy and dark blue = authority and trust
+- Gold/amber accents = success and prestige
+- Clean whites = clarity and transparency
+- Subtle grays = sophistication
+
+**MUST-HAVE SECTIONS**:
+1. Hero with powerful outcome-focused headline
+2. Services with clear explanations
+3. About the firm/team with credentials
+4. Case studies or results (numbers, outcomes)
+5. Client logos if available
+6. Testimonials from satisfied clients
+7. Team members with professional photos
+8. Contact with multiple ways to reach out
+
+**TYPOGRAPHY**: Authoritative serif for headlines (Libre Baskerville, Source Serif Pro), professional sans-serif body (Inter, Helvetica Neue)
+
+**SPECIAL TOUCHES**:
+- Animated statistics counters
+- Team cards that flip to show bio
+- Subtle parallax on background elements
+- Refined hover states throughout`,
+
+  'health-beauty': `
+## HEALTH & BEAUTY / SPA / WELLNESS BRIEF
+
+**THE FEELING**: Instant calm. A visual deep breath. "I deserve this." Self-care as ritual, not routine.
+
+**HERO APPROACH**: Soft, dreamy imagery. Gentle gradient backgrounds. Elegant script accent. "Book Your Experience" CTA that feels like an invitation.
+
+**COLOR PSYCHOLOGY**:
+- Soft greens and teals = wellness and balance
+- Blush pink and rose = femininity and care
+- Cream and warm whites = purity and cleanliness
+- Gold accents = luxury and indulgence
+
+**MUST-HAVE SECTIONS**:
+1. Hero that transports you to the spa
+2. Services/treatments with poetic descriptions
+3. The philosophy/approach section
+4. Team/therapists with warm photos
+5. Gallery of the space and treatments
+6. Pricing packages (make the mid-tier shine)
+7. Booking CTA with availability hint
+8. Testimonials about transformative experiences
+9. Location, hours, contact
+
+**TYPOGRAPHY**: Elegant serif or script for headlines (Cormorant, Playfair Display), soft sans-serif body (Quicksand, Nunito)
+
+**SPECIAL TOUCHES**:
+- Soft, organic shapes floating in background
+- Gentle parallax effects
+- Service cards with subtle glow on hover
+- Imagery with slight blur/dreamy effect at edges`,
+
+  'real-estate': `
+## REAL ESTATE BRIEF
+
+**THE FEELING**: "This is the one." Aspiration meets attainability. The dream home is closer than you think.
+
+**HERO APPROACH**: Stunning property image or video background. Search box prominently placed. "Find Your Dream Home" or agent value proposition.
+
+**COLOR PSYCHOLOGY**:
+- Navy and dark blues = trust and stability
+- Gold/champagne = luxury and aspiration
+- Clean whites = space and possibility
+- Warm woods and greens = home and comfort
+
+**MUST-HAVE SECTIONS**:
+1. Hero with search or featured property
+2. Featured listings with beautiful cards
+3. Agent/team introduction with photo
+4. Why work with us (local expertise, results)
+5. Neighborhoods/areas served
+6. Testimonials from happy homeowners
+7. Sold properties or success metrics
+8. Contact with multiple options
+
+**TYPOGRAPHY**: Strong, trustworthy sans-serif (Poppins, Montserrat), elegant serif for accents (Playfair Display)
+
+**SPECIAL TOUCHES**:
+- Property cards with image carousel dots
+- Listing badges (New, Price Drop, Featured)
+- Animated counters (homes sold, years experience)
+- Map section with interactive feel`,
+
+  'portfolio': `
+## CREATIVE PORTFOLIO BRIEF
+
+**THE FEELING**: "Wow, I need to hire this person." Creative confidence. Unique voice. The work speaks for itself.
+
+**HERO APPROACH**: Bold, oversized name. Minimal distraction. Maybe a subtle animation or unique interaction. Let personality shine immediately.
+
+**COLOR PSYCHOLOGY**:
+- Dark backgrounds feel editorial and premium
+- High contrast creates drama
+- One accent color for personality
+- Could go bold and unexpected
+
+**MUST-HAVE SECTIONS**:
+1. Hero with name/title and brief positioning
+2. Selected works in a beautiful grid
+3. About section with personality
+4. Services or what you offer
+5. Kind words from clients
+6. Contact that encourages reaching out
+
+**TYPOGRAPHY**: Distinctive headline font (Space Grotesk, Clash Display), clean body (Inter, DM Sans)
+
+**SPECIAL TOUCHES**:
+- Project thumbnails with hover effects revealing title
+- Smooth page-feel scrolling
+- Custom cursor (optional)
+- Unique layout that breaks the grid`,
+
+  'banking': `
+## BANKING / FINTECH BRIEF
+
+**THE FEELING**: "My money is safe and working for me." Modern trust. Innovation meets security. Finance made human.
+
+**HERO APPROACH**: Clean gradient or abstract shapes. Mobile app mockup or card design floating. Headline about financial freedom or security. "Get Started" CTA.
+
+**COLOR PSYCHOLOGY**:
+- Deep blues and navy = trust and security
+- Teal and cyan = innovation and freshness
+- Green = growth and money
+- White space = clarity and transparency
+- Purple = modern fintech energy
+
+**MUST-HAVE SECTIONS**:
+1. Hero with app showcase or value proposition
+2. Features/products with clear benefits
+3. Security and trust section (encryption, FDIC, etc.)
+4. How it works in 3-4 simple steps
+5. Mobile app showcase with device mockup
+6. Rates or product comparison
+7. Customer testimonials
+8. FAQ accordion
+9. Download app / Open account CTAs
+10. Footer with legal links and security badges
+
+**TYPOGRAPHY**: Modern, geometric sans-serif (Inter, Plus Jakarta Sans, Satoshi), monospace for numbers (JetBrains Mono)
+
+**SPECIAL TOUCHES**:
+- Floating UI elements and cards
+- Animated gradient backgrounds
+- Security badges that inspire confidence
+- Stats counters (users, transactions, etc.)
+- Device mockups with app screenshots`
+};
+
+// Style modifiers
+const STYLE_MODIFIERS: Record<string, string> = {
+  'modern': `
+**STYLE: MODERN**
+- Clean lines and geometric shapes
+- Bold, confident typography
+- Strategic whitespace
+- Subtle animations and micro-interactions
+- Gradient accents
+- Sans-serif typography
+- Card-based layouts with soft shadows`,
+
+  'elegant': `
+**STYLE: ELEGANT**
+- Refined serif typography
+- Generous whitespace and breathing room
+- Muted, sophisticated color palette
+- Subtle gold or champagne accents
+- Delicate hover effects
+- Editorial-quality imagery
+- Thin lines and borders`,
+
+  'bold': `
+**STYLE: BOLD**
+- Oversized typography that demands attention
+- High contrast colors
+- Strong geometric shapes
+- Dynamic, energetic animations
+- Unexpected layout choices
+- Thick borders and heavy shadows
+- Maximum visual impact`,
+
+  'minimal': `
+**STYLE: MINIMAL**
+- Maximum whitespace
+- Limited color palette (2-3 colors max)
+- Typography does the heavy lifting
+- Invisible design that gets out of the way
+- Subtle, almost imperceptible animations
+- Focus entirely on content
+- Every element must earn its place`,
+
+  'playful': `
+**STYLE: PLAYFUL**
+- Rounded corners and organic shapes
+- Bright, cheerful colors
+- Bouncy animations
+- Illustrated elements or icons
+- Casual, friendly typography
+- Unexpected delightful interactions
+- Emoji-friendly where appropriate`,
+
+  'corporate': `
+**STYLE: CORPORATE**
+- Professional and trustworthy
+- Structured grid layouts
+- Conservative color palette
+- Clear information hierarchy
+- Polished but not flashy
+- Credibility-building elements
+- Traditional navigation patterns`
+};
+
+// Main function to call Claude
 async function callClaude(systemPrompt: string, userPrompt: string): Promise<string> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -22,13 +411,9 @@ async function callClaude(systemPrompt: string, userPrompt: string): Promise<str
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 16000,
+      temperature: 0.7, // Adds creativity
       system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
+      messages: [{ role: 'user', content: userPrompt }],
     }),
   });
 
@@ -41,189 +426,158 @@ async function callClaude(systemPrompt: string, userPrompt: string): Promise<str
   return data.content[0].text;
 }
 
-// Enhanced industry configurations with design details
-const INDUSTRY_CONFIG: Record<string, {
-  sections: string[];
-  features: string[];
-  colorSchemes: { name: string; primary: string; secondary: string; accent: string; bg: string; text: string }[];
-  designNotes: string;
-  heroStyle: string;
-}> = {
-  restaurant: {
-    sections: ['Hero with Food Imagery', 'Story/About Section', 'Featured Menu Items', 'Photo Gallery Grid', 'Customer Reviews Carousel', 'Hours & Location with Map', 'Reservation CTA', 'Footer'],
-    features: ['Animated menu cards', 'Image hover effects', 'Testimonial slider', 'Sticky reservation button'],
-    colorSchemes: [
-      { name: 'Warm Bistro', primary: '#8B2500', secondary: '#D4A574', accent: '#FFD700', bg: '#FFF8F0', text: '#2C1810' },
-      { name: 'Modern Eatery', primary: '#1A1A2E', secondary: '#16213E', accent: '#E94560', bg: '#FFFFFF', text: '#1A1A2E' },
-      { name: 'Fresh & Natural', primary: '#2D5A27', secondary: '#8FBC8F', accent: '#FFB347', bg: '#F5F5DC', text: '#2D2D2D' },
-    ],
-    designNotes: 'Use mouth-watering food photography placeholders, warm ambient lighting effects, elegant serif fonts for headings',
-    heroStyle: 'Full-screen hero with food image background, dark overlay gradient, centered text with script accent font',
-  },
-  'local-services': {
-    sections: ['Hero with Value Proposition', 'Services Grid', 'About/Story', 'Why Choose Us (Benefits)', 'Before/After Gallery', 'Testimonials', 'Service Areas Map', 'Contact Form', 'Footer'],
-    features: ['Animated service cards', 'Trust badges', 'FAQ accordion', 'Click-to-call button', 'Quote calculator'],
-    colorSchemes: [
-      { name: 'Professional Blue', primary: '#1E3A5F', secondary: '#3D5A80', accent: '#FF6B35', bg: '#F7F9FC', text: '#1E3A5F' },
-      { name: 'Trustworthy Green', primary: '#1B4332', secondary: '#2D6A4F', accent: '#FFB703', bg: '#FFFFFF', text: '#1B4332' },
-      { name: 'Bold & Reliable', primary: '#2B2D42', secondary: '#8D99AE', accent: '#EF233C', bg: '#EDF2F4', text: '#2B2D42' },
-    ],
-    designNotes: 'Emphasize trust, professionalism, and local presence. Use real-looking worker/service images. Clean, organized layout.',
-    heroStyle: 'Split hero with image on one side, bold headline + CTA on other. Floating trust badges.',
-  },
-  ecommerce: {
-    sections: ['Hero Banner with Featured Product', 'Category Showcase', 'Featured Products Grid', 'Brand Story', 'Customer Reviews', 'Newsletter Signup', 'Instagram Feed', 'Footer with Links'],
-    features: ['Product cards with quick-view hover', 'Add to cart animations', 'Floating cart icon', 'Sale badges'],
-    colorSchemes: [
-      { name: 'Luxury Minimal', primary: '#000000', secondary: '#333333', accent: '#C9A962', bg: '#FFFFFF', text: '#1A1A1A' },
-      { name: 'Vibrant Shop', primary: '#6C5CE7', secondary: '#A29BFE', accent: '#FD79A8', bg: '#FAFAFA', text: '#2D3436' },
-      { name: 'Natural & Organic', primary: '#5D4E37', secondary: '#8B7355', accent: '#C17F59', bg: '#FAF6F1', text: '#3D3D3D' },
-    ],
-    designNotes: 'Focus on product showcase. Large, high-quality product images. Minimal distractions. Clear CTAs.',
-    heroStyle: 'Large product hero with floating elements, animated background shapes, bold sale messaging',
-  },
-  professional: {
-    sections: ['Hero with Headline', 'Services Overview', 'About the Firm', 'Team Members', 'Case Studies/Results', 'Client Logos', 'Testimonials', 'Contact CTA', 'Footer'],
-    features: ['Animated statistics counters', 'Team member cards with hover bio', 'Client logo carousel', 'Appointment booking'],
-    colorSchemes: [
-      { name: 'Corporate Navy', primary: '#0A1628', secondary: '#1E3A5F', accent: '#FFB400', bg: '#FFFFFF', text: '#0A1628' },
-      { name: 'Modern Teal', primary: '#006D77', secondary: '#83C5BE', accent: '#E29578', bg: '#FDFCDC', text: '#1A1A1A' },
-      { name: 'Elegant Dark', primary: '#14213D', secondary: '#1D3557', accent: '#FCA311', bg: '#E5E5E5', text: '#14213D' },
-    ],
-    designNotes: 'Convey expertise, trust, and success. Use professional photography. Sophisticated typography.',
-    heroStyle: 'Gradient mesh background with geometric accents, professional headshot or office image, strong headline',
-  },
-  'health-beauty': {
-    sections: ['Hero with Atmosphere', 'Services Menu', 'About/Philosophy', 'Team/Specialists', 'Treatment Gallery', 'Pricing Packages', 'Booking Section', 'Testimonials', 'Contact & Hours', 'Footer'],
-    features: ['Service cards with pricing', 'Before/after sliders', 'Online booking calendar', 'Gift card promotion'],
-    colorSchemes: [
-      { name: 'Spa Zen', primary: '#4A6741', secondary: '#8FBC8F', accent: '#D4A574', bg: '#F5F5F0', text: '#2D2D2D' },
-      { name: 'Luxury Rose', primary: '#B76E79', secondary: '#E8B4BC', accent: '#C9A962', bg: '#FFF9FB', text: '#4A4A4A' },
-      { name: 'Modern Wellness', primary: '#5C6BC0', secondary: '#9FA8DA', accent: '#FF8A65', bg: '#FFFFFF', text: '#37474F' },
-    ],
-    designNotes: 'Create a calming, luxurious atmosphere. Soft imagery, elegant fonts, plenty of whitespace. Emphasize self-care.',
-    heroStyle: 'Soft gradient background with floating botanical elements, serene imagery, elegant script font accents',
-  },
-  'real-estate': {
-    sections: ['Hero with Search', 'Featured Listings', 'Property Categories', 'About Agent/Agency', 'Success Statistics', 'Testimonials', 'Neighborhood Guide', 'Contact Form', 'Footer'],
-    features: ['Property cards with image carousel', 'Search filters', 'Map integration', 'Virtual tour buttons', 'Mortgage calculator'],
-    colorSchemes: [
-      { name: 'Luxury Estate', primary: '#1A1A2E', secondary: '#2D3142', accent: '#C9A962', bg: '#FFFFFF', text: '#1A1A2E' },
-      { name: 'Modern Realtor', primary: '#2C3E50', secondary: '#34495E', accent: '#E74C3C', bg: '#ECF0F1', text: '#2C3E50' },
-      { name: 'Warm Welcome', primary: '#5D4037', secondary: '#795548', accent: '#FF7043', bg: '#FFF8E7', text: '#3E2723' },
-    ],
-    designNotes: 'Showcase properties beautifully. Large images, clean property cards, easy navigation. Professional agent photo.',
-    heroStyle: 'Full-width property image with search overlay, gradient bottom fade, floating property stats',
-  },
-  portfolio: {
-    sections: ['Hero with Name/Title', 'Selected Works Grid', 'About Me', 'Services/Skills', 'Testimonials', 'Contact CTA', 'Footer with Social'],
-    features: ['Filterable project grid', 'Project hover previews', 'Smooth scroll navigation', 'Animated skill bars'],
-    colorSchemes: [
-      { name: 'Minimal Light', primary: '#1A1A1A', secondary: '#4A4A4A', accent: '#FF4444', bg: '#FFFFFF', text: '#1A1A1A' },
-      { name: 'Creative Bold', primary: '#6C5CE7', secondary: '#A29BFE', accent: '#00CEC9', bg: '#2D3436', text: '#FFFFFF' },
-      { name: 'Editorial', primary: '#2D2D2D', secondary: '#5C5C5C', accent: '#FF6B6B', bg: '#F8F8F8', text: '#2D2D2D' },
-    ],
-    designNotes: 'Let the work speak. Large project images, minimal distractions, unique layout. Show personality.',
-    heroStyle: 'Bold typography hero with animated text reveal, subtle background texture, minimal layout',
-  },
-  banking: {
-    sections: ['Hero with Value Proposition', 'Services/Products', 'Why Choose Us', 'Security & Trust', 'Mobile App Showcase', 'Rates & Calculators', 'Testimonials', 'FAQ', 'Contact & Branches', 'Footer'],
-    features: ['Product comparison cards', 'Interest rate calculator', 'Security badges', 'Mobile app download CTAs', 'Branch locator'],
-    colorSchemes: [
-      { name: 'Trust Blue', primary: '#003366', secondary: '#0055A5', accent: '#00A86B', bg: '#F5F7FA', text: '#1A1A2E' },
-      { name: 'Modern Finance', primary: '#1A1A2E', secondary: '#2D2D44', accent: '#6366F1', bg: '#FFFFFF', text: '#1A1A2E' },
-      { name: 'Premium Gold', primary: '#1C2938', secondary: '#2C3E50', accent: '#D4AF37', bg: '#FAFBFC', text: '#1C2938' },
-    ],
-    designNotes: 'Emphasize security, trust, and innovation. Clean data visualizations, professional imagery, confidence-building elements.',
-    heroStyle: 'Gradient mesh with floating UI elements, split layout with app mockup, strong headline about security',
-  },
-};
+// Clean HTML response
+function cleanHtmlResponse(response: string): string {
+  let html = response.trim();
+  
+  // Remove markdown code blocks if present
+  if (html.startsWith('```html')) {
+    html = html.replace(/^```html\n?/, '').replace(/\n?```$/, '');
+  }
+  if (html.startsWith('```')) {
+    html = html.replace(/^```\n?/, '').replace(/\n?```$/, '');
+  }
+  
+  // Find the actual HTML start if there's preamble
+  const doctypeIndex = html.toLowerCase().indexOf('<!doctype');
+  if (doctypeIndex > 0) {
+    html = html.substring(doctypeIndex);
+  }
+  
+  // Find the HTML end if there's content after
+  const htmlEndIndex = html.toLowerCase().lastIndexOf('</html>');
+  if (htmlEndIndex > 0) {
+    html = html.substring(0, htmlEndIndex + 7);
+  }
+  
+  return html;
+}
 
-// Style configurations with CSS guidance
-const STYLE_CONFIG: Record<string, {
-  description: string;
-  typography: string;
-  layout: string;
-  effects: string;
-  fonts: { heading: string; body: string };
-}> = {
-  modern: {
-    description: 'Clean, contemporary design with bold typography and strategic whitespace',
-    typography: 'Large, bold headings (48-72px), generous line height, clear hierarchy',
-    layout: 'Asymmetric grids, overlapping elements, full-width sections',
-    effects: 'Subtle shadows, smooth hover transitions, scroll-triggered fade-ins',
-    fonts: { heading: 'Outfit', body: 'Inter' },
-  },
-  elegant: {
-    description: 'Sophisticated, luxurious design with refined details',
-    typography: 'Serif headings, refined spacing, subtle letter-spacing',
-    layout: 'Centered content, balanced proportions, generous padding',
-    effects: 'Soft shadows, gold accents, gentle hover effects',
-    fonts: { heading: 'Playfair Display', body: 'Lato' },
-  },
-  bold: {
-    description: 'Eye-catching, high-energy design with strong contrasts',
-    typography: 'Extra-bold headings, dramatic sizing, impactful statements',
-    layout: 'Dynamic angles, overlapping layers, unexpected positioning',
-    effects: 'Strong shadows, vibrant hovers, animated gradients',
-    fonts: { heading: 'Space Grotesk', body: 'DM Sans' },
-  },
-  minimal: {
-    description: 'Stripped-down, focused design emphasizing content',
-    typography: 'Clean sans-serif, modest sizing, excellent readability',
-    layout: 'Grid-based, maximum whitespace, content-focused',
-    effects: 'Micro-interactions, subtle hovers, clean transitions',
-    fonts: { heading: 'Plus Jakarta Sans', body: 'Plus Jakarta Sans' },
-  },
-  playful: {
-    description: 'Fun, approachable design with personality',
-    typography: 'Rounded fonts, varied sizing, emoji-friendly',
-    layout: 'Organic shapes, tilted elements, bouncy spacing',
-    effects: 'Bouncy animations, colorful hovers, playful micro-interactions',
-    fonts: { heading: 'Nunito', body: 'Nunito' },
-  },
-  corporate: {
-    description: 'Professional, trustworthy design inspiring confidence',
-    typography: 'Professional sans-serif, clear hierarchy, readable sizing',
-    layout: 'Structured grids, balanced sections, logical flow',
-    effects: 'Professional transitions, subtle depth, refined hovers',
-    fonts: { heading: 'Manrope', body: 'Source Sans Pro' },
-  },
-};
+// Generate website
+async function generateWebsite(project: any): Promise<string> {
+  const industryKey = (project.industry || 'local-services').toLowerCase().replace(/\s+/g, '-');
+  const styleKey = (project.style || 'modern').toLowerCase();
+  
+  // Get industry brief, fallback to local-services
+  const industryBrief = INDUSTRY_BRIEFS[industryKey] || INDUSTRY_BRIEFS['local-services'];
+  const styleModifier = STYLE_MODIFIERS[styleKey] || STYLE_MODIFIERS['modern'];
 
-// Master system prompt for website generation
-const SYSTEM_PROMPT = `You are an elite web designer and developer who creates stunning, award-winning websites. Your websites consistently win design awards and make clients say "WOW!" 
+  const userPrompt = `
+# CREATE A MILLION-DOLLAR WEBSITE
 
-Your design philosophy:
-1. VISUAL IMPACT FIRST - Every website must have a "hero moment" that stops people in their tracks
-2. MODERN TECHNIQUES - Use gradients, glassmorphism, subtle animations, and contemporary layouts
-3. ATTENTION TO DETAIL - Spacing, typography, and micro-interactions matter enormously
-4. COHESIVE DESIGN SYSTEM - Every element feels intentional and connected
-5. PREMIUM FEEL - The website should look like it cost $10,000+ to build
+## THE CLIENT
+**Business Name**: ${project.business_name}
+**Industry**: ${project.industry}
+**What They Do**: ${project.description || 'A professional business serving their community with excellence'}
+**Website Goal**: ${project.website_goal || 'Generate leads, build trust, and convert visitors into customers'}
+${project.features?.length ? `**Requested Features**: ${project.features.join(', ')}` : ''}
+${project.inspirations ? `**Design Inspiration**: ${project.inspirations}` : ''}
+${project.customers?.email ? `**Contact Email**: ${project.customers.email}` : ''}
+${project.customers?.phone ? `**Contact Phone**: ${project.customers.phone}` : ''}
 
-You MUST include these modern design elements:
-- Gradient backgrounds (mesh gradients, linear gradients with multiple stops)
-- Glassmorphism effects (backdrop-blur, semi-transparent backgrounds)
-- Soft, layered shadows (multiple box-shadows for depth)
-- Smooth animations (fade-in on scroll, hover transforms, subtle movements)
-- Modern typography (variable font weights, letter-spacing, line-height)
-- Strategic use of accent colors
-- Floating elements and overlapping sections
-- High-quality placeholder images with proper aspect ratios
+${industryBrief}
 
-CSS TECHNIQUES you must use:
-- CSS Grid for complex layouts
-- CSS custom properties for theming
-- @keyframes for animations
-- backdrop-filter for glass effects
-- background: linear-gradient() and radial-gradient()
-- box-shadow with multiple layers
-- transform and transition for interactions
-- scroll-behavior: smooth
-- Intersection Observer for scroll animations (JavaScript)
+${styleModifier}
 
-CRITICAL: You output ONLY raw HTML. No markdown, no explanations, no code blocks. Start with <!DOCTYPE html> and end with </html>.`;
+---
 
+## TECHNICAL EXECUTION
+
+**IMAGES**: Use https://picsum.photos for realistic images
+- Hero: https://picsum.photos/1920/1080?random=1
+- Sections: https://picsum.photos/800/600?random=2 (increment the number)
+- Team/People: https://picsum.photos/400/500?random=10
+- Gallery: https://picsum.photos/600/400?random=20
+
+**FONTS**: Use Google Fonts (include proper link tags)
+
+**REQUIRED CSS FEATURES**:
+\`\`\`css
+:root {
+  --primary: /* your choice */;
+  --secondary: /* your choice */;
+  --accent: /* your choice */;
+  --bg: /* your choice */;
+  --text: /* your choice */;
+}
+
+/* Smooth scroll */
+html { scroll-behavior: smooth; }
+
+/* Reveal animation */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s ease;
+}
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+\`\`\`
+
+**REQUIRED JAVASCRIPT**:
+\`\`\`javascript
+// Intersection Observer for scroll animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('active');
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+\`\`\`
+
+---
+
+Now create a website so stunning that the client will immediately want to pay. Make it look like a $50,000 custom build.
+
+Output ONLY the HTML. Start with <!DOCTYPE html>, end with </html>. No explanations.`;
+
+  const response = await callClaude(ELITE_SYSTEM_PROMPT, userPrompt);
+  return cleanHtmlResponse(response);
+}
+
+// Revise website
+async function reviseWebsite(currentHtml: string, feedback: string, project: any): Promise<string> {
+  const systemPrompt = `You are an elite web designer making revisions. Maintain the premium quality while implementing all requested changes. Output ONLY the complete HTML.`;
+
+  const userPrompt = `
+## REVISION REQUEST
+
+**Client**: ${project.business_name}
+**Feedback**: ${feedback}
+
+Apply all requested changes while maintaining the premium design quality.
+
+**Current Website**:
+${currentHtml}
+
+Output the COMPLETE revised HTML. Start with <!DOCTYPE html>, end with </html>.`;
+
+  const response = await callClaude(systemPrompt, userPrompt);
+  return cleanHtmlResponse(response);
+}
+
+// Quick edit
+async function quickEdit(currentHtml: string, instruction: string): Promise<string> {
+  const systemPrompt = `Make this specific edit while preserving everything else. Output ONLY the complete HTML.`;
+
+  const userPrompt = `
+**Edit requested**: ${instruction}
+
+**Current HTML**:
+${currentHtml}
+
+Output the COMPLETE updated HTML. Start with <!DOCTYPE html>, end with </html>.`;
+
+  const response = await callClaude(systemPrompt, userPrompt);
+  return cleanHtmlResponse(response);
+}
+
+// API Route Handler
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -233,7 +587,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
     }
 
-    // Fetch project details
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('*, customers(name, email, phone, business_name)')
@@ -244,11 +597,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    // Handle different actions
     if (action === 'generate') {
       const html = await generateWebsite(project);
       
-      // Save generated HTML to project
       await supabase
         .from('projects')
         .update({ 
@@ -257,23 +608,18 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', projectId);
 
-      return NextResponse.json({ 
-        success: true, 
-        html,
-        message: 'Website generated successfully'
-      });
+      return NextResponse.json({ success: true, html, message: 'Website generated successfully' });
     }
 
     if (action === 'revise') {
       const { feedback, currentHtml } = body;
       
       if (!feedback) {
-        return NextResponse.json({ error: 'Feedback required for revision' }, { status: 400 });
+        return NextResponse.json({ error: 'Feedback required' }, { status: 400 });
       }
 
       const html = await reviseWebsite(currentHtml || project.generated_html, feedback, project);
       
-      // Save revised HTML
       await supabase
         .from('projects')
         .update({ 
@@ -282,11 +628,7 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', projectId);
 
-      return NextResponse.json({ 
-        success: true, 
-        html,
-        message: 'Revisions applied successfully'
-      });
+      return NextResponse.json({ success: true, html, message: 'Revisions applied' });
     }
 
     if (action === 'quick-edit') {
@@ -298,17 +640,12 @@ export async function POST(request: NextRequest) {
 
       const html = await quickEdit(currentHtml || project.generated_html, instruction);
       
-      // Save edited HTML
       await supabase
         .from('projects')
         .update({ generated_html: html })
         .eq('id', projectId);
 
-      return NextResponse.json({ 
-        success: true, 
-        html,
-        message: 'Edit applied successfully'
-      });
+      return NextResponse.json({ success: true, html, message: 'Edit applied' });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -320,228 +657,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Generate website function - ENHANCED
-async function generateWebsite(project: any): Promise<string> {
-  const industryKey = (project.industry || 'local-services').toLowerCase().replace(/\s+/g, '-');
-  const styleKey = (project.style || 'modern').toLowerCase();
-  
-  const industryConfig = INDUSTRY_CONFIG[industryKey] || INDUSTRY_CONFIG['local-services'];
-  const styleConfig = STYLE_CONFIG[styleKey] || STYLE_CONFIG['modern'];
-  
-  // Pick a random color scheme from the industry options
-  const colorScheme = industryConfig.colorSchemes[Math.floor(Math.random() * industryConfig.colorSchemes.length)];
-
-  const userPrompt = `Create a stunning, production-ready website for this business:
-
-═══════════════════════════════════════════════════════════════
-BUSINESS INFORMATION
-═══════════════════════════════════════════════════════════════
-• Business Name: ${project.business_name}
-• Industry: ${project.industry}
-• Description: ${project.description || 'A professional business providing excellent services to customers'}
-• Website Goal: ${project.website_goal || 'Generate leads, showcase services, and build trust with potential customers'}
-• Requested Features: ${(project.features || []).join(', ') || 'Standard professional website features'}
-${project.inspirations ? `• Design Inspirations: ${project.inspirations}` : ''}
-${project.customers?.email ? `• Contact Email: ${project.customers.email}` : ''}
-${project.customers?.phone ? `• Contact Phone: ${project.customers.phone}` : ''}
-
-═══════════════════════════════════════════════════════════════
-DESIGN SPECIFICATIONS
-═══════════════════════════════════════════════════════════════
-STYLE: ${styleKey.toUpperCase()}
-${styleConfig.description}
-
-Typography: ${styleConfig.typography}
-Layout: ${styleConfig.layout}
-Effects: ${styleConfig.effects}
-
-FONTS TO USE:
-- Heading: "${styleConfig.fonts.heading}" (Google Fonts)
-- Body: "${styleConfig.fonts.body}" (Google Fonts)
-
-COLOR PALETTE (${colorScheme.name}):
-- Primary: ${colorScheme.primary}
-- Secondary: ${colorScheme.secondary}
-- Accent: ${colorScheme.accent}
-- Background: ${colorScheme.bg}
-- Text: ${colorScheme.text}
-
-═══════════════════════════════════════════════════════════════
-REQUIRED SECTIONS (in this order)
-═══════════════════════════════════════════════════════════════
-${industryConfig.sections.map((section, i) => `${i + 1}. ${section}`).join('\n')}
-
-Hero Style: ${industryConfig.heroStyle}
-
-═══════════════════════════════════════════════════════════════
-REQUIRED FEATURES
-═══════════════════════════════════════════════════════════════
-${industryConfig.features.map(f => `• ${f}`).join('\n')}
-
-═══════════════════════════════════════════════════════════════
-DESIGN NOTES FOR THIS INDUSTRY
-═══════════════════════════════════════════════════════════════
-${industryConfig.designNotes}
-
-═══════════════════════════════════════════════════════════════
-TECHNICAL REQUIREMENTS
-═══════════════════════════════════════════════════════════════
-1. Single HTML file with embedded <style> and <script>
-2. Mobile-first responsive design (use media queries)
-3. Include Google Fonts link tags in <head>
-4. CSS custom properties for all colors: --primary, --secondary, --accent, --bg, --text
-5. Smooth scroll behavior
-6. Intersection Observer for scroll-triggered animations
-7. Semantic HTML5 elements
-8. Proper meta tags including viewport
-9. Use https://picsum.photos for realistic placeholder images:
-   - Hero: https://picsum.photos/1920/1080?random=1
-   - Gallery: https://picsum.photos/600/400?random=2 (vary the number)
-   - Team: https://picsum.photos/400/400?random=3
-   - Products: https://picsum.photos/500/500?random=4
-10. NO external CSS frameworks
-11. Sticky navigation with backdrop blur
-12. Footer with social media icons (use Unicode or inline SVG)
-
-═══════════════════════════════════════════════════════════════
-CRITICAL CSS PATTERNS TO INCLUDE
-═══════════════════════════════════════════════════════════════
-/* Hero gradient example */
-.hero {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  /* OR for image overlay: */
-  background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('image.jpg');
-}
-
-/* Glassmorphism card */
-.glass-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-}
-
-/* Layered shadow */
-.card {
-  box-shadow: 
-    0 4px 6px rgba(0, 0, 0, 0.05),
-    0 10px 20px rgba(0, 0, 0, 0.08),
-    0 20px 40px rgba(0, 0, 0, 0.1);
-}
-
-/* Scroll animation */
-.fade-in {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-}
-.fade-in.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Button hover */
-.btn-primary {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.3);
-}
-
-═══════════════════════════════════════════════════════════════
-
-Generate a COMPLETE, STUNNING website that would make the client say "WOW!"
-Output ONLY the HTML. Start with <!DOCTYPE html> and end with </html>.`;
-
-  const response = await callClaude(SYSTEM_PROMPT, userPrompt);
-  
-  // Clean up response
-  let html = response.trim();
-  if (html.startsWith('```html')) {
-    html = html.replace(/^```html\n?/, '').replace(/\n?```$/, '');
-  }
-  if (html.startsWith('```')) {
-    html = html.replace(/^```\n?/, '').replace(/\n?```$/, '');
-  }
-  
-  // Ensure it starts with DOCTYPE
-  if (!html.toLowerCase().startsWith('<!doctype')) {
-    const doctypeIndex = html.toLowerCase().indexOf('<!doctype');
-    if (doctypeIndex > 0) {
-      html = html.substring(doctypeIndex);
-    }
-  }
-  
-  return html;
-}
-
-// Revise website function - ENHANCED
-async function reviseWebsite(currentHtml: string, feedback: string, project: any): Promise<string> {
-  const systemPrompt = `You are an expert web developer making revisions to a client's website. 
-Maintain the same high-quality design standards while implementing the requested changes.
-Preserve all existing styling, animations, and responsive behavior unless specifically asked to change them.
-Output ONLY the complete HTML. No explanations.`;
-
-  const userPrompt = `Apply these revisions to the website:
-
-CUSTOMER FEEDBACK:
-${feedback}
-
-BUSINESS CONTEXT:
-- Business: ${project.business_name}
-- Industry: ${project.industry}
-- Style: ${project.style}
-
-INSTRUCTIONS:
-1. Read the feedback carefully
-2. Apply ALL requested changes
-3. Maintain design quality and consistency
-4. Keep all animations and responsive behavior
-5. If feedback is vague, make reasonable premium-quality interpretations
-
-CURRENT WEBSITE HTML:
-${currentHtml}
-
-Output the COMPLETE updated HTML. Start with <!DOCTYPE html> and end with </html>.`;
-
-  const response = await callClaude(systemPrompt, userPrompt);
-  
-  let html = response.trim();
-  if (html.startsWith('```html')) {
-    html = html.replace(/^```html\n?/, '').replace(/\n?```$/, '');
-  }
-  if (html.startsWith('```')) {
-    html = html.replace(/^```\n?/, '').replace(/\n?```$/, '');
-  }
-  
-  return html;
-}
-
-// Quick edit function - ENHANCED
-async function quickEdit(currentHtml: string, instruction: string): Promise<string> {
-  const systemPrompt = `You are a web developer making a specific edit to a website.
-Make ONLY the requested change while preserving everything else.
-Output ONLY the complete HTML. No explanations.`;
-
-  const userPrompt = `Make this specific change: "${instruction}"
-
-Current website HTML:
-${currentHtml}
-
-Output the COMPLETE updated HTML. Start with <!DOCTYPE html> and end with </html>.`;
-
-  const response = await callClaude(systemPrompt, userPrompt);
-  
-  let html = response.trim();
-  if (html.startsWith('```html')) {
-    html = html.replace(/^```html\n?/, '').replace(/\n?```$/, '');
-  }
-  if (html.startsWith('```')) {
-    html = html.replace(/^```\n?/, '').replace(/\n?```$/, '');
-  }
-  
-  return html;
 }
