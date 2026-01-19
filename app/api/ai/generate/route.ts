@@ -1,916 +1,1007 @@
-'use client';
+// app/api/ai/generate/route.ts
+// ULTIMATE AI Website Generation - Million Dollar Websites
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-type FormData = {
-  // Step 1: Business Basics
-  businessName: string;
-  industry: string;
-  description: string;
-  websiteGoal: string;
-  targetCustomer: string;
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// ============================================================================
+// THE MASTER SYSTEM PROMPT - This is the secret sauce
+// ============================================================================
+const MASTER_SYSTEM_PROMPT = `You are an ELITE website designer who has won every major design award. Your websites are featured on Awwwards, CSS Design Awards, and FWA. Companies pay you $50,000+ per website.
+
+## YOUR DESIGN PHILOSOPHY
+
+You don't just build websites - you create EXPERIENCES that make visitors say "WOW" within the first 2 seconds.
+
+### THE 5 PRINCIPLES OF MILLION-DOLLAR WEBSITES:
+
+**1. THE HERO IS EVERYTHING**
+The hero section is 80% of the first impression. It must:
+- Have a MASSIVE headline (clamp(48px, 8vw, 96px))
+- Use a stunning full-screen background (gradient mesh, image with overlay, or animated gradient)
+- Include subtle motion (floating elements, gradient animation, parallax)
+- Have ONE clear call-to-action that POPS
+- Create immediate emotional impact
+
+**2. VISUAL HIERARCHY THROUGH CONTRAST**
+- Use size contrast: Headlines 4-6x bigger than body text
+- Use color contrast: One dominant color, one accent that demands attention
+- Use space contrast: Generous padding (80-120px sections), tight text groupings
+- Use weight contrast: Bold headlines, light body text
+
+**3. MOTION CREATES EMOTION**
+- Scroll-triggered animations (elements fade/slide in as you scroll)
+- Hover micro-interactions (buttons lift, cards glow, images zoom)
+- Subtle background motion (gradient shifts, floating shapes)
+- Smooth transitions everywhere (0.3s ease-out is your friend)
+
+**4. IMAGES TELL THE STORY**
+- Use REAL-LOOKING images from Unsplash (via picsum.photos or direct unsplash URLs)
+- Hero images should be full-width, high-impact
+- Product/service images should be large and aspirational
+- Team photos should feel professional and approachable
+- NEVER use obvious placeholder text on images
+
+**5. DETAILS NOBODY NOTICES (BUT EVERYONE FEELS)**
+- Custom selection color matching brand
+- Smooth scroll behavior
+- Consistent 8px spacing grid
+- Subtle text shadows on hero text over images
+- Border-radius that matches brand personality (sharp = professional, rounded = friendly)
+- Loading states and transitions
+
+## TECHNICAL REQUIREMENTS
+
+You MUST include ALL of these in every website:
+
+### CSS ARCHITECTURE
+\`\`\`css
+:root {
+  --primary: #HEXCODE;
+  --primary-dark: #HEXCODE;
+  --secondary: #HEXCODE;
+  --accent: #HEXCODE;
+  --background: #HEXCODE;
+  --surface: #HEXCODE;
+  --text: #HEXCODE;
+  --text-muted: #HEXCODE;
+  --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: 'CHOSEN_FONT', sans-serif; background: var(--background); color: var(--text); }
+\`\`\`
+
+### ANIMATIONS (Required)
+\`\`\`css
+/* Fade in on scroll */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children */
+.reveal:nth-child(1) { transition-delay: 0.1s; }
+.reveal:nth-child(2) { transition-delay: 0.2s; }
+.reveal:nth-child(3) { transition-delay: 0.3s; }
+
+/* Button hover */
+.btn {
+  transition: all 0.3s ease;
+}
+.btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+/* Card hover */
+.card {
+  transition: all 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+\`\`\`
+
+### JAVASCRIPT (Required)
+\`\`\`javascript
+// Intersection Observer for scroll animations
+document.addEventListener('DOMContentLoaded', () => {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('active');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
   
-  // Step 2: Style & Vibe
-  style: string;
-  colorPreference: string;
-  moodTags: string[];
-  inspirations: string;
-  
-  // Step 3: Plan
-  plan: string;
-  
-  // Step 4: Features & Contact
-  features: string[];
-  contactEmail: string;
-  contactPhone: string;
-  address: string;
-  uniqueValue: string;
+  // Navbar scroll effect
+  const nav = document.querySelector('nav');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 100) {
+      nav.classList.add('scrolled');
+    } else {
+      nav.classList.remove('scrolled');
+    }
+  });
+});
+\`\`\`
+
+### IMAGE SOURCES
+Use these for REALISTIC images:
+- Hero backgrounds: https://images.unsplash.com/photo-[ID]?w=1920&q=80
+- Team/People: https://images.unsplash.com/photo-[ID]?w=400&q=80
+- Products: https://images.unsplash.com/photo-[ID]?w=600&q=80
+- Or use: https://picsum.photos/1920/1080?random=1 (increment number for variety)
+
+## OUTPUT FORMAT
+
+Return ONLY the complete HTML file:
+- Start with <!DOCTYPE html>
+- End with </html>
+- NO explanations, NO markdown code blocks
+- ALL CSS in a single <style> tag in <head>
+- ALL JavaScript in a single <script> tag before </body>
+- Must be 100% complete and functional`;
+
+// ============================================================================
+// INDUSTRY-SPECIFIC CREATIVE BRIEFS
+// ============================================================================
+const INDUSTRY_BRIEFS: Record<string, string> = {
+  'restaurant': `
+## 🍽️ RESTAURANT WEBSITE BRIEF
+
+**THE FEELING:** Walking into a restaurant where you KNOW the food will be incredible. Warmth, appetite, anticipation.
+
+**HERO APPROACH:**
+- Full-screen food photography or restaurant interior
+- Dark overlay (rgba(0,0,0,0.4)) to make text pop
+- Elegant serif font for restaurant name
+- "Reserve a Table" button with warm glow effect
+
+**COLOR PALETTE:**
+- Rich burgundy, deep orange, warm gold
+- Cream backgrounds, dark text
+- Accent: Warm amber or gold
+
+**REQUIRED SECTIONS:**
+1. Hero - Stunning food/interior shot with reservation CTA
+2. Story - "Our Story" with atmospheric photo
+3. Menu Highlights - 3-4 signature dishes with photos (NOT full menu)
+4. Gallery - 6-8 beautiful food/ambiance photos in grid
+5. Reviews - 3 customer testimonials with stars
+6. Location - Map embed + hours + contact
+7. Footer - Social links, newsletter, reservation button
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80 (restaurant interior)
+- Food 1: https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80 (plated dish)
+- Food 2: https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80 (dining)
+- Food 3: https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=800&q=80 (food)
+- Interior: https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80 (restaurant)
+
+**FONTS:** Playfair Display (headlines), Lato (body)`,
+
+  'local-services': `
+## 🔧 LOCAL SERVICES WEBSITE BRIEF
+
+**THE FEELING:** Relief. "Finally, a professional I can TRUST." Competence meets approachability.
+
+**HERO APPROACH:**
+- Split layout: Bold headline left, team/work photo right
+- Trust badges floating (Licensed, Insured, 5-Star Rated)
+- "Get Free Quote" button in accent color
+- Maybe subtle pattern or gradient background
+
+**COLOR PALETTE:**
+- Professional blue or trustworthy green as primary
+- White/light gray backgrounds
+- Orange or yellow accent for CTAs (creates urgency)
+
+**REQUIRED SECTIONS:**
+1. Hero - Value proposition + trust badges + CTA
+2. Services - Grid of 4-6 services with icons
+3. Why Us - 3-4 differentiators with checkmarks
+4. Work Gallery - Before/After or project photos
+5. Reviews - 3 testimonials with photos and stars
+6. Service Areas - Map or list of areas served
+7. Contact - Form + phone number (make phone HUGE on mobile)
+8. Footer - License numbers, guarantees
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1920&q=80 (professional at work)
+- Team: https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&q=80 (professional portrait)
+- Work 1: https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&q=80 (service work)
+- Work 2: https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80 (completed project)
+
+**FONTS:** Poppins or Montserrat (headlines), Inter (body)`,
+
+  'professional': `
+## 💼 PROFESSIONAL SERVICES BRIEF (Law, Consulting, Finance)
+
+**THE FEELING:** "These are EXPERTS. I'm in good hands." Confidence, authority, success.
+
+**HERO APPROACH:**
+- Sophisticated gradient or abstract background
+- OR professional team photo with overlay
+- Headline focuses on OUTCOMES, not services
+- "Schedule Consultation" CTA
+
+**COLOR PALETTE:**
+- Navy blue, charcoal, or deep slate as primary
+- Gold, amber, or warm accent for prestige
+- Lots of white space
+
+**REQUIRED SECTIONS:**
+1. Hero - Outcome-focused headline + consultation CTA
+2. Services - Clean list with descriptions
+3. About - Firm story + credentials
+4. Team - Professional headshots with titles
+5. Results/Case Studies - Numbers and outcomes
+6. Testimonials - Client quotes with company names
+7. Contact - Multiple contact methods
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80 (modern building)
+- Team 1: https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&q=80 (professional woman)
+- Team 2: https://images.unsplash.com/photo-1556157382-97edd2f9e5ee?w=400&q=80 (professional man)
+- Office: https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80 (modern office)
+
+**FONTS:** Inter or Source Sans Pro (clean), Libre Baskerville (elegant headlines)`,
+
+  'health-beauty': `
+## 💆 HEALTH & BEAUTY / SPA BRIEF
+
+**THE FEELING:** Instant calm. A visual deep breath. "I DESERVE this."
+
+**HERO APPROACH:**
+- Soft, dreamy imagery with light overlay
+- Elegant script or serif font
+- Muted, calming color palette
+- "Book Your Experience" CTA
+
+**COLOR PALETTE:**
+- Soft sage green, blush pink, or calming teal
+- Cream, warm white backgrounds
+- Gold accents for luxury
+
+**REQUIRED SECTIONS:**
+1. Hero - Serene imagery with booking CTA
+2. Services - Treatments with poetic descriptions
+3. About/Philosophy - Why this spa is different
+4. Team - Therapists/stylists with warm photos
+5. Gallery - Space and treatment photos
+6. Pricing - Clear packages
+7. Booking CTA - Final push to book
+8. Contact - Location, hours, contact
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1920&q=80 (spa)
+- Treatment 1: https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80 (massage)
+- Treatment 2: https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&q=80 (facial)
+- Interior: https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=800&q=80 (spa interior)
+
+**FONTS:** Cormorant Garamond (elegant headlines), Quicksand (soft body)`,
+
+  'real-estate': `
+## 🏠 REAL ESTATE BRIEF
+
+**THE FEELING:** "This is THE ONE." Aspiration meets attainability. Dream home energy.
+
+**HERO APPROACH:**
+- Stunning property photo, full-width
+- Search box overlay OR agent value proposition
+- "Find Your Dream Home" headline
+
+**COLOR PALETTE:**
+- Navy or charcoal for trust
+- Gold or warm accents for luxury
+- Clean whites for space
+
+**REQUIRED SECTIONS:**
+1. Hero - Property image with search/CTA
+2. Featured Listings - 3-4 property cards with photos
+3. Agent Profile - Photo, bio, credentials
+4. Why Work With Us - Differentiators
+5. Testimonials - Happy homeowners
+6. Areas Served - Neighborhoods
+7. Contact - Multiple contact methods
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80 (luxury home)
+- Property 1: https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80 (home exterior)
+- Property 2: https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80 (interior)
+- Agent: https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&q=80 (professional)
+
+**FONTS:** Poppins (modern headlines), Inter (body)`,
+
+  'ecommerce': `
+## 🛒 E-COMMERCE BRIEF
+
+**THE FEELING:** "I NEED this." Desire, discovery, trust.
+
+**HERO APPROACH:**
+- Large product shot or lifestyle imagery
+- Bold brand statement
+- "Shop Now" CTA that's unmissable
+
+**COLOR PALETTE:**
+- Minimal: black, white, one accent
+- Let products be the color
+
+**REQUIRED SECTIONS:**
+1. Hero - Flagship product/collection
+2. Featured Products - 4-6 products in grid
+3. Categories - Visual category blocks
+4. Brand Story - Why this brand exists
+5. Reviews - Social proof
+6. Newsletter - Email signup with incentive
+7. Trust Badges - Shipping, returns, secure checkout
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&q=80 (store)
+- Product 1: https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80 (product)
+- Product 2: https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80 (headphones)
+- Product 3: https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&q=80 (camera)
+
+**FONTS:** Space Grotesk (modern), DM Sans (clean body)`,
+
+  'portfolio': `
+## 🎨 PORTFOLIO BRIEF
+
+**THE FEELING:** "WOW, I need to hire this person." Creative confidence.
+
+**HERO APPROACH:**
+- Bold, oversized name/title
+- Minimal everything else
+- Maybe subtle animation
+- Let work speak for itself
+
+**COLOR PALETTE:**
+- Could be dark mode (premium feel)
+- High contrast
+- One accent color for personality
+
+**REQUIRED SECTIONS:**
+1. Hero - Name, title, one-liner
+2. Selected Work - Project grid with hover effects
+3. About - Personal story with personality
+4. Services - What you offer
+5. Testimonials - Client quotes
+6. Contact - Easy to reach out
+
+**IMAGES TO USE:**
+- Project 1: https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80 (design work)
+- Project 2: https://images.unsplash.com/photo-1522542550221-31fd8575f4a7?w=800&q=80 (creative work)
+- Project 3: https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=800&q=80 (branding)
+
+**FONTS:** Space Grotesk or Clash Display (bold), Inter (body)`,
+
+  'banking': `
+## 🏦 BANKING / FINTECH BRIEF
+
+**THE FEELING:** "My money is SAFE and working for me." Modern trust.
+
+**HERO APPROACH:**
+- Clean gradient or abstract shapes
+- App mockup or card floating
+- Security + innovation message
+- "Get Started" CTA
+
+**COLOR PALETTE:**
+- Deep blue or purple (trust + innovation)
+- Teal or green accents (growth)
+- Clean whites
+
+**REQUIRED SECTIONS:**
+1. Hero - Value prop + app showcase
+2. Features - Product benefits with icons
+3. Security - Trust and safety section
+4. How It Works - 3-4 simple steps
+5. App Showcase - Device mockups
+6. Testimonials - User quotes
+7. FAQ - Common questions
+8. CTA - Final signup push
+
+**IMAGES TO USE:**
+- Hero: Use CSS gradient + floating card/phone mockup design
+- App: https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80 (finance)
+- People: https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80 (professional)
+
+**FONTS:** Inter (clean), JetBrains Mono (numbers)`,
+
+  'fitness': `
+## 💪 FITNESS / GYM BRIEF
+
+**THE FEELING:** "This is where I become my BEST self." Energy, motivation, results.
+
+**HERO APPROACH:**
+- High-energy workout imagery
+- Bold, motivational headline
+- "Start Your Journey" CTA
+- Maybe dark with neon accents
+
+**COLOR PALETTE:**
+- Dark backgrounds (intensity)
+- Neon accent (energy): electric blue, lime, orange
+- High contrast
+
+**REQUIRED SECTIONS:**
+1. Hero - Action shot with bold CTA
+2. Programs - Class types or training programs
+3. Results - Transformations, testimonials
+4. Trainers - Team with credentials
+5. Facility - Gym photos
+6. Pricing - Membership options
+7. CTA - Free trial or consultation
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&q=80 (gym)
+- Training 1: https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80 (workout)
+- Training 2: https://images.unsplash.com/photo-1581009146145-b5ef050c149a?w=800&q=80 (training)
+- Trainer: https://images.unsplash.com/photo-1567013127542-490d757e51fc?w=600&q=80 (trainer)
+
+**FONTS:** Bebas Neue (bold headlines), Inter (body)`,
+
+  'education': `
+## 📚 EDUCATION / COACHING BRIEF
+
+**THE FEELING:** "This will TRANSFORM my life/career." Hope, expertise, results.
+
+**HERO APPROACH:**
+- Inspiring imagery or instructor photo
+- Transformation-focused headline
+- "Enroll Now" or "Start Learning" CTA
+
+**COLOR PALETTE:**
+- Trustworthy blue or inspiring purple
+- Warm accents for approachability
+- Clean, focused design
+
+**REQUIRED SECTIONS:**
+1. Hero - Transformation promise
+2. Courses/Programs - What's offered
+3. Instructor - Credentials, story
+4. Results - Student success stories
+5. Curriculum - What they'll learn
+6. Testimonials - Student quotes
+7. Pricing - Clear options
+8. FAQ - Common questions
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1920&q=80 (learning)
+- Instructor: https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80 (professional)
+- Students: https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80 (group learning)
+
+**FONTS:** Poppins (friendly headlines), Inter (readable body)`,
+
+  'medical': `
+## ⚕️ MEDICAL / HEALTHCARE BRIEF
+
+**THE FEELING:** "I'm in EXPERT, caring hands." Trust, competence, compassion.
+
+**HERO APPROACH:**
+- Clean, calming imagery
+- Reassuring headline
+- "Book Appointment" CTA
+- Trust signals visible
+
+**COLOR PALETTE:**
+- Calming blue or teal
+- Clean whites
+- Warm accent for approachability
+
+**REQUIRED SECTIONS:**
+1. Hero - Reassuring message + booking CTA
+2. Services - Medical services offered
+3. Doctors - Team with credentials
+4. Why Us - Differentiators
+5. Patient Stories - Testimonials
+6. Insurance - Accepted plans
+7. Location - Office info + map
+8. Contact - Easy appointment booking
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1920&q=80 (medical)
+- Doctor 1: https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=600&q=80 (female doctor)
+- Doctor 2: https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=600&q=80 (male doctor)
+- Office: https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=800&q=80 (clinic)
+
+**FONTS:** Inter (professional), Source Sans Pro (readable)`,
+
+  'tech-startup': `
+## 🚀 TECH STARTUP / SAAS BRIEF
+
+**THE FEELING:** "This will SOLVE my problem." Innovation, simplicity, results.
+
+**HERO APPROACH:**
+- Product screenshot or abstract gradient
+- Clear value proposition
+- "Get Started Free" or "Request Demo" CTA
+- Social proof (logos, user count)
+
+**COLOR PALETTE:**
+- Modern: purple/blue gradients
+- Or minimal black/white with one accent
+- Dark mode optional
+
+**REQUIRED SECTIONS:**
+1. Hero - Product + value prop + CTA
+2. Logos - Companies that trust you
+3. Features - Key benefits with visuals
+4. How It Works - Simple steps
+5. Pricing - Clear tiers
+6. Testimonials - User quotes
+7. FAQ - Common questions
+8. CTA - Final conversion push
+
+**IMAGES TO USE:**
+- Hero: Create with CSS gradients + floating UI elements
+- Dashboard: https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80 (dashboard)
+- Team: https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80 (startup team)
+
+**FONTS:** Inter (clean tech), Space Grotesk (modern headlines)`,
+
+  'construction': `
+## 🏗️ CONSTRUCTION BRIEF
+
+**THE FEELING:** "These are PROS who deliver." Strength, reliability, quality.
+
+**HERO APPROACH:**
+- Project photo or team at work
+- Bold, confident headline
+- "Get Free Estimate" CTA
+
+**COLOR PALETTE:**
+- Strong: orange, yellow, or blue
+- Grays and blacks for professionalism
+- White space for clarity
+
+**REQUIRED SECTIONS:**
+1. Hero - Project/team photo + CTA
+2. Services - What you build
+3. Projects - Portfolio gallery
+4. About - Experience, story
+5. Process - How you work
+6. Testimonials - Client reviews
+7. Contact - Quote form
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1920&q=80 (construction)
+- Project 1: https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=80 (building)
+- Project 2: https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80 (architecture)
+- Team: https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80 (workers)
+
+**FONTS:** Poppins (strong headlines), Inter (body)`,
+
+  'nonprofit': `
+## ❤️ NONPROFIT BRIEF
+
+**THE FEELING:** "I can make a DIFFERENCE." Purpose, impact, community.
+
+**HERO APPROACH:**
+- Emotional, impactful imagery
+- Mission-focused headline
+- "Donate Now" or "Join Us" CTA
+
+**COLOR PALETTE:**
+- Warm, hopeful colors
+- Could be cause-specific
+- Accessible and inclusive
+
+**REQUIRED SECTIONS:**
+1. Hero - Mission + emotional image + CTA
+2. Impact - Numbers, what you've achieved
+3. About - Story, mission, vision
+4. Programs - What you do
+5. Stories - Beneficiary testimonials
+6. Ways to Help - Donate, volunteer
+7. Team - Leadership
+8. Contact - Get involved
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=1920&q=80 (helping)
+- Impact: https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=800&q=80 (community)
+- Volunteers: https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80 (volunteers)
+
+**FONTS:** Poppins (warm headlines), Inter (accessible body)`,
+
+  'automotive': `
+## 🚗 AUTOMOTIVE BRIEF
+
+**THE FEELING:** "These are the car EXPERTS." Trust, expertise, fair dealing.
+
+**HERO APPROACH:**
+- Showroom or featured vehicle
+- Bold headline
+- "Browse Inventory" or "Get Quote" CTA
+
+**COLOR PALETTE:**
+- Red, black for excitement
+- Or blue for trust
+- Metallic accents
+
+**REQUIRED SECTIONS:**
+1. Hero - Featured vehicle/showroom
+2. Inventory - Vehicle showcase
+3. Services - What you offer
+4. About - Dealership story
+5. Reviews - Customer testimonials
+6. Financing - Options available
+7. Contact - Location, hours
+
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&q=80 (car)
+- Car 1: https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80 (vehicle)
+- Car 2: https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80 (luxury car)
+- Showroom: https://images.unsplash.com/photo-1562141961-b5d1f8ff3dcc?w=800&q=80 (dealership)
+
+**FONTS:** Poppins (bold), Inter (clean body)`
 };
 
-// Enhanced industries with icons and better categorization
-const industries = [
-  { id: 'restaurant', name: 'Restaurant / Food', icon: '🍽️' },
-  { id: 'local-services', name: 'Local Services', icon: '🔧' },
-  { id: 'professional', name: 'Professional Services', icon: '💼' },
-  { id: 'health-beauty', name: 'Health & Beauty', icon: '💆' },
-  { id: 'real-estate', name: 'Real Estate', icon: '🏠' },
-  { id: 'ecommerce', name: 'E-commerce', icon: '🛒' },
-  { id: 'portfolio', name: 'Portfolio / Creative', icon: '🎨' },
-  { id: 'banking', name: 'Finance / Banking', icon: '🏦' },
-  { id: 'fitness', name: 'Fitness / Gym', icon: '💪' },
-  { id: 'education', name: 'Education / Coaching', icon: '📚' },
-  { id: 'medical', name: 'Medical / Healthcare', icon: '⚕️' },
-  { id: 'tech-startup', name: 'Tech / Startup', icon: '🚀' },
-  { id: 'construction', name: 'Construction', icon: '🏗️' },
-  { id: 'nonprofit', name: 'Nonprofit / Charity', icon: '❤️' },
-  { id: 'automotive', name: 'Automotive', icon: '🚗' },
-  { id: 'other', name: 'Other', icon: '✨' },
-];
+// Default brief for unknown industries
+const DEFAULT_BRIEF = `
+## ✨ CUSTOM WEBSITE BRIEF
 
-// Website goals with descriptions
-const websiteGoals = [
-  { id: 'leads', name: 'Generate Leads', desc: 'Get inquiries & contact form submissions', icon: '📩' },
-  { id: 'bookings', name: 'Get Bookings', desc: 'Let customers schedule appointments', icon: '📅' },
-  { id: 'sales', name: 'Sell Products', desc: 'Showcase products & drive purchases', icon: '💰' },
-  { id: 'showcase', name: 'Showcase Work', desc: 'Display portfolio & attract clients', icon: '🖼️' },
-  { id: 'inform', name: 'Inform & Educate', desc: 'Share information about services', icon: '📖' },
-  { id: 'brand', name: 'Build Brand', desc: 'Establish online presence', icon: '⭐' },
-];
+**THE FEELING:** Professional, trustworthy, memorable.
 
-// Enhanced styles with visual preview colors
-const styles = [
-  { id: 'modern', name: 'Modern & Clean', desc: 'Bold typography, clean lines, whitespace', icon: '◻️', gradient: 'from-blue-500 to-cyan-400' },
-  { id: 'elegant', name: 'Elegant & Luxurious', desc: 'Refined, sophisticated, premium feel', icon: '✨', gradient: 'from-amber-500 to-yellow-400' },
-  { id: 'bold', name: 'Bold & Dynamic', desc: 'High contrast, oversized text, energetic', icon: '🔥', gradient: 'from-red-500 to-orange-400' },
-  { id: 'minimal', name: 'Minimal & Simple', desc: 'Maximum whitespace, essential only', icon: '○', gradient: 'from-gray-400 to-gray-500' },
-  { id: 'playful', name: 'Playful & Fun', desc: 'Bright colors, rounded shapes, friendly', icon: '🎨', gradient: 'from-pink-500 to-purple-400' },
-  { id: 'corporate', name: 'Corporate & Professional', desc: 'Traditional, trustworthy, structured', icon: '🏢', gradient: 'from-slate-600 to-slate-700' },
-  { id: 'dark', name: 'Dark & Premium', desc: 'Dark backgrounds, glowing accents', icon: '🌙', gradient: 'from-violet-600 to-indigo-800' },
-];
+**HERO APPROACH:**
+- Full-width impactful section
+- Clear value proposition
+- Strong call-to-action
 
-// Color palettes
-const colorOptions = [
-  { id: 'auto', name: 'AI Picks Best', desc: 'Based on your industry', colors: ['#6366F1', '#8B5CF6', '#A855F7'] },
-  { id: 'blue', name: 'Professional Blues', desc: 'Trust & reliability', colors: ['#1E3A5F', '#3B82F6', '#60A5FA'] },
-  { id: 'green', name: 'Natural Greens', desc: 'Growth & wellness', colors: ['#1B4332', '#22C55E', '#4ADE80'] },
-  { id: 'red', name: 'Bold Reds', desc: 'Energy & passion', colors: ['#991B1B', '#EF4444', '#FCA5A5'] },
-  { id: 'purple', name: 'Creative Purples', desc: 'Luxury & creativity', colors: ['#581C87', '#A855F7', '#D8B4FE'] },
-  { id: 'orange', name: 'Warm Oranges', desc: 'Friendly & energetic', colors: ['#9A3412', '#F97316', '#FDBA74'] },
-  { id: 'neutral', name: 'Elegant Neutrals', desc: 'Minimal & timeless', colors: ['#1F2937', '#6B7280', '#D1D5DB'] },
-  { id: 'gold', name: 'Luxury Gold', desc: 'Premium & exclusive', colors: ['#78350F', '#D97706', '#FCD34D'] },
-];
+**COLOR PALETTE:**
+- Professional primary color
+- Contrasting accent for CTAs
+- Clean backgrounds
 
-// Mood tags
-const moodTags = [
-  'Trustworthy', 'Innovative', 'Friendly', 'Luxurious', 
-  'Professional', 'Creative', 'Warm', 'Bold', 'Calm',
-  'Energetic', 'Sophisticated', 'Approachable', 'Modern',
-  'Traditional', 'Fun', 'Serious', 'Inspiring', 'Edgy'
-];
+**REQUIRED SECTIONS:**
+1. Hero - Value prop + CTA
+2. About - Company story
+3. Services - What you offer
+4. Why Us - Differentiators
+5. Testimonials - Social proof
+6. Contact - Get in touch
 
-// Dynamic features based on industry
-const featuresByIndustry: Record<string, string[]> = {
-  'restaurant': ['Online Menu', 'Reservation Form', 'Photo Gallery', 'Customer Reviews', 'Location Map', 'Social Media Feed', 'Special Offers', 'Hours Display'],
-  'local-services': ['Quote Request Form', 'Service Area Map', 'Before/After Gallery', 'Testimonials', 'FAQ Section', 'Emergency Contact', 'Trust Badges', 'Pricing Table'],
-  'professional': ['Team Profiles', 'Case Studies', 'Client Logos', 'Testimonials', 'Contact Form', 'Blog Section', 'Service Descriptions', 'Credentials'],
-  'health-beauty': ['Service Menu', 'Online Booking', 'Photo Gallery', 'Team Profiles', 'Testimonials', 'Gift Cards', 'Pricing Packages', 'Special Offers'],
-  'real-estate': ['Property Listings', 'Search Filters', 'Agent Profile', 'Testimonials', 'Neighborhood Guide', 'Contact Form', 'Virtual Tour', 'Market Stats'],
-  'ecommerce': ['Product Grid', 'Categories', 'Newsletter Signup', 'Customer Reviews', 'Instagram Feed', 'Sale Banner', 'Featured Products', 'Trust Badges'],
-  'portfolio': ['Project Gallery', 'About Section', 'Services List', 'Testimonials', 'Contact Form', 'Resume/CV', 'Client List', 'Process Section'],
-  'banking': ['Product Features', 'Security Badges', 'How It Works', 'FAQ Section', 'App Download', 'Calculator', 'Testimonials', 'Contact Form'],
-  'fitness': ['Class Schedule', 'Membership Plans', 'Trainer Profiles', 'Testimonials', 'Photo Gallery', 'Contact Form', 'Free Trial CTA', 'Results Showcase'],
-  'education': ['Course Catalog', 'Instructor Profiles', 'Testimonials', 'FAQ Section', 'Enrollment Form', 'Blog', 'Success Stories', 'Pricing'],
-  'medical': ['Services List', 'Doctor Profiles', 'Patient Testimonials', 'Insurance Info', 'Appointment Booking', 'Contact', 'Location Map', 'FAQ'],
-  'tech-startup': ['Feature Showcase', 'Pricing Table', 'Testimonials', 'FAQ Section', 'Newsletter', 'Demo Request', 'Integration Logos', 'Stats Counter'],
-  'construction': ['Project Gallery', 'Services List', 'Testimonials', 'Contact Form', 'Quote Request', 'Team Section', 'Certifications', 'Service Areas'],
-  'nonprofit': ['Mission Statement', 'Impact Stats', 'Donation Form', 'Volunteer Signup', 'Event Calendar', 'Success Stories', 'Team Section', 'Newsletter'],
-  'automotive': ['Inventory Display', 'Service Menu', 'Contact Form', 'Testimonials', 'Financing Info', 'Location Map', 'Special Offers', 'About Section'],
-  'other': ['Contact Form', 'About Section', 'Services', 'Testimonials', 'FAQ', 'Social Links', 'Newsletter', 'Gallery'],
+**IMAGES TO USE:**
+- Hero: https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920&q=80 (office)
+- Team: https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80 (team)
+
+**FONTS:** Inter (versatile), Poppins (headlines)`;
+
+// ============================================================================
+// STYLE MODIFIERS
+// ============================================================================
+const STYLE_MODIFIERS: Record<string, string> = {
+  'modern': `
+**STYLE: MODERN**
+- Clean geometric shapes
+- Bold sans-serif typography
+- Strategic whitespace
+- Subtle gradients
+- Card-based layouts
+- Smooth micro-interactions`,
+
+  'elegant': `
+**STYLE: ELEGANT**
+- Refined serif typography
+- Generous whitespace
+- Muted, sophisticated palette
+- Gold or champagne accents
+- Thin lines and borders
+- Subtle, graceful animations`,
+
+  'bold': `
+**STYLE: BOLD**
+- Oversized typography (go BIG)
+- High contrast colors
+- Strong geometric shapes
+- Dynamic animations
+- Thick borders, heavy shadows
+- Maximum visual impact`,
+
+  'minimal': `
+**STYLE: MINIMAL**
+- Maximum whitespace
+- 2-3 colors maximum
+- Typography-focused
+- Essential elements only
+- Barely-there animations
+- Every element must earn its place`,
+
+  'playful': `
+**STYLE: PLAYFUL**
+- Rounded corners everywhere
+- Bright, cheerful colors
+- Bouncy animations
+- Illustrated elements
+- Casual, friendly fonts
+- Fun hover effects`,
+
+  'corporate': `
+**STYLE: CORPORATE**
+- Professional and structured
+- Traditional grid layouts
+- Conservative colors (blue, gray)
+- Clear hierarchy
+- Polished but not flashy
+- Trust-building elements`,
+
+  'dark': `
+**STYLE: DARK PREMIUM**
+- Dark backgrounds (#0a0a0a to #1a1a1a)
+- Light text with subtle shadows
+- Glowing accent colors
+- Gradient borders
+- Glassmorphism effects
+- Subtle grain texture overlay`
 };
 
-const plans = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: 299,
-    desc: 'Perfect for landing pages',
-    features: ['1 page design', 'Mobile responsive', '2 revisions', '72h delivery'],
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    price: 599,
-    desc: 'Best for service businesses',
-    features: ['Up to 5 pages', 'Mobile responsive', 'Unlimited revisions', '48h delivery', 'Contact form'],
-    popular: true,
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 999,
-    desc: 'Full website experience',
-    features: ['Up to 10 pages', 'Mobile responsive', 'Unlimited revisions', '24h delivery', 'Advanced features', 'Priority support'],
-  },
-];
+// ============================================================================
+// COLOR PALETTE CONFIGURATIONS
+// ============================================================================
+const COLOR_PALETTES: Record<string, { primary: string; secondary: string; accent: string; background: string; surface: string; text: string; textMuted: string }> = {
+  'auto': { primary: '#6366F1', secondary: '#8B5CF6', accent: '#F59E0B', background: '#FFFFFF', surface: '#F8FAFC', text: '#0F172A', textMuted: '#64748B' },
+  'blue': { primary: '#1E40AF', secondary: '#3B82F6', accent: '#F59E0B', background: '#FFFFFF', surface: '#F0F9FF', text: '#0F172A', textMuted: '#64748B' },
+  'green': { primary: '#166534', secondary: '#22C55E', accent: '#F59E0B', background: '#FFFFFF', surface: '#F0FDF4', text: '#0F172A', textMuted: '#64748B' },
+  'red': { primary: '#991B1B', secondary: '#EF4444', accent: '#F59E0B', background: '#FFFFFF', surface: '#FEF2F2', text: '#0F172A', textMuted: '#64748B' },
+  'purple': { primary: '#6B21A8', secondary: '#A855F7', accent: '#F59E0B', background: '#FFFFFF', surface: '#FAF5FF', text: '#0F172A', textMuted: '#64748B' },
+  'orange': { primary: '#C2410C', secondary: '#F97316', accent: '#6366F1', background: '#FFFFFF', surface: '#FFF7ED', text: '#0F172A', textMuted: '#64748B' },
+  'neutral': { primary: '#1F2937', secondary: '#4B5563', accent: '#6366F1', background: '#FFFFFF', surface: '#F9FAFB', text: '#0F172A', textMuted: '#64748B' },
+  'gold': { primary: '#92400E', secondary: '#D97706', accent: '#1E40AF', background: '#FFFFFF', surface: '#FFFBEB', text: '#0F172A', textMuted: '#64748B' }
+};
 
-export default function NewProjectPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    businessName: '',
-    industry: '',
-    description: '',
-    websiteGoal: '',
-    targetCustomer: '',
-    style: '',
-    colorPreference: 'auto',
-    moodTags: [],
-    inspirations: '',
-    plan: 'professional',
-    features: [],
-    contactEmail: '',
-    contactPhone: '',
-    address: '',
-    uniqueValue: '',
+// ============================================================================
+// MAIN API HANDLER
+// ============================================================================
+async function callClaude(systemPrompt: string, userPrompt: string): Promise<string> {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY!,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 16000,
+      temperature: 0.8,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
   });
 
-  useEffect(() => {
-    checkUser();
-  }, []);
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Claude API error: ${error}`);
+  }
 
-  // Auto-select common features when industry changes
-  useEffect(() => {
-    if (formData.industry && formData.features.length === 0) {
-      const industryFeatures = featuresByIndustry[formData.industry] || featuresByIndustry['other'];
-      // Pre-select first 4 common features
-      setFormData(prev => ({
-        ...prev,
-        features: industryFeatures.slice(0, 4)
-      }));
+  const data = await response.json();
+  return data.content[0].text;
+}
+
+function cleanHtmlResponse(response: string): string {
+  let html = response.trim();
+  
+  // Remove markdown code blocks
+  html = html.replace(/^```html\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+  html = html.replace(/^```\s*\n?/, '').replace(/\n?```\s*$/, '');
+  
+  // Find DOCTYPE
+  const doctypeIndex = html.toLowerCase().indexOf('<!doctype');
+  if (doctypeIndex > 0) {
+    html = html.substring(doctypeIndex);
+  }
+  
+  // Find closing html tag
+  const htmlEndIndex = html.toLowerCase().lastIndexOf('</html>');
+  if (htmlEndIndex > 0) {
+    html = html.substring(0, htmlEndIndex + 7);
+  }
+  
+  return html;
+}
+
+async function generateWebsite(project: any): Promise<string> {
+  const industry = (project.industry || 'other').toLowerCase().replace(/\s+/g, '-');
+  const style = (project.style || 'modern').toLowerCase();
+  const colorPref = project.color_preference || 'auto';
+  
+  // Get configurations
+  const industryBrief = INDUSTRY_BRIEFS[industry] || DEFAULT_BRIEF;
+  const styleModifier = STYLE_MODIFIERS[style] || STYLE_MODIFIERS['modern'];
+  const colors = COLOR_PALETTES[colorPref] || COLOR_PALETTES['auto'];
+  
+  // Build mood description
+  const moodTags = project.mood_tags || [];
+  const moodDescription = moodTags.length > 0 
+    ? `The website should feel: ${moodTags.join(', ')}.`
+    : '';
+
+  const userPrompt = `
+# CREATE A MILLION-DOLLAR WEBSITE
+
+## CLIENT INFORMATION
+- **Business Name:** ${project.business_name}
+- **Industry:** ${project.industry}
+- **Description:** ${project.description || 'A professional business'}
+- **Website Goal:** ${project.website_goal || 'Generate leads and build trust'}
+- **Target Customer:** ${project.target_customer || 'Professionals seeking quality services'}
+- **Unique Value:** ${project.unique_value || 'Quality, reliability, and excellent service'}
+- **Contact Email:** ${project.contact_email || 'contact@example.com'}
+- **Contact Phone:** ${project.contact_phone || '(555) 123-4567'}
+- **Address:** ${project.address || 'City, State'}
+${project.inspirations ? `- **Design Inspirations:** ${project.inspirations}` : ''}
+${moodDescription}
+
+## FEATURES TO INCLUDE
+${(project.features || ['Contact Form', 'Testimonials', 'About Section']).map((f: string) => `- ${f}`).join('\n')}
+
+${industryBrief}
+
+${styleModifier}
+
+## COLOR PALETTE TO USE
+\`\`\`css
+:root {
+  --primary: ${colors.primary};
+  --primary-dark: ${colors.primary}dd;
+  --secondary: ${colors.secondary};
+  --accent: ${colors.accent};
+  --background: ${colors.background};
+  --surface: ${colors.surface};
+  --text: ${colors.text};
+  --text-muted: ${colors.textMuted};
+}
+\`\`\`
+
+## CRITICAL REQUIREMENTS
+
+1. **HERO MUST BE STUNNING** - Full viewport height, impactful imagery from the URLs provided, massive headline
+2. **USE REAL IMAGES** - From the Unsplash URLs provided in the brief above, NOT placeholder.com
+3. **INCLUDE ALL ANIMATIONS** - Scroll reveals (.reveal class), hover effects, smooth transitions
+4. **MOBILE RESPONSIVE** - Must look perfect on all devices
+5. **COMPLETE WEBSITE** - All sections from the brief, working smooth-scroll navigation, full footer
+
+## GENERATE NOW
+
+Create a website so beautiful that the client will want to pay immediately. This should look like a $50,000 custom website.
+
+Output ONLY the complete HTML. Start with <!DOCTYPE html>, end with </html>. No explanations.`;
+
+  const response = await callClaude(MASTER_SYSTEM_PROMPT, userPrompt);
+  return cleanHtmlResponse(response);
+}
+
+async function reviseWebsite(currentHtml: string, feedback: string, project: any): Promise<string> {
+  const systemPrompt = `You are an elite web designer making revisions. Maintain premium quality while implementing all requested changes. Keep all animations and responsive behavior. Output ONLY complete HTML.`;
+
+  const userPrompt = `
+## REVISION REQUEST
+
+**Client:** ${project.business_name}
+**Feedback:** ${feedback}
+
+Apply these changes while maintaining the million-dollar quality.
+
+**Current Website:**
+${currentHtml}
+
+Output the COMPLETE revised HTML. Start with <!DOCTYPE html>, end with </html>.`;
+
+  const response = await callClaude(systemPrompt, userPrompt);
+  return cleanHtmlResponse(response);
+}
+
+async function quickEdit(currentHtml: string, instruction: string): Promise<string> {
+  const systemPrompt = `Make this specific edit while preserving everything else. Output ONLY complete HTML.`;
+
+  const userPrompt = `
+**Edit:** ${instruction}
+
+**Current HTML:**
+${currentHtml}
+
+Output COMPLETE updated HTML. Start with <!DOCTYPE html>, end with </html>.`;
+
+  const response = await callClaude(systemPrompt, userPrompt);
+  return cleanHtmlResponse(response);
+}
+
+// ============================================================================
+// API ROUTE HANDLER
+// ============================================================================
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { projectId, action } = body;
+
+    if (!projectId) {
+      return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
     }
-  }, [formData.industry]);
 
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push('/login');
-      return;
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('*, customers(name, email, phone, business_name)')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError || !project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
-    setUser(user);
-    // Pre-fill email if available
-    if (user.email) {
-      setFormData(prev => ({ ...prev, contactEmail: user.email || '' }));
-    }
-  };
 
-  const totalSteps = 4;
-
-  const updateForm = (field: keyof FormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const toggleFeature = (feature: string) => {
-    setFormData(prev => ({
-      ...prev,
-      features: prev.features.includes(feature)
-        ? prev.features.filter(f => f !== feature)
-        : [...prev.features, feature]
-    }));
-  };
-
-  const toggleMoodTag = (tag: string) => {
-    setFormData(prev => ({
-      ...prev,
-      moodTags: prev.moodTags.includes(tag)
-        ? prev.moodTags.filter(t => t !== tag)
-        : prev.moodTags.length < 3 
-          ? [...prev.moodTags, tag]
-          : prev.moodTags
-    }));
-  };
-
-  const canProceed = () => {
-    switch (step) {
-      case 1: return formData.businessName.trim() && formData.industry && formData.description.trim();
-      case 2: return formData.style;
-      case 3: return formData.plan;
-      case 4: return true;
-      default: return false;
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      const projectData: any = {
-        customer_id: user.id,
-        business_name: formData.businessName.trim(),
-        industry: formData.industry,
-        style: formData.style,
-        plan: formData.plan,
-        status: 'QUEUED',
-        paid: false,
-      };
-
-      // Add all the enhanced fields
-      if (formData.description.trim()) {
-        projectData.description = formData.description.trim();
-      }
-      if (formData.websiteGoal) {
-        projectData.website_goal = formData.websiteGoal;
-      }
-      if (formData.targetCustomer.trim()) {
-        projectData.target_customer = formData.targetCustomer.trim();
-      }
-      if (formData.colorPreference) {
-        projectData.color_preference = formData.colorPreference;
-      }
-      if (formData.moodTags.length > 0) {
-        projectData.mood_tags = formData.moodTags;
-      }
-      if (formData.inspirations.trim()) {
-        projectData.inspirations = formData.inspirations.trim();
-      }
-      if (formData.features.length > 0) {
-        projectData.features = formData.features;
-      }
-      if (formData.contactEmail.trim()) {
-        projectData.contact_email = formData.contactEmail.trim();
-      }
-      if (formData.contactPhone.trim()) {
-        projectData.contact_phone = formData.contactPhone.trim();
-      }
-      if (formData.address.trim()) {
-        projectData.address = formData.address.trim();
-      }
-      if (formData.uniqueValue.trim()) {
-        projectData.unique_value = formData.uniqueValue.trim();
-      }
-
-      const { data, error } = await supabase
+    if (action === 'generate') {
+      const html = await generateWebsite(project);
+      
+      await supabase
         .from('projects')
-        .insert(projectData)
-        .select()
-        .single();
+        .update({ 
+          generated_html: html,
+          status: 'PREVIEW_READY',
+        })
+        .eq('id', projectId);
 
-      if (error) {
-        console.error('Supabase error:', error);
-        alert(`Error: ${error.message}\n\nHint: You may need to add new columns to your projects table.`);
-        return;
+      return NextResponse.json({ success: true, html, message: 'Website generated successfully' });
+    }
+
+    if (action === 'revise') {
+      const { feedback, currentHtml } = body;
+      
+      if (!feedback) {
+        return NextResponse.json({ error: 'Feedback required' }, { status: 400 });
       }
 
-      router.push(`/portal/project/${data.id}`);
-    } catch (err: any) {
-      console.error('Error creating project:', err);
-      alert(`Failed to create project: ${err.message || 'Unknown error'}`);
-    } finally {
-      setLoading(false);
+      const html = await reviseWebsite(currentHtml || project.generated_html, feedback, project);
+      
+      await supabase
+        .from('projects')
+        .update({ 
+          generated_html: html,
+          revision_count: (project.revision_count || 0) + 1,
+        })
+        .eq('id', projectId);
+
+      return NextResponse.json({ success: true, html, message: 'Revisions applied' });
     }
-  };
 
-  // Get features for current industry
-  const currentFeatures = featuresByIndustry[formData.industry] || featuresByIndustry['other'];
+    if (action === 'quick-edit') {
+      const { instruction, currentHtml } = body;
+      
+      if (!instruction) {
+        return NextResponse.json({ error: 'Instruction required' }, { status: 400 });
+      }
 
-  return (
-    <div className="min-h-screen bg-[#fafafa] antialiased">
-      {/* CUSTOM STYLES */}
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
-        
-        .font-display { font-family: 'Playfair Display', Georgia, serif; }
-        .font-body { font-family: 'Inter', -apple-system, sans-serif; }
-        
-        .noise {
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-          opacity: 0.03;
-        }
+      const html = await quickEdit(currentHtml || project.generated_html, instruction);
+      
+      await supabase
+        .from('projects')
+        .update({ generated_html: html })
+        .eq('id', projectId);
 
-        .card-hover {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+      return NextResponse.json({ success: true, html, message: 'Edit applied' });
+    }
 
-        .card-hover:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-        }
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 
-        .slide-up {
-          animation: slideUp 0.5s ease-out forwards;
-          opacity: 0;
-          transform: translateY(20px);
-        }
-
-        @keyframes slideUp {
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .input-focus {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .input-focus:focus {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
-        
-        .gradient-border {
-          position: relative;
-        }
-        
-        .gradient-border::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          padding: 2px;
-          background: linear-gradient(135deg, var(--tw-gradient-from), var(--tw-gradient-to));
-          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
-        }
-      `}</style>
-
-      {/* NOISE OVERLAY */}
-      <div className="fixed inset-0 pointer-events-none noise z-50"></div>
-
-      {/* HEADER */}
-      <header className="bg-white border-b border-neutral-200">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="flex items-center justify-between h-20">
-            <Link href="/portal" className="flex items-center gap-2 font-body text-neutral-500 hover:text-black transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span>Back</span>
-            </Link>
-            
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
-                <span className="text-white font-display text-lg font-semibold">V</span>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* PROGRESS BAR */}
-      <div className="bg-white border-b border-neutral-100">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-body text-sm text-neutral-500">Step {step} of {totalSteps}</span>
-            <span className="font-body text-sm font-medium text-black">{Math.round((step / totalSteps) * 100)}%</span>
-          </div>
-          <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-black rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${(step / totalSteps) * 100}%` }}
-            />
-          </div>
-          {/* Step Labels */}
-          <div className="flex justify-between mt-3">
-            {['Business', 'Style', 'Plan', 'Details'].map((label, i) => (
-              <span 
-                key={label} 
-                className={`font-body text-xs ${step > i ? 'text-black font-medium' : step === i + 1 ? 'text-black' : 'text-neutral-400'}`}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* MAIN */}
-      <main className="max-w-4xl mx-auto px-6 py-12">
-        
-        {/* ============================================ */}
-        {/* STEP 1: BUSINESS INFO */}
-        {/* ============================================ */}
-        {step === 1 && (
-          <div className="slide-up">
-            <div className="text-center mb-10">
-              <h1 className="font-display text-4xl lg:text-5xl font-medium text-black mb-3">
-                Tell us about your business
-              </h1>
-              <p className="font-body text-lg text-neutral-500">
-                This helps our AI create the perfect website for you
-              </p>
-            </div>
-
-            <div className="max-w-xl mx-auto space-y-6">
-              {/* BUSINESS NAME */}
-              <div>
-                <label className="block font-body text-sm font-medium text-black mb-2">
-                  Business Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.businessName}
-                  onChange={(e) => updateForm('businessName', e.target.value)}
-                  placeholder="e.g., Sunrise Bakery"
-                  className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
-                />
-              </div>
-
-              {/* INDUSTRY - Visual Grid */}
-              <div>
-                <label className="block font-body text-sm font-medium text-black mb-3">
-                  What industry are you in? *
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {industries.map(ind => (
-                    <button
-                      key={ind.id}
-                      onClick={() => updateForm('industry', ind.id)}
-                      className={`p-3 rounded-xl font-body text-sm font-medium transition-all text-left ${
-                        formData.industry === ind.id
-                          ? 'bg-black text-white'
-                          : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300'
-                      }`}
-                    >
-                      <span className="text-lg block mb-1">{ind.icon}</span>
-                      <span className="text-xs leading-tight block">{ind.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* DESCRIPTION */}
-              <div>
-                <label className="block font-body text-sm font-medium text-black mb-2">
-                  What does your business do? *
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => updateForm('description', e.target.value)}
-                  placeholder="Tell us about your products, services, and what makes your business special..."
-                  rows={3}
-                  className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black resize-none"
-                />
-              </div>
-
-              {/* WEBSITE GOAL */}
-              <div>
-                <label className="block font-body text-sm font-medium text-black mb-3">
-                  What's the main goal of your website?
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {websiteGoals.map(goal => (
-                    <button
-                      key={goal.id}
-                      onClick={() => updateForm('websiteGoal', goal.id)}
-                      className={`p-3 rounded-xl font-body text-left transition-all ${
-                        formData.websiteGoal === goal.id
-                          ? 'bg-black text-white'
-                          : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-                      }`}
-                    >
-                      <span className="text-lg block mb-1">{goal.icon}</span>
-                      <span className="text-sm font-medium block">{goal.name}</span>
-                      <span className={`text-xs block mt-0.5 ${formData.websiteGoal === goal.id ? 'text-white/70' : 'text-neutral-400'}`}>
-                        {goal.desc}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* TARGET CUSTOMER - THE MAGIC QUESTION */}
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
-                <label className="block font-body text-sm font-medium text-amber-900 mb-2">
-                  ✨ Describe your ideal customer in one sentence
-                </label>
-                <input
-                  type="text"
-                  value={formData.targetCustomer}
-                  onChange={(e) => updateForm('targetCustomer', e.target.value)}
-                  placeholder="e.g., Busy professionals who want healthy meals without cooking"
-                  className="w-full px-4 py-3 bg-white border border-amber-300 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
-                />
-                <p className="font-body text-xs text-amber-700 mt-2">
-                  This helps us write copy that speaks directly to your audience
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================ */}
-        {/* STEP 2: STYLE & VIBE */}
-        {/* ============================================ */}
-        {step === 2 && (
-          <div className="slide-up">
-            <div className="text-center mb-10">
-              <h1 className="font-display text-4xl lg:text-5xl font-medium text-black mb-3">
-                Choose your style
-              </h1>
-              <p className="font-body text-lg text-neutral-500">
-                What vibe should your website have?
-              </p>
-            </div>
-
-            {/* STYLE SELECTION */}
-            <div className="mb-10">
-              <label className="block font-body text-sm font-medium text-black mb-4 text-center">
-                Website Style *
-              </label>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-4xl mx-auto">
-                {styles.map(style => (
-                  <button
-                    key={style.id}
-                    onClick={() => updateForm('style', style.id)}
-                    className={`card-hover rounded-2xl text-left transition-all overflow-hidden ${
-                      formData.style === style.id
-                        ? 'ring-2 ring-black ring-offset-2'
-                        : 'border border-neutral-200 hover:border-neutral-300'
-                    }`}
-                  >
-                    {/* Gradient Preview */}
-                    <div className={`h-16 bg-gradient-to-br ${style.gradient}`}></div>
-                    <div className="p-4 bg-white">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">{style.icon}</span>
-                        <h3 className="font-body font-semibold text-sm text-black">{style.name}</h3>
-                      </div>
-                      <p className="font-body text-xs text-neutral-500">{style.desc}</p>
-                    </div>
-                    {formData.style === style.id && (
-                      <div className="absolute top-2 right-2 w-6 h-6 bg-black rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* COLOR PREFERENCE */}
-            <div className="max-w-3xl mx-auto mb-10">
-              <label className="block font-body text-sm font-medium text-black mb-4 text-center">
-                Color Palette
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {colorOptions.map(color => (
-                  <button
-                    key={color.id}
-                    onClick={() => updateForm('colorPreference', color.id)}
-                    className={`p-3 rounded-xl transition-all ${
-                      formData.colorPreference === color.id
-                        ? 'bg-black text-white'
-                        : 'bg-white border border-neutral-200 hover:border-neutral-300'
-                    }`}
-                  >
-                    <div className="flex gap-1 mb-2 justify-center">
-                      {color.colors.map((c, i) => (
-                        <div key={i} className="w-5 h-5 rounded-full border border-white/20" style={{ backgroundColor: c }} />
-                      ))}
-                    </div>
-                    <span className="font-body text-xs font-medium block">{color.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* MOOD TAGS */}
-            <div className="max-w-2xl mx-auto mb-10">
-              <label className="block font-body text-sm font-medium text-black mb-2 text-center">
-                How should your website feel? <span className="text-neutral-400 font-normal">(pick up to 3)</span>
-              </label>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {moodTags.map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleMoodTag(tag)}
-                    className={`px-4 py-2 rounded-full font-body text-sm transition-all ${
-                      formData.moodTags.includes(tag)
-                        ? 'bg-black text-white'
-                        : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-                    }`}
-                  >
-                    {formData.moodTags.includes(tag) && '✓ '}{tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* INSPIRATIONS */}
-            <div className="max-w-xl mx-auto">
-              <label className="block font-body text-sm font-medium text-black mb-2">
-                Any websites you love? <span className="text-neutral-400 font-normal">(optional)</span>
-              </label>
-              <textarea
-                value={formData.inspirations}
-                onChange={(e) => updateForm('inspirations', e.target.value)}
-                placeholder="Share links to websites that inspire you, e.g., apple.com, airbnb.com"
-                rows={2}
-                className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black resize-none"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* ============================================ */}
-        {/* STEP 3: PLAN */}
-        {/* ============================================ */}
-        {step === 3 && (
-          <div className="slide-up">
-            <div className="text-center mb-10">
-              <h1 className="font-display text-4xl lg:text-5xl font-medium text-black mb-3">
-                Select your plan
-              </h1>
-              <p className="font-body text-lg text-neutral-500">
-                Pay only when you love your design
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {plans.map(plan => (
-                <button
-                  key={plan.id}
-                  onClick={() => updateForm('plan', plan.id)}
-                  className={`card-hover p-6 rounded-3xl text-left transition-all relative ${
-                    formData.plan === plan.id
-                      ? 'bg-black text-white ring-2 ring-black ring-offset-2'
-                      : 'bg-white border border-neutral-200'
-                  } ${plan.popular ? 'md:-mt-4 md:mb-4' : ''}`}
-                >
-                  {plan.popular && (
-                    <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-body font-medium ${
-                      formData.plan === plan.id ? 'bg-white text-black' : 'bg-black text-white'
-                    }`}>
-                      Most Popular
-                    </div>
-                  )}
-                  
-                  <h3 className="font-display text-xl font-medium mb-1">{plan.name}</h3>
-                  <p className={`font-body text-sm mb-4 ${formData.plan === plan.id ? 'text-white/70' : 'text-neutral-500'}`}>
-                    {plan.desc}
-                  </p>
-                  
-                  <div className="mb-6">
-                    <span className="font-display text-4xl font-semibold">${plan.price}</span>
-                    <span className={`font-body text-sm ml-1 ${formData.plan === plan.id ? 'text-white/70' : 'text-neutral-500'}`}>
-                      one-time
-                    </span>
-                  </div>
-
-                  <ul className="space-y-2">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2 font-body text-sm">
-                        <svg className={`w-4 h-4 flex-shrink-0 ${formData.plan === plan.id ? 'text-white' : 'text-emerald-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className={formData.plan === plan.id ? 'text-white/90' : 'text-neutral-600'}>
-                          {feature}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </button>
-              ))}
-            </div>
-
-            {/* GUARANTEE */}
-            <div className="max-w-xl mx-auto mt-10 p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center">
-              <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h3 className="font-body font-semibold text-emerald-900 mb-1">100% Risk-Free Guarantee</h3>
-              <p className="font-body text-sm text-emerald-700">
-                We'll design your website first. You only pay if you love it.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================ */}
-        {/* STEP 4: FEATURES & CONTACT */}
-        {/* ============================================ */}
-        {step === 4 && (
-          <div className="slide-up">
-            <div className="text-center mb-10">
-              <h1 className="font-display text-4xl lg:text-5xl font-medium text-black mb-3">
-                Final details
-              </h1>
-              <p className="font-body text-lg text-neutral-500">
-                Help us make your website perfect
-              </p>
-            </div>
-
-            <div className="max-w-2xl mx-auto space-y-8">
-              {/* FEATURES */}
-              <div>
-                <label className="block font-body text-sm font-medium text-black mb-3">
-                  Select features for your website
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {currentFeatures.map(feature => (
-                    <button
-                      key={feature}
-                      onClick={() => toggleFeature(feature)}
-                      className={`p-3 rounded-xl font-body text-sm transition-all ${
-                        formData.features.includes(feature)
-                          ? 'bg-black text-white'
-                          : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-                      }`}
-                    >
-                      {formData.features.includes(feature) && (
-                        <span className="mr-1">✓</span>
-                      )}
-                      {feature}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* UNIQUE VALUE */}
-              <div>
-                <label className="block font-body text-sm font-medium text-black mb-2">
-                  What makes you different from competitors?
-                </label>
-                <textarea
-                  value={formData.uniqueValue}
-                  onChange={(e) => updateForm('uniqueValue', e.target.value)}
-                  placeholder="e.g., 20 years experience, family-owned, eco-friendly materials, fastest delivery..."
-                  rows={2}
-                  className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black resize-none"
-                />
-              </div>
-
-              {/* CONTACT INFORMATION */}
-              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6">
-                <h3 className="font-body font-semibold text-black mb-4">Contact Information</h3>
-                <p className="font-body text-sm text-neutral-500 mb-4">This will appear on your website</p>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block font-body text-sm text-neutral-600 mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={formData.contactEmail}
-                      onChange={(e) => updateForm('contactEmail', e.target.value)}
-                      placeholder="hello@yourbusiness.com"
-                      className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block font-body text-sm text-neutral-600 mb-1">Phone</label>
-                      <input
-                        type="tel"
-                        value={formData.contactPhone}
-                        onChange={(e) => updateForm('contactPhone', e.target.value)}
-                        placeholder="(555) 123-4567"
-                        className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-body text-sm text-neutral-600 mb-1">Address</label>
-                      <input
-                        type="text"
-                        value={formData.address}
-                        onChange={(e) => updateForm('address', e.target.value)}
-                        placeholder="City, State"
-                        className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* SUMMARY */}
-              <div className="p-6 bg-white border border-neutral-200 rounded-3xl">
-                <h3 className="font-display text-xl font-medium text-black mb-6">Project Summary</h3>
-                
-                <div className="space-y-3">
-                  <div className="flex justify-between py-3 border-b border-neutral-100">
-                    <span className="font-body text-neutral-500">Business</span>
-                    <span className="font-body font-medium text-black">{formData.businessName || '—'}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b border-neutral-100">
-                    <span className="font-body text-neutral-500">Industry</span>
-                    <span className="font-body font-medium text-black">
-                      {industries.find(i => i.id === formData.industry)?.name || '—'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b border-neutral-100">
-                    <span className="font-body text-neutral-500">Style</span>
-                    <span className="font-body font-medium text-black">
-                      {styles.find(s => s.id === formData.style)?.name || '—'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b border-neutral-100">
-                    <span className="font-body text-neutral-500">Colors</span>
-                    <span className="font-body font-medium text-black">
-                      {colorOptions.find(c => c.id === formData.colorPreference)?.name || '—'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b border-neutral-100">
-                    <span className="font-body text-neutral-500">Plan</span>
-                    <span className="font-body font-medium text-black">
-                      {plans.find(p => p.id === formData.plan)?.name} — ${plans.find(p => p.id === formData.plan)?.price}
-                    </span>
-                  </div>
-                  {formData.features.length > 0 && (
-                    <div className="py-3">
-                      <span className="font-body text-neutral-500 block mb-2">Features</span>
-                      <div className="flex flex-wrap gap-2">
-                        {formData.features.map(f => (
-                          <span key={f} className="px-3 py-1 bg-neutral-100 rounded-full font-body text-xs text-neutral-600">
-                            {f}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* NAVIGATION */}
-        <div className="max-w-xl mx-auto mt-12 flex items-center justify-between gap-4">
-          {step > 1 ? (
-            <button
-              onClick={() => setStep(step - 1)}
-              className="px-6 py-3 border border-neutral-200 text-black font-body font-medium rounded-full hover:bg-neutral-50 transition-all flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span>Back</span>
-            </button>
-          ) : (
-            <div></div>
-          )}
-
-          {step < totalSteps ? (
-            <button
-              onClick={() => setStep(step + 1)}
-              disabled={!canProceed()}
-              className="px-8 py-3 bg-black text-white font-body font-medium rounded-full hover:bg-black/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <span>Continue</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="px-8 py-3 bg-black text-white font-body font-medium rounded-full hover:bg-black/80 transition-all disabled:opacity-50 flex items-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Creating...</span>
-                </>
-              ) : (
-                <>
-                  <span>Create Project</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      </main>
-    </div>
-  );
+  } catch (error) {
+    console.error('AI Generation Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process request', details: String(error) },
+      { status: 500 }
+    );
+  }
 }
