@@ -1,53 +1,75 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
 type Project = {
   id: string;
   business_name: string;
   status: string;
-  feedback_notes: string | null;
-  created_at: string;
-  customer_id: string;
-  customers?: {
-    name: string;
-    email: string;
-  } | null;
+  customers?: { name: string; email: string } | null;
 };
 
 type Message = {
   id: string;
+  project_id: string;
   content: string;
-  sender: 'customer' | 'admin';
+  sender_type: 'admin' | 'customer';
   created_at: string;
+  read: boolean;
 };
 
-export default function AdminMessagesPage() {
+export default function MessagesPage() {
+  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadProjects();
   }, []);
 
+  useEffect(() => {
+    // Select project from URL param
+    const projectId = searchParams.get('project');
+    if (projectId && projects.length > 0) {
+      const project = projects.find(p => p.id === projectId);
+      if (project) {
+        setSelectedProject(project);
+      }
+    }
+  }, [searchParams, projects]);
+
+  useEffect(() => {
+    if (selectedProject) {
+      loadMessages(selectedProject.id);
+    }
+  }, [selectedProject]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   const loadProjects = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('projects')
         .select('*, customers(name, email)')
         .order('created_at', { ascending: false });
 
-      if (data) {
+      if (!error && data) {
         setProjects(data);
+        // Auto-select first project if none selected
         if (data.length > 0 && !selectedProject) {
-          selectProject(data[0]);
+          const projectId = searchParams.get('project');
+          const toSelect = projectId ? data.find(p => p.id === projectId) : data[0];
+          setSelectedProject(toSelect || data[0]);
         }
       }
     } catch (err) {
@@ -57,82 +79,64 @@ export default function AdminMessagesPage() {
     }
   };
 
-  const selectProject = (project: Project) => {
-    setSelectedProject(project);
-    
-    // Generate messages from project data
-    const msgs: Message[] = [
-      {
-        id: '1',
-        content: `New project "${project.business_name}" has been created. We'll start working on it soon!`,
-        sender: 'admin',
-        created_at: project.created_at,
-      },
-    ];
+  const loadMessages = async (projectId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: true });
 
-    if (project.status === 'IN_PROGRESS') {
-      msgs.push({
-        id: '2',
-        content: 'Our design team has started working on your project.',
-        sender: 'admin',
-        created_at: new Date(new Date(project.created_at).getTime() + 86400000).toISOString(),
-      });
+      if (!error && data) {
+        setMessages(data);
+        // Mark unread messages as read
+        const unreadIds = data.filter(m => !m.read && m.sender_type === 'customer').map(m => m.id);
+        if (unreadIds.length > 0) {
+          await supabase.from('messages').update({ read: true }).in('id', unreadIds);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading messages:', err);
     }
+  };
 
-    if (project.feedback_notes) {
-      msgs.push({
-        id: '3',
-        content: project.feedback_notes,
-        sender: 'customer',
-        created_at: new Date().toISOString(),
-      });
-    }
-
-    if (project.status === 'PREVIEW_READY') {
-      msgs.push({
-        id: '4',
-        content: '🎉 Your preview is ready! Please review and let us know if you need any changes.',
-        sender: 'admin',
-        created_at: new Date().toISOString(),
-      });
-    }
-
-    setMessages(msgs);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedProject) return;
+    if (!newMessage.trim() || !selectedProject || sending) return;
 
     setSending(true);
+    try {
+      const { error } = await supabase.from('messages').insert({
+        project_id: selectedProject.id,
+        content: newMessage.trim(),
+        sender_type: 'admin',
+        read: false,
+      });
 
-    const newMsg: Message = {
-      id: Date.now().toString(),
-      content: newMessage,
-      sender: 'admin',
-      created_at: new Date().toISOString(),
-    };
-
-    setMessages([...messages, newMsg]);
-    setNewMessage('');
-    setSending(false);
+      if (!error) {
+        setNewMessage('');
+        loadMessages(selectedProject.id);
+      }
+    } catch (err) {
+      console.error('Error sending message:', err);
+    } finally {
+      setSending(false);
+    }
   };
 
-  const filteredProjects = projects.filter(p => {
-    if (filter === 'needs_reply') return p.feedback_notes && p.status !== 'DELIVERED';
-    if (filter === 'in_progress') return p.status === 'IN_PROGRESS';
-    return true;
-  });
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      QUEUED: 'bg-amber-500',
-      IN_PROGRESS: 'bg-blue-500',
-      PREVIEW_READY: 'bg-purple-500',
-      REVISION_REQUESTED: 'bg-orange-500',
-      PAID: 'bg-emerald-500',
-      DELIVERED: 'bg-emerald-500',
-    };
-    return colors[status] || 'bg-neutral-500';
+  const getUnreadCount = (projectId: string) => {
+    // This would typically come from a real-time subscription or separate query
+    return 0; // Placeholder
   };
 
   const formatTime = (date: string) => {
@@ -142,13 +146,35 @@ export default function AdminMessagesPage() {
     
     if (diff < 60000) return 'Just now';
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return d.toLocaleDateString();
+    if (diff < 86400000) return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  const formatMessageDate = (date: string) => {
+    const d = new Date(date);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = d.toDateString() === yesterday.toDateString();
+
+    if (isToday) return 'Today';
+    if (isYesterday) return 'Yesterday';
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  };
+
+  const filteredProjects = projects.filter(p => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    return (
+      p.business_name?.toLowerCase().includes(searchLower) ||
+      p.customers?.name?.toLowerCase().includes(searchLower)
+    );
+  });
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="font-body text-neutral-500">Loading messages...</p>
@@ -158,208 +184,230 @@ export default function AdminMessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
-        .font-display { font-family: 'Playfair Display', Georgia, serif; }
-        .font-body { font-family: 'Inter', -apple-system, sans-serif; }
-      `}</style>
+    <div className="h-screen flex flex-col">
+      {/* HEADER */}
+      <div className="p-4 border-b border-neutral-200 bg-white flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-medium text-black">Messages</h1>
+          <p className="font-body text-sm text-neutral-500">Communicate with your customers</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-body font-medium rounded-full">
+            {projects.length} conversations
+          </span>
+        </div>
+      </div>
 
-      <div className="p-8 lg:p-12">
-        {/* HEADER */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="font-display text-4xl font-medium text-black mb-2">Messages</h1>
-            <p className="font-body text-neutral-500">Communicate with customers</p>
+      <div className="flex-1 flex overflow-hidden">
+        {/* CONVERSATIONS LIST */}
+        <div className="w-80 border-r border-neutral-200 bg-white flex flex-col">
+          {/* Search */}
+          <div className="p-4 border-b border-neutral-100">
+            <div className="relative">
+              <svg className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search conversations..."
+                className="w-full pl-9 pr-4 py-2 bg-neutral-100 rounded-lg font-body text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {[
-              { id: 'all', label: 'All' },
-              { id: 'needs_reply', label: 'Needs Reply' },
-              { id: 'in_progress', label: 'In Progress' },
-            ].map(f => (
-              <button
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                className={`px-4 py-2 rounded-full font-body text-sm font-medium transition-all ${
-                  filter === f.id
-                    ? 'bg-black text-white'
-                    : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
+
+          {/* Conversation List */}
+          <div className="flex-1 overflow-y-auto">
+            {filteredProjects.length === 0 ? (
+              <div className="p-4 text-center">
+                <p className="font-body text-sm text-neutral-500">No conversations found</p>
+              </div>
+            ) : (
+              filteredProjects.map((project) => {
+                const isSelected = selectedProject?.id === project.id;
+                const unreadCount = getUnreadCount(project.id);
+
+                return (
+                  <div
+                    key={project.id}
+                    onClick={() => setSelectedProject(project)}
+                    className={`px-4 py-3 cursor-pointer transition-colors ${
+                      isSelected
+                        ? 'bg-blue-50 border-l-4 border-blue-500'
+                        : 'hover:bg-neutral-50 border-l-4 border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-body font-bold ${
+                          isSelected ? 'bg-blue-500' : 'bg-gradient-to-br from-neutral-600 to-neutral-800'
+                        }`}>
+                          {project.business_name?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
+                        {unreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-body font-medium">
+                            {unreadCount}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className={`font-body text-sm truncate ${isSelected ? 'font-semibold text-black' : 'font-medium text-neutral-800'}`}>
+                            {project.business_name}
+                          </span>
+                        </div>
+                        <p className="font-body text-xs text-neutral-500 truncate">
+                          {project.customers?.name || 'No customer'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
-        {projects.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-neutral-200 p-12 text-center">
-            <p className="font-body text-neutral-500">No projects yet</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
-            <div className="flex h-[600px]">
-              {/* SIDEBAR */}
-              <div className="w-80 border-r border-neutral-200 flex flex-col">
-                <div className="p-4 border-b border-neutral-100 bg-neutral-50">
-                  <h2 className="font-body font-semibold text-black">Conversations</h2>
-                  <p className="font-body text-xs text-neutral-500">{filteredProjects.length} projects</p>
+        {/* CHAT AREA */}
+        {selectedProject ? (
+          <div className="flex-1 flex flex-col bg-neutral-50">
+            {/* Chat Header */}
+            <div className="p-4 bg-white border-b border-neutral-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-body font-bold">
+                  {selectedProject.business_name?.charAt(0)?.toUpperCase() || '?'}
                 </div>
-                
-                <div className="flex-1 overflow-y-auto">
-                  {filteredProjects.map((project) => (
-                    <button
-                      key={project.id}
-                      onClick={() => selectProject(project)}
-                      className={`w-full p-4 text-left border-b border-neutral-100 hover:bg-neutral-50 transition-colors ${
-                        selectedProject?.id === project.id ? 'bg-neutral-100' : ''
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-body text-sm font-semibold">
-                            {project.business_name?.charAt(0)?.toUpperCase() || '?'}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-body font-medium text-black truncate">{project.business_name}</h3>
-                            <span className={`w-2 h-2 rounded-full ${getStatusColor(project.status)}`}></span>
-                          </div>
-                          <p className="font-body text-xs text-neutral-500 truncate">
-                            {project.customers?.name || 'No customer'}
-                          </p>
-                          {project.feedback_notes && (
-                            <div className="mt-1 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                              <span className="font-body text-xs text-red-600">Has feedback</span>
-                            </div>
-                          )}
-                          <p className="font-body text-xs text-neutral-400 mt-1">
-                            {formatTime(project.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                <div>
+                  <div className="font-body font-medium text-black">{selectedProject.business_name}</div>
+                  <div className="font-body text-xs text-neutral-500">{selectedProject.customers?.email || 'No email'}</div>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`/admin/projects/${selectedProject.id}`}
+                  className="px-3 py-1.5 bg-neutral-100 text-neutral-700 font-body text-sm rounded-lg hover:bg-neutral-200 transition-colors"
+                >
+                  View Project
+                </a>
+              </div>
+            </div>
 
-              {/* CHAT AREA */}
-              <div className="flex-1 flex flex-col">
-                {selectedProject ? (
-                  <>
-                    {/* CHAT HEADER */}
-                    <div className="p-4 border-b border-neutral-100 flex items-center justify-between bg-neutral-50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
-                          <span className="text-white font-body text-sm font-semibold">
-                            {selectedProject.business_name?.charAt(0)?.toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <h3 className="font-body font-semibold text-black">{selectedProject.business_name}</h3>
-                          <p className="font-body text-xs text-neutral-500">
-                            {selectedProject.customers?.name} · {selectedProject.customers?.email}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/admin/projects/${selectedProject.id}`}
-                          className="px-4 py-2 bg-white border border-neutral-200 text-black font-body text-sm font-medium rounded-full hover:bg-neutral-100 transition-colors"
-                        >
-                          View Project
-                        </Link>
-                        <a
-                          href={`mailto:${selectedProject.customers?.email}`}
-                          className="px-4 py-2 bg-black text-white font-body text-sm font-medium rounded-full hover:bg-black/80 transition-colors"
-                        >
-                          Email
-                        </a>
-                      </div>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-neutral-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
                     </div>
+                    <h3 className="font-body font-medium text-neutral-800 mb-1">No messages yet</h3>
+                    <p className="font-body text-sm text-neutral-500">Start the conversation with your customer</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Group messages by date */}
+                  {messages.map((msg, idx) => {
+                    const showDateHeader = idx === 0 || 
+                      formatMessageDate(msg.created_at) !== formatMessageDate(messages[idx - 1].created_at);
+                    const isAdmin = msg.sender_type === 'admin';
 
-                    {/* MESSAGES */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                      {messages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div
-                            className={`max-w-[70%] px-4 py-3 rounded-2xl ${
-                              msg.sender === 'admin'
-                                ? 'bg-black text-white rounded-br-md'
-                                : 'bg-neutral-100 text-black rounded-bl-md'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`font-body text-xs font-medium ${
-                                msg.sender === 'admin' ? 'text-white/70' : 'text-neutral-500'
-                              }`}>
-                                {msg.sender === 'admin' ? 'You' : selectedProject.customers?.name || 'Customer'}
+                    return (
+                      <div key={msg.id}>
+                        {showDateHeader && (
+                          <div className="text-center my-4">
+                            <span className="px-3 py-1 bg-white text-neutral-500 text-xs font-body rounded-full shadow-sm">
+                              {formatMessageDate(msg.created_at)}
+                            </span>
+                          </div>
+                        )}
+                        <div className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-md ${isAdmin ? 'order-2' : ''}`}>
+                            {!isAdmin && (
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-body font-bold">
+                                  {selectedProject.business_name?.charAt(0) || '?'}
+                                </div>
+                                <span className="font-body text-xs text-neutral-500">
+                                  {selectedProject.customers?.name || 'Customer'}
+                                </span>
+                              </div>
+                            )}
+                            <div
+                              className={`px-4 py-3 rounded-2xl ${
+                                isAdmin
+                                  ? 'bg-black text-white rounded-br-sm'
+                                  : 'bg-white text-black rounded-bl-sm shadow-sm'
+                              }`}
+                            >
+                              <p className="font-body text-sm whitespace-pre-wrap">{msg.content}</p>
+                            </div>
+                            <div className={`mt-1 ${isAdmin ? 'text-right' : 'text-left'}`}>
+                              <span className="font-body text-xs text-neutral-400">
+                                {new Date(msg.created_at).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })}
                               </span>
                             </div>
-                            <p className="font-body text-sm">{msg.content}</p>
-                            <p className={`font-body text-xs mt-1 ${
-                              msg.sender === 'admin' ? 'text-white/50' : 'text-neutral-400'
-                            }`}>
-                              {formatTime(msg.created_at)}
-                            </p>
                           </div>
                         </div>
-                      ))}
-                    </div>
-
-                    {/* QUICK REPLIES */}
-                    <div className="px-4 py-2 border-t border-neutral-100 flex gap-2 overflow-x-auto">
-                      {[
-                        'Thanks for your feedback!',
-                        'Your preview is ready.',
-                        'We are working on it.',
-                        'Any questions?',
-                      ].map((reply) => (
-                        <button
-                          key={reply}
-                          onClick={() => setNewMessage(reply)}
-                          className="px-3 py-1.5 bg-neutral-100 text-neutral-600 font-body text-xs rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap"
-                        >
-                          {reply}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* INPUT */}
-                    <div className="p-4 border-t border-neutral-100 bg-neutral-50">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="text"
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                          placeholder="Type your message..."
-                          className="flex-1 px-4 py-3 bg-white border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
-                        />
-                        <button
-                          onClick={sendMessage}
-                          disabled={!newMessage.trim() || sending}
-                          className="p-3 bg-black text-white rounded-xl hover:bg-black/80 transition-colors disabled:opacity-50"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                          </svg>
-                        </button>
                       </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center">
-                    <p className="font-body text-neutral-500">Select a conversation</p>
-                  </div>
-                )}
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </>
+              )}
+            </div>
+
+            {/* Message Input */}
+            <div className="p-4 bg-white border-t border-neutral-200">
+              <div className="flex items-end gap-3">
+                <button className="p-2 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                </button>
+                <div className="flex-1 relative">
+                  <textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Type a message..."
+                    rows={1}
+                    className="w-full px-4 py-3 bg-neutral-100 rounded-xl font-body text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black pr-12"
+                    style={{ maxHeight: '120px' }}
+                  />
+                  <button
+                    onClick={sendMessage}
+                    disabled={!newMessage.trim() || sending}
+                    className="absolute right-2 bottom-2 p-2 bg-black text-white rounded-lg hover:bg-black/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {sending ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-neutral-50">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-neutral-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <h3 className="font-body font-medium text-xl text-neutral-800 mb-2">Select a conversation</h3>
+              <p className="font-body text-neutral-500">Choose a project from the list to view messages</p>
             </div>
           </div>
         )}
