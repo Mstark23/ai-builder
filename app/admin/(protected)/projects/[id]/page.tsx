@@ -147,6 +147,7 @@ export default function ProjectDetailPage() {
     try {
       // First update status to GENERATING
       await supabase.from('projects').update({ status: 'GENERATING' }).eq('id', projectId);
+      setFormData(prev => ({ ...prev, status: 'GENERATING' }));
 
       // Call the generate API
       const response = await fetch('/api/generate', {
@@ -155,13 +156,20 @@ export default function ProjectDetailPage() {
         body: JSON.stringify({ projectId }),
       });
 
-      if (response.ok) {
-        loadProject();
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Reload project to get new HTML
+        await loadProject();
+        // Switch to preview tab to show result
+        setActiveTab('preview');
       } else {
-        console.error('Generation failed');
+        console.error('Generation failed:', data.error);
+        alert('Generation failed: ' + (data.details || data.error || 'Unknown error'));
       }
     } catch (err) {
       console.error('Error generating website:', err);
+      alert('Error generating website. Please try again.');
     } finally {
       setGenerating(false);
     }
@@ -198,31 +206,25 @@ export default function ProjectDetailPage() {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
     });
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="font-body text-neutral-500">Loading project...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-neutral-200 border-t-black rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="font-display text-2xl text-black mb-2">Project Not Found</h1>
-          <Link href="/admin/projects" className="font-body text-blue-600 hover:underline">
-            ← Back to Projects
-          </Link>
-        </div>
+      <div className="text-center py-12">
+        <h2 className="font-display text-2xl font-medium text-black mb-2">Project Not Found</h2>
+        <p className="font-body text-neutral-500 mb-6">This project doesn't exist or has been deleted.</p>
+        <Link href="/admin/projects" className="font-body text-black hover:underline">
+          ← Back to Projects
+        </Link>
       </div>
     );
   }
@@ -231,94 +233,68 @@ export default function ProjectDetailPage() {
   const planConfig = getPlanConfig(project.plan || '');
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="space-y-6">
       {/* HEADER */}
-      <div className="mb-8">
-        <Link href="/admin/projects" className="inline-flex items-center gap-2 font-body text-neutral-500 hover:text-black transition-colors mb-4">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span>Back to Projects</span>
-        </Link>
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl font-body font-bold">
-              {project.business_name?.charAt(0)?.toUpperCase() || '?'}
-            </div>
-            <div>
-              <h1 className="font-display text-3xl font-medium text-black">{project.business_name}</h1>
-              <div className="flex items-center gap-3 mt-1">
-                <span className={`px-3 py-1 rounded-full text-sm font-body font-medium border ${statusConfig.color}`}>
-                  {statusConfig.label}
-                </span>
-                {project.paid ? (
-                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-body font-medium border border-emerald-200">
-                    ✓ Paid
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-body font-medium border border-amber-200">
-                    Unpaid
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={saveProject}
-              disabled={saving}
-              className="px-5 py-2.5 bg-black text-white font-body text-sm font-medium rounded-full hover:bg-black/80 transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              {saving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
-              )}
-            </button>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <Link href="/admin/projects" className="font-body text-sm text-neutral-500 hover:text-black mb-2 inline-flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Projects
+          </Link>
+          <h1 className="font-display text-3xl font-medium text-black">{project.business_name}</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className={`px-3 py-1.5 rounded-full font-body text-sm font-medium border ${statusConfig.color}`}>
+            {statusConfig.label}
+          </span>
+          <button
+            onClick={saveProject}
+            disabled={saving}
+            className="px-5 py-2.5 bg-black text-white font-body text-sm font-medium rounded-full hover:bg-black/80 transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
         </div>
       </div>
 
       {/* TABS */}
-      <div className="flex gap-1 border-b border-neutral-200 mb-6">
-        {[
-          { key: 'details', label: 'Details' },
-          { key: 'preview', label: 'Preview' },
-          { key: 'messages', label: `Messages (${messages.length})` },
-        ].map((tab) => (
+      <div className="flex gap-1 p-1 bg-neutral-100 rounded-xl w-fit">
+        {(['details', 'preview', 'messages'] as const).map((tab) => (
           <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
-            className={`px-4 py-3 font-body text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab.key
-                ? 'border-black text-black'
-                : 'border-transparent text-neutral-500 hover:text-black'
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-5 py-2.5 rounded-lg font-body text-sm font-medium transition-all ${
+              activeTab === tab
+                ? 'bg-white text-black shadow-sm'
+                : 'text-neutral-500 hover:text-black'
             }`}
           >
-            {tab.label}
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'messages' && messages.length > 0 && (
+              <span className="ml-2 px-2 py-0.5 bg-black text-white text-xs rounded-full">
+                {messages.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* TAB CONTENT */}
+      {/* DETAILS TAB */}
       {activeTab === 'details' && (
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* MAIN FORM */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Status & Plan */}
             <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-              <h2 className="font-body font-semibold text-black mb-6">Project Information</h2>
-              
-              <div className="grid sm:grid-cols-2 gap-4 mb-6">
+              <h2 className="font-body font-semibold text-black mb-6">Status & Plan</h2>
+              <div className="grid sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block font-body text-sm font-medium text-black mb-2">Status</label>
+                  <label className="block font-body text-sm text-neutral-500 mb-2">Status</label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black transition-colors"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-black"
                   >
                     {STATUS_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -326,11 +302,11 @@ export default function ProjectDetailPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-body text-sm font-medium text-black mb-2">Plan</label>
+                  <label className="block font-body text-sm text-neutral-500 mb-2">Plan</label>
                   <select
                     value={formData.plan}
                     onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black transition-colors"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-black"
                   >
                     {PLAN_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label} (${opt.price})</option>
@@ -338,28 +314,29 @@ export default function ProjectDetailPage() {
                   </select>
                 </div>
               </div>
-
-              <div className="mb-6">
-                <label className="block font-body text-sm font-medium text-black mb-2">Internal Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={4}
-                  placeholder="Add internal notes about this project..."
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm resize-none focus:outline-none focus:border-black transition-colors"
-                />
+              <div className="mt-6">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.paid}
+                    onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
+                    className="w-5 h-5 rounded border-neutral-300 text-black focus:ring-black"
+                  />
+                  <span className="font-body text-sm text-black">Mark as Paid</span>
+                </label>
               </div>
+            </div>
 
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="paid"
-                  checked={formData.paid}
-                  onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
-                  className="w-5 h-5 rounded border-neutral-300 text-black focus:ring-black"
-                />
-                <label htmlFor="paid" className="font-body text-sm text-black">Mark as Paid</label>
-              </div>
+            {/* Notes */}
+            <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+              <h2 className="font-body font-semibold text-black mb-4">Internal Notes</h2>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Add internal notes about this project..."
+                rows={4}
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-black resize-none"
+              />
             </div>
 
             <div className="bg-white rounded-2xl border border-neutral-200 p-6">
@@ -384,13 +361,13 @@ export default function ProjectDetailPage() {
               </div>
             </div>
 
-            {/* ACTIONS */}
+            {/* ACTIONS - FIXED */}
             <div className="bg-white rounded-2xl border border-neutral-200 p-6">
               <h2 className="font-body font-semibold text-black mb-4">Actions</h2>
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={generateWebsite}
-                  disabled={generating || project.status !== 'GENERATING'}
+                  disabled={generating}
                   className="px-5 py-2.5 bg-purple-600 text-white font-body text-sm font-medium rounded-full hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {generating ? (
@@ -403,12 +380,12 @@ export default function ProjectDetailPage() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
-                      Generate Website
+                      {project.generated_html ? 'Regenerate Website' : 'Generate Website'}
                     </>
                   )}
                 </button>
                 {project.generated_html && (
-                  <a
+                  
                     href={`/preview/${project.id}`}
                     target="_blank"
                     className="px-5 py-2.5 bg-emerald-600 text-white font-body text-sm font-medium rounded-full hover:bg-emerald-700 transition-colors flex items-center gap-2"
@@ -479,6 +456,7 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
+      {/* PREVIEW TAB */}
       {activeTab === 'preview' && (
         <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
           {project.generated_html ? (
@@ -499,16 +477,18 @@ export default function ProjectDetailPage() {
               <h3 className="font-display text-xl font-medium text-black mb-2">No Preview Available</h3>
               <p className="font-body text-neutral-500 mb-6">Generate a website to see the preview</p>
               <button
-                onClick={() => { setFormData({ ...formData, status: 'GENERATING' }); saveProject(); }}
-                className="px-5 py-2.5 bg-purple-600 text-white font-body text-sm font-medium rounded-full hover:bg-purple-700 transition-colors"
+                onClick={generateWebsite}
+                disabled={generating}
+                className="px-5 py-2.5 bg-purple-600 text-white font-body text-sm font-medium rounded-full hover:bg-purple-700 transition-colors disabled:opacity-50"
               >
-                Start Generation
+                {generating ? 'Generating...' : 'Generate Website'}
               </button>
             </div>
           )}
         </div>
       )}
 
+      {/* MESSAGES TAB */}
       {activeTab === 'messages' && (
         <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
           <div className="h-96 overflow-y-auto p-4 space-y-4">
