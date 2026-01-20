@@ -1,11 +1,10 @@
 // app/api/ai/generate/route.ts
-// Ultra-fast version with streaming-like behavior
+// Full website generation - now with proper token limit
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// This MUST be set for Pro plan to use 60s timeout
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,17 +18,46 @@ async function generateWithClaude(project: any): Promise<string> {
     throw new Error('ANTHROPIC_API_KEY not set');
   }
 
-  // Very concise prompt for fast generation
-  const prompt = `Create HTML for: ${project.business_name} (${project.industry}).
-${project.description || ''} Style: ${project.style || 'modern'}.
+  const prompt = `Create a stunning, complete website for "${project.business_name}".
 
-Requirements:
-- Single HTML file with CSS in <style> and JS in <script>
-- Hero, About, Services, Testimonials, Contact, Footer
-- Mobile responsive
-- Scroll animations using IntersectionObserver
+BUSINESS INFO:
+- Industry: ${project.industry || 'business'}
+- Style: ${project.style || 'modern'}
+- Description: ${project.description || 'Professional business'}
+- Goal: ${project.website_goal || 'Generate leads and sales'}
 
-Output ONLY the HTML code starting with <!DOCTYPE html>`;
+REQUIRED SECTIONS:
+1. Navigation - Logo + links + CTA button
+2. Hero - Big headline, subtitle, CTA buttons, maybe an image
+3. About - Company story and values
+4. Services/Products - 3-4 items with icons/images
+5. Testimonials - 2-3 customer reviews with names
+6. Contact - Form with name, email, message fields
+7. Footer - Links, social icons, copyright
+
+DESIGN REQUIREMENTS:
+- Use a cohesive color palette that fits ${project.industry || 'the business'}
+- Modern typography with Google Fonts
+- Mobile responsive (use media queries)
+- Smooth scroll behavior
+- Hover effects on buttons and cards
+- Scroll reveal animations using IntersectionObserver
+
+CSS MUST INCLUDE:
+- CSS variables for colors (:root { --primary: #xxx; })
+- Flexbox/Grid layouts
+- Smooth transitions
+- .reveal class for scroll animations
+
+JS MUST INCLUDE:
+- Scroll reveal with IntersectionObserver
+- Mobile menu toggle
+- Smooth anchor scrolling
+- Form submission handling (preventDefault + success message)
+
+OUTPUT: Complete HTML file with all CSS in <style> and all JS in <script>.
+Start with <!DOCTYPE html> and end with </html>.
+Do NOT include any explanations - ONLY the HTML code.`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -40,7 +68,7 @@ Output ONLY the HTML code starting with <!DOCTYPE html>`;
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096, // Smaller for faster response
+      max_tokens: 12000, // Increased for complete websites
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -56,12 +84,16 @@ Output ONLY the HTML code starting with <!DOCTYPE html>`;
   // Clean markdown if present
   html = html.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '');
   
+  // Ensure it starts with DOCTYPE
+  const doctypeIndex = html.toLowerCase().indexOf('<!doctype');
+  if (doctypeIndex > 0) {
+    html = html.substring(doctypeIndex);
+  }
+  
   return html;
 }
 
 export async function POST(request: NextRequest) {
-  const startTime = Date.now();
-  
   try {
     const body = await request.json();
     const { projectId, action } = body;
@@ -92,17 +124,12 @@ export async function POST(request: NextRequest) {
         .update({ generated_html: html, status: 'PREVIEW_READY' })
         .eq('id', projectId);
 
-      const duration = Date.now() - startTime;
-      return NextResponse.json({ 
-        success: true, 
-        html,
-        generatedIn: `${duration}ms`
-      });
+      return NextResponse.json({ success: true, html });
     }
 
     if (action === 'quick-edit') {
       const { instruction, currentHtml } = body;
-      const htmlToEdit = (currentHtml || project.generated_html || '').substring(0, 8000);
+      const htmlToEdit = (currentHtml || project.generated_html || '').substring(0, 15000);
       
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -113,10 +140,15 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
+          max_tokens: 12000,
           messages: [{ 
             role: 'user', 
-            content: `Edit: ${instruction}\n\nHTML:\n${htmlToEdit}\n\nReturn complete HTML.` 
+            content: `Edit this website: ${instruction}
+
+Current HTML:
+${htmlToEdit}
+
+Apply the edit and return the COMPLETE HTML code. Start with <!DOCTYPE html>.` 
           }],
         }),
       });
@@ -137,7 +169,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'revise') {
       const { feedback, currentHtml } = body;
-      const htmlToEdit = (currentHtml || project.generated_html || '').substring(0, 8000);
+      const htmlToEdit = (currentHtml || project.generated_html || '').substring(0, 15000);
       
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -148,10 +180,15 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
+          max_tokens: 12000,
           messages: [{ 
             role: 'user', 
-            content: `Revise based on: ${feedback}\n\nHTML:\n${htmlToEdit}\n\nReturn complete HTML.` 
+            content: `Revise this website based on feedback: ${feedback}
+
+Current HTML:
+${htmlToEdit}
+
+Apply all changes and return the COMPLETE HTML code. Start with <!DOCTYPE html>.` 
           }],
         }),
       });
