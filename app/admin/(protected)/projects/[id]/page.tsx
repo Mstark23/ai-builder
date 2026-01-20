@@ -62,7 +62,6 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState<'details' | 'preview' | 'messages'>('details');
   const [newMessage, setNewMessage] = useState('');
 
-  // Form state
   const [formData, setFormData] = useState({
     status: '',
     plan: '',
@@ -145,11 +144,9 @@ export default function ProjectDetailPage() {
     setGenerating(true);
 
     try {
-      // First update status to GENERATING
       await supabase.from('projects').update({ status: 'GENERATING' }).eq('id', projectId);
       setFormData(prev => ({ ...prev, status: 'GENERATING' }));
 
-      // Call the generate API
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -159,9 +156,7 @@ export default function ProjectDetailPage() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Reload project to get new HTML
         await loadProject();
-        // Switch to preview tab to show result
         setActiveTab('preview');
       } else {
         console.error('Generation failed:', data.error);
@@ -221,7 +216,7 @@ export default function ProjectDetailPage() {
     return (
       <div className="text-center py-12">
         <h2 className="font-display text-2xl font-medium text-black mb-2">Project Not Found</h2>
-        <p className="font-body text-neutral-500 mb-6">This project doesn't exist or has been deleted.</p>
+        <p className="font-body text-neutral-500 mb-6">This project does not exist or has been deleted.</p>
         <Link href="/admin/projects" className="font-body text-black hover:underline">
           ← Back to Projects
         </Link>
@@ -234,7 +229,6 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <Link href="/admin/projects" className="font-body text-sm text-neutral-500 hover:text-black mb-2 inline-flex items-center gap-1">
@@ -259,7 +253,6 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* TABS */}
       <div className="flex gap-1 p-1 bg-neutral-100 rounded-xl w-fit">
         {(['details', 'preview', 'messages'] as const).map((tab) => (
           <button
@@ -281,11 +274,9 @@ export default function ProjectDetailPage() {
         ))}
       </div>
 
-      {/* DETAILS TAB */}
       {activeTab === 'details' && (
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {/* Status & Plan */}
             <div className="bg-white rounded-2xl border border-neutral-200 p-6">
               <h2 className="font-body font-semibold text-black mb-6">Status & Plan</h2>
               <div className="grid sm:grid-cols-2 gap-6">
@@ -327,7 +318,6 @@ export default function ProjectDetailPage() {
               </div>
             </div>
 
-            {/* Notes */}
             <div className="bg-white rounded-2xl border border-neutral-200 p-6">
               <h2 className="font-body font-semibold text-black mb-4">Internal Notes</h2>
               <textarea
@@ -361,7 +351,6 @@ export default function ProjectDetailPage() {
               </div>
             </div>
 
-            {/* ACTIONS - FIXED */}
             <div className="bg-white rounded-2xl border border-neutral-200 p-6">
               <h2 className="font-body font-semibold text-black mb-4">Actions</h2>
               <div className="flex flex-wrap gap-3">
@@ -410,9 +399,7 @@ export default function ProjectDetailPage() {
             </div>
           </div>
 
-          {/* SIDEBAR */}
           <div className="space-y-6">
-            {/* Customer Info */}
             <div className="bg-white rounded-2xl border border-neutral-200 p-6">
               <h2 className="font-body font-semibold text-black mb-4">Customer</h2>
               {project.customers ? (
@@ -438,7 +425,6 @@ export default function ProjectDetailPage() {
               )}
             </div>
 
-            {/* Quick Stats */}
             <div className="bg-gradient-to-br from-black to-neutral-800 rounded-2xl p-6 text-white">
               <h2 className="font-body font-semibold mb-4">Project Value</h2>
               <div className="text-4xl font-display font-semibold mb-2">${planConfig.price}</div>
@@ -456,7 +442,6 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* PREVIEW TAB */}
       {activeTab === 'preview' && (
         <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
           {project.generated_html ? (
@@ -488,7 +473,6 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* MESSAGES TAB */}
       {activeTab === 'messages' && (
         <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
           <div className="h-96 overflow-y-auto p-4 space-y-4">
