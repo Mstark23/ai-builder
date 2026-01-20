@@ -218,7 +218,7 @@ export default function ProjectDetailPage() {
         <h2 className="font-display text-2xl font-medium text-black mb-2">Project Not Found</h2>
         <p className="font-body text-neutral-500 mb-6">This project does not exist or has been deleted.</p>
         <Link href="/admin/projects" className="font-body text-black hover:underline">
-          ← Back to Projects
+          Back to Projects
         </Link>
       </div>
     );
@@ -226,6 +226,8 @@ export default function ProjectDetailPage() {
 
   const statusConfig = getStatusConfig(project.status);
   const planConfig = getPlanConfig(project.plan || '');
+  const previewUrl = '/preview/' + project.id;
+  const messagesUrl = '/admin/messages?project=' + project.id;
 
   return (
     <div className="space-y-6">
@@ -240,7 +242,7 @@ export default function ProjectDetailPage() {
           <h1 className="font-display text-3xl font-medium text-black">{project.business_name}</h1>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`px-3 py-1.5 rounded-full font-body text-sm font-medium border ${statusConfig.color}`}>
+          <span className={'px-3 py-1.5 rounded-full font-body text-sm font-medium border ' + statusConfig.color}>
             {statusConfig.label}
           </span>
           <button
@@ -258,11 +260,11 @@ export default function ProjectDetailPage() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2.5 rounded-lg font-body text-sm font-medium transition-all ${
-              activeTab === tab
+            className={'px-5 py-2.5 rounded-lg font-body text-sm font-medium transition-all ' +
+              (activeTab === tab
                 ? 'bg-white text-black shadow-sm'
-                : 'text-neutral-500 hover:text-black'
-            }`}
+                : 'text-neutral-500 hover:text-black')
+            }
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
             {tab === 'messages' && messages.length > 0 && (
@@ -278,7 +280,7 @@ export default function ProjectDetailPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-              <h2 className="font-body font-semibold text-black mb-6">Status & Plan</h2>
+              <h2 className="font-body font-semibold text-black mb-6">Status and Plan</h2>
               <div className="grid sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block font-body text-sm text-neutral-500 mb-2">Status</label>
@@ -374,8 +376,8 @@ export default function ProjectDetailPage() {
                   )}
                 </button>
                 {project.generated_html && (
-                  
-                    href={`/preview/${project.id}`}
+                  <a
+                    href={previewUrl}
                     target="_blank"
                     className="px-5 py-2.5 bg-emerald-600 text-white font-body text-sm font-medium rounded-full hover:bg-emerald-700 transition-colors flex items-center gap-2"
                   >
@@ -387,7 +389,7 @@ export default function ProjectDetailPage() {
                   </a>
                 )}
                 <Link
-                  href={`/admin/messages?project=${project.id}`}
+                  href={messagesUrl}
                   className="px-5 py-2.5 border border-neutral-200 text-neutral-700 font-body text-sm font-medium rounded-full hover:bg-neutral-50 transition-colors flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,8 +434,8 @@ export default function ProjectDetailPage() {
               <div className="mt-4 pt-4 border-t border-white/10">
                 <div className="flex items-center justify-between">
                   <span className="font-body text-sm text-white/60">Payment Status</span>
-                  <span className={`font-body text-sm font-medium ${project.paid ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {project.paid ? '✓ Paid' : 'Pending'}
+                  <span className={'font-body text-sm font-medium ' + (project.paid ? 'text-emerald-400' : 'text-amber-400')}>
+                    {project.paid ? 'Paid' : 'Pending'}
                   </span>
                 </div>
               </div>
@@ -482,14 +484,14 @@ export default function ProjectDetailPage() {
               </div>
             ) : (
               messages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-md px-4 py-3 rounded-2xl ${
-                    msg.sender_type === 'admin'
+                <div key={msg.id} className={'flex ' + (msg.sender_type === 'admin' ? 'justify-end' : 'justify-start')}>
+                  <div className={'max-w-md px-4 py-3 rounded-2xl ' +
+                    (msg.sender_type === 'admin'
                       ? 'bg-black text-white rounded-br-sm'
-                      : 'bg-neutral-100 text-black rounded-bl-sm'
-                  }`}>
+                      : 'bg-neutral-100 text-black rounded-bl-sm')
+                  }>
                     <p className="font-body text-sm">{msg.content}</p>
-                    <p className={`font-body text-xs mt-1 ${msg.sender_type === 'admin' ? 'text-white/60' : 'text-neutral-400'}`}>
+                    <p className={'font-body text-xs mt-1 ' + (msg.sender_type === 'admin' ? 'text-white/60' : 'text-neutral-400')}>
                       {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                     </p>
                   </div>
