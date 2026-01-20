@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
 type Project = {
@@ -21,7 +20,6 @@ type Message = {
 };
 
 export default function MessagesPage() {
-  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -34,17 +32,6 @@ export default function MessagesPage() {
   useEffect(() => {
     loadProjects();
   }, []);
-
-  useEffect(() => {
-    // Select project from URL param
-    const projectId = searchParams.get('project');
-    if (projectId && projects.length > 0) {
-      const project = projects.find(p => p.id === projectId);
-      if (project) {
-        setSelectedProject(project);
-      }
-    }
-  }, [searchParams, projects]);
 
   useEffect(() => {
     if (selectedProject) {
@@ -65,11 +52,8 @@ export default function MessagesPage() {
 
       if (!error && data) {
         setProjects(data);
-        // Auto-select first project if none selected
-        if (data.length > 0 && !selectedProject) {
-          const projectId = searchParams.get('project');
-          const toSelect = projectId ? data.find(p => p.id === projectId) : data[0];
-          setSelectedProject(toSelect || data[0]);
+        if (data.length > 0) {
+          setSelectedProject(data[0]);
         }
       }
     } catch (err) {
@@ -89,7 +73,6 @@ export default function MessagesPage() {
 
       if (!error && data) {
         setMessages(data);
-        // Mark unread messages as read
         const unreadIds = data.filter(m => !m.read && m.sender_type === 'customer').map(m => m.id);
         if (unreadIds.length > 0) {
           await supabase.from('messages').update({ read: true }).in('id', unreadIds);
@@ -134,22 +117,6 @@ export default function MessagesPage() {
     }
   };
 
-  const getUnreadCount = (projectId: string) => {
-    // This would typically come from a real-time subscription or separate query
-    return 0; // Placeholder
-  };
-
-  const formatTime = (date: string) => {
-    const d = new Date(date);
-    const now = new Date();
-    const diff = now.getTime() - d.getTime();
-    
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
   const formatMessageDate = (date: string) => {
     const d = new Date(date);
     const now = new Date();
@@ -185,23 +152,18 @@ export default function MessagesPage() {
 
   return (
     <div className="h-screen flex flex-col">
-      {/* HEADER */}
       <div className="p-4 border-b border-neutral-200 bg-white flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-medium text-black">Messages</h1>
           <p className="font-body text-sm text-neutral-500">Communicate with your customers</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-body font-medium rounded-full">
-            {projects.length} conversations
-          </span>
-        </div>
+        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-body font-medium rounded-full">
+          {projects.length} conversations
+        </span>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* CONVERSATIONS LIST */}
         <div className="w-80 border-r border-neutral-200 bg-white flex flex-col">
-          {/* Search */}
           <div className="p-4 border-b border-neutral-100">
             <div className="relative">
               <svg className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,7 +179,6 @@ export default function MessagesPage() {
             </div>
           </div>
 
-          {/* Conversation List */}
           <div className="flex-1 overflow-y-auto">
             {filteredProjects.length === 0 ? (
               <div className="p-4 text-center">
@@ -226,37 +187,24 @@ export default function MessagesPage() {
             ) : (
               filteredProjects.map((project) => {
                 const isSelected = selectedProject?.id === project.id;
-                const unreadCount = getUnreadCount(project.id);
-
                 return (
                   <div
                     key={project.id}
                     onClick={() => setSelectedProject(project)}
                     className={`px-4 py-3 cursor-pointer transition-colors ${
-                      isSelected
-                        ? 'bg-blue-50 border-l-4 border-blue-500'
-                        : 'hover:bg-neutral-50 border-l-4 border-transparent'
+                      isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-neutral-50 border-l-4 border-transparent'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-body font-bold ${
-                          isSelected ? 'bg-blue-500' : 'bg-gradient-to-br from-neutral-600 to-neutral-800'
-                        }`}>
-                          {project.business_name?.charAt(0)?.toUpperCase() || '?'}
-                        </div>
-                        {unreadCount > 0 && (
-                          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-body font-medium">
-                            {unreadCount}
-                          </span>
-                        )}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-body font-bold ${
+                        isSelected ? 'bg-blue-500' : 'bg-gradient-to-br from-neutral-600 to-neutral-800'
+                      }`}>
+                        {project.business_name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className={`font-body text-sm truncate ${isSelected ? 'font-semibold text-black' : 'font-medium text-neutral-800'}`}>
-                            {project.business_name}
-                          </span>
-                        </div>
+                        <span className={`font-body text-sm truncate block ${isSelected ? 'font-semibold text-black' : 'font-medium text-neutral-800'}`}>
+                          {project.business_name}
+                        </span>
                         <p className="font-body text-xs text-neutral-500 truncate">
                           {project.customers?.name || 'No customer'}
                         </p>
@@ -269,10 +217,8 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* CHAT AREA */}
         {selectedProject ? (
           <div className="flex-1 flex flex-col bg-neutral-50">
-            {/* Chat Header */}
             <div className="p-4 bg-white border-b border-neutral-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-body font-bold">
@@ -283,20 +229,14 @@ export default function MessagesPage() {
                   <div className="font-body text-xs text-neutral-500">{selectedProject.customers?.email || 'No email'}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <a
-                  href={`/admin/projects/${selectedProject.id}`}
-                  className="px-3 py-1.5 bg-neutral-100 text-neutral-700 font-body text-sm rounded-lg hover:bg-neutral-200 transition-colors"
-                >
-                  View Project
-                </a>
-              </div>
+              <a href={`/admin/projects/${selectedProject.id}`} className="px-3 py-1.5 bg-neutral-100 text-neutral-700 font-body text-sm rounded-lg hover:bg-neutral-200 transition-colors">
+                View Project
+              </a>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <div className="w-16 h-16 bg-neutral-200 rounded-full flex items-center justify-center mx-auto mb-4">
                       <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -304,53 +244,37 @@ export default function MessagesPage() {
                       </svg>
                     </div>
                     <h3 className="font-body font-medium text-neutral-800 mb-1">No messages yet</h3>
-                    <p className="font-body text-sm text-neutral-500">Start the conversation with your customer</p>
+                    <p className="font-body text-sm text-neutral-500">Start the conversation</p>
                   </div>
                 </div>
               ) : (
                 <>
-                  {/* Group messages by date */}
                   {messages.map((msg, idx) => {
-                    const showDateHeader = idx === 0 || 
-                      formatMessageDate(msg.created_at) !== formatMessageDate(messages[idx - 1].created_at);
+                    const showDateHeader = idx === 0 || formatMessageDate(msg.created_at) !== formatMessageDate(messages[idx - 1].created_at);
                     const isAdmin = msg.sender_type === 'admin';
-
                     return (
                       <div key={msg.id}>
                         {showDateHeader && (
                           <div className="text-center my-4">
-                            <span className="px-3 py-1 bg-white text-neutral-500 text-xs font-body rounded-full shadow-sm">
-                              {formatMessageDate(msg.created_at)}
-                            </span>
+                            <span className="px-3 py-1 bg-white text-neutral-500 text-xs font-body rounded-full shadow-sm">{formatMessageDate(msg.created_at)}</span>
                           </div>
                         )}
                         <div className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-md ${isAdmin ? 'order-2' : ''}`}>
+                          <div className="max-w-md">
                             {!isAdmin && (
                               <div className="flex items-center gap-2 mb-1">
                                 <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-body font-bold">
                                   {selectedProject.business_name?.charAt(0) || '?'}
                                 </div>
-                                <span className="font-body text-xs text-neutral-500">
-                                  {selectedProject.customers?.name || 'Customer'}
-                                </span>
+                                <span className="font-body text-xs text-neutral-500">{selectedProject.customers?.name || 'Customer'}</span>
                               </div>
                             )}
-                            <div
-                              className={`px-4 py-3 rounded-2xl ${
-                                isAdmin
-                                  ? 'bg-black text-white rounded-br-sm'
-                                  : 'bg-white text-black rounded-bl-sm shadow-sm'
-                              }`}
-                            >
+                            <div className={`px-4 py-3 rounded-2xl ${isAdmin ? 'bg-black text-white rounded-br-sm' : 'bg-white text-black rounded-bl-sm shadow-sm'}`}>
                               <p className="font-body text-sm whitespace-pre-wrap">{msg.content}</p>
                             </div>
                             <div className={`mt-1 ${isAdmin ? 'text-right' : 'text-left'}`}>
                               <span className="font-body text-xs text-neutral-400">
-                                {new Date(msg.created_at).toLocaleTimeString('en-US', {
-                                  hour: 'numeric',
-                                  minute: '2-digit',
-                                })}
+                                {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                               </span>
                             </div>
                           </div>
@@ -363,14 +287,8 @@ export default function MessagesPage() {
               )}
             </div>
 
-            {/* Message Input */}
             <div className="p-4 bg-white border-t border-neutral-200">
               <div className="flex items-end gap-3">
-                <button className="p-2 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                  </svg>
-                </button>
                 <div className="flex-1 relative">
                   <textarea
                     value={newMessage}
@@ -379,7 +297,6 @@ export default function MessagesPage() {
                     placeholder="Type a message..."
                     rows={1}
                     className="w-full px-4 py-3 bg-neutral-100 rounded-xl font-body text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black pr-12"
-                    style={{ maxHeight: '120px' }}
                   />
                   <button
                     onClick={sendMessage}
@@ -407,7 +324,7 @@ export default function MessagesPage() {
                 </svg>
               </div>
               <h3 className="font-body font-medium text-xl text-neutral-800 mb-2">Select a conversation</h3>
-              <p className="font-body text-neutral-500">Choose a project from the list to view messages</p>
+              <p className="font-body text-neutral-500">Choose a project from the list</p>
             </div>
           </div>
         )}
