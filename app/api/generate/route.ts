@@ -1,660 +1,482 @@
-// app/api/ai/generate/route.ts
-// Elite AI Website Generation - Million Dollar Websites
+// /app/api/ai/generate/route.ts
+// Main API handler for AI website generation
+// Imports all modules and assembles prompts dynamically
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import Anthropic from '@anthropic-ai/sdk';
 
+// Import our modular system
+import { getMasterPrompt, getFullCSS, getFullJS, REQUIRED_CSS, REQUIRED_JS, ANIMATION_KEYFRAMES } from '@/lib/ai/master-prompt';
+import { getIndustryTemplate, generateIndustryPrompt, detectIndustry, getIndustryCSSVariables } from '@/lib/ai/industries';
+import { getComponentReference } from '@/lib/ai/components';
+import { getEffectsReference, getRecommendedEffects } from '@/lib/ai/effects';
+import { getIconsReference, getRecommendedIcons } from '@/lib/ai/icons';
+import { getAnimationsReference, getRecommendedAnimations } from '@/lib/ai/animations';
+
+// Vercel Pro plan: 300 second timeout
+export const maxDuration = 300;
+
+// Initialize clients
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// The Elite Creative Director System Prompt
-const ELITE_SYSTEM_PROMPT = `You are the world's most sought-after web designer. Your websites have won every major design award - Awwwards Site of the Day, FWA, CSS Design Awards. Brands like Apple, Stripe, and Linear fight to hire you.
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+});
 
-Your secret? You understand that a website isn't just information - it's an EXPERIENCE. Every pixel, every animation, every scroll interaction is intentional.
+// ============================================================================
+// STYLE MODIFIERS
+// ============================================================================
 
-## YOUR DESIGN DNA
-
-**THE APPLE PRINCIPLE**: Simplicity is the ultimate sophistication. Remove everything that doesn't serve the story. What remains should be perfect.
-
-**THE STRIPE PRINCIPLE**: Gradients aren't decoration - they create depth and dimension. Shadows aren't effects - they establish hierarchy. Animation isn't flashy - it guides the eye.
-
-**THE LINEAR PRINCIPLE**: Dark modes feel premium. Subtle grain adds texture. Micro-interactions create delight. Speed is a feature.
-
-## WHAT MAKES A MILLION-DOLLAR WEBSITE
-
-1. **THE HERO STOPS YOU COLD**
-   - Massive, confident typography (60-120px headlines)
-   - A single, powerful message
-   - Cinematic imagery or mesmerizing gradients
-   - Subtle motion that draws you in
-
-2. **EVERY SECTION HAS PURPOSE**
-   - No filler content
-   - Each section answers a question or builds desire
-   - Visual variety prevents scroll fatigue
-   - Strategic CTAs placed at decision moments
-
-3. **TYPOGRAPHY IS ART**
-   - Font pairing that creates tension and harmony
-   - Generous line-height (1.5-1.8 for body)
-   - Letter-spacing that breathes
-   - Size contrast that creates hierarchy (don't be afraid of BIG)
-
-4. **COLOR TELLS A STORY**
-   - A dominant color that owns the brand
-   - An accent that demands action
-   - Neutrals that let content breathe
-   - Gradients that add dimension, not chaos
-
-5. **ANIMATIONS HAVE MEANING**
-   - Elements fade in as you scroll (Intersection Observer)
-   - Hover states reward exploration
-   - Transitions are smooth, never jarring (0.3s ease is your friend)
-   - Loading states feel intentional
-
-6. **DETAILS NOBODY NOTICES (BUT EVERYONE FEELS)**
-   - Consistent spacing system (8px base grid)
-   - Subtle shadows that create depth
-   - Border-radius that matches the brand personality
-   - Custom selection colors
-   - Smooth scroll behavior
-
-## YOUR TECHNICAL STANDARDS
-
-You write clean, semantic HTML5. Your CSS is organized with custom properties. Your JavaScript is minimal but powerful.
-
-You ALWAYS include:
-- Intersection Observer for scroll animations
-- Smooth scroll behavior
-- Hover micro-interactions
-- Mobile-responsive design (mobile-first)
-- Proper meta tags
-- Google Fonts with display=swap
-- CSS custom properties for theming
-
-## YOUR OUTPUT RULES
-
-1. Output ONLY raw HTML - no markdown, no explanations, no code blocks
-2. Start with <!DOCTYPE html>, end with </html>
-3. All CSS in a single <style> tag in <head>
-4. All JavaScript in a single <script> tag before </body>
-5. Use https://picsum.photos for images (they look real and professional)
-6. Use https://fonts.googleapis.com for typography`;
-
-
-// Industry-specific creative briefs
-const INDUSTRY_BRIEFS: Record<string, string> = {
-  'restaurant': `
-## RESTAURANT WEBSITE BRIEF
-
-**THE FEELING**: Walking into a restaurant where you know the food will be incredible before you even see the menu. Anticipation. Appetite. Warmth.
-
-**HERO APPROACH**: Full-bleed food photography with a dark overlay. The restaurant name in an elegant serif or script. A single line about what makes this place special. "Reserve a Table" button that glows.
-
-**COLOR PSYCHOLOGY**: 
-- Rich burgundies and deep oranges stimulate appetite
-- Cream and warm whites feel inviting
-- Gold accents suggest quality
-- Dark backgrounds make food photography pop
-
-**MUST-HAVE SECTIONS**:
-1. Hero with signature dish or restaurant interior
-2. "Our Story" with atmospheric photo
-3. Menu highlights (not full menu - tease the best dishes)
-4. Photo gallery that makes mouths water
-5. Testimonials from real diners
-6. Hours, location with embedded map, reservation CTA
-7. Footer with social links and contact
-
-**TYPOGRAPHY**: Elegant serif for headlines (Playfair Display, Cormorant), clean sans-serif for body (Lato, Open Sans)
-
-**SPECIAL TOUCHES**: 
-- Parallax on food images
-- Menu items that reveal descriptions on hover
-- A subtle texture overlay (like paper or linen)
-- Warm, glowing button hovers`,
-
-  'local-services': `
-## LOCAL SERVICE BUSINESS BRIEF
-
-**THE FEELING**: Relief. "Finally, a professional I can trust." Competence meets approachability. They'll show up on time and do it right.
-
-**HERO APPROACH**: Split design - powerful headline on one side, image of the team/work on the other. Trust badges floating nearby. Clear "Get a Quote" CTA.
-
-**COLOR PSYCHOLOGY**:
-- Blues build trust and professionalism
-- Greens suggest growth and reliability
-- Orange CTAs create urgency without aggression
-- Clean whites feel organized and clean
-
-**MUST-HAVE SECTIONS**:
-1. Hero with value proposition and primary CTA
-2. Services grid with icons and brief descriptions
-3. "Why Choose Us" with 3-4 key differentiators
-4. Before/After gallery or work showcase
-5. Testimonials with names and photos
-6. Service areas or coverage map
-7. Contact form with phone number prominent
-8. Footer with license numbers, insurance, guarantees
-
-**TYPOGRAPHY**: Strong sans-serif for headlines (Montserrat, Poppins), readable body font (Inter, Open Sans)
-
-**SPECIAL TOUCHES**:
-- Animated counters for stats (years in business, jobs completed)
-- Service cards that lift on hover
-- Click-to-call button on mobile
-- Trust badges that subtly animate in`,
-
-  'ecommerce': `
-## E-COMMERCE / PRODUCT BRAND BRIEF
-
-**THE FEELING**: Discovering a brand that "gets" you. Products you didn't know you needed but now can't live without. The unboxing will be just as good as the product.
-
-**HERO APPROACH**: Large product shot with floating elements or lifestyle image. Brand tagline that captures the essence. "Shop Now" that's impossible to miss.
-
-**COLOR PSYCHOLOGY**:
-- Minimal black/white lets products shine
-- A single accent color for CTAs and highlights
-- Soft backgrounds that don't compete with product photos
-- Occasional bold color for sales/promotions
-
-**MUST-HAVE SECTIONS**:
-1. Hero with flagship product or collection
-2. Featured products grid (3-4 items)
-3. Brand story - why this company exists
-4. Product categories with lifestyle imagery
-5. Social proof (reviews, press logos, Instagram feed)
-6. Newsletter signup with incentive
-7. Footer with all the trust signals (shipping, returns, secure checkout)
-
-**TYPOGRAPHY**: Modern, slightly editorial (Space Grotesk, Syne), clean body copy (DM Sans, Inter)
-
-**SPECIAL TOUCHES**:
-- Product cards with quick-view hover effect
-- "Add to Cart" micro-animation
-- Floating cart indicator
-- Subtle product image zoom on hover`,
-
-  'professional': `
-## PROFESSIONAL SERVICES BRIEF (Law, Consulting, Finance)
-
-**THE FEELING**: "These people are experts and I'm in good hands." Confidence without arrogance. Success is expected.
-
-**HERO APPROACH**: Either a striking gradient/abstract background OR professional team photo. Headline that speaks to outcomes, not services. "Schedule a Consultation" CTA.
-
-**COLOR PSYCHOLOGY**:
-- Navy and dark blue = authority and trust
-- Gold/amber accents = success and prestige
-- Clean whites = clarity and transparency
-- Subtle grays = sophistication
-
-**MUST-HAVE SECTIONS**:
-1. Hero with powerful outcome-focused headline
-2. Services with clear explanations
-3. About the firm/team with credentials
-4. Case studies or results (numbers, outcomes)
-5. Client logos if available
-6. Testimonials from satisfied clients
-7. Team members with professional photos
-8. Contact with multiple ways to reach out
-
-**TYPOGRAPHY**: Authoritative serif for headlines (Libre Baskerville, Source Serif Pro), professional sans-serif body (Inter, Helvetica Neue)
-
-**SPECIAL TOUCHES**:
-- Animated statistics counters
-- Team cards that flip to show bio
-- Subtle parallax on background elements
-- Refined hover states throughout`,
-
-  'health-beauty': `
-## HEALTH & BEAUTY / SPA / WELLNESS BRIEF
-
-**THE FEELING**: Instant calm. A visual deep breath. "I deserve this." Self-care as ritual, not routine.
-
-**HERO APPROACH**: Soft, dreamy imagery. Gentle gradient backgrounds. Elegant script accent. "Book Your Experience" CTA that feels like an invitation.
-
-**COLOR PSYCHOLOGY**:
-- Soft greens and teals = wellness and balance
-- Blush pink and rose = femininity and care
-- Cream and warm whites = purity and cleanliness
-- Gold accents = luxury and indulgence
-
-**MUST-HAVE SECTIONS**:
-1. Hero that transports you to the spa
-2. Services/treatments with poetic descriptions
-3. The philosophy/approach section
-4. Team/therapists with warm photos
-5. Gallery of the space and treatments
-6. Pricing packages (make the mid-tier shine)
-7. Booking CTA with availability hint
-8. Testimonials about transformative experiences
-9. Location, hours, contact
-
-**TYPOGRAPHY**: Elegant serif or script for headlines (Cormorant, Playfair Display), soft sans-serif body (Quicksand, Nunito)
-
-**SPECIAL TOUCHES**:
-- Soft, organic shapes floating in background
-- Gentle parallax effects
-- Service cards with subtle glow on hover
-- Imagery with slight blur/dreamy effect at edges`,
-
-  'real-estate': `
-## REAL ESTATE BRIEF
-
-**THE FEELING**: "This is the one." Aspiration meets attainability. The dream home is closer than you think.
-
-**HERO APPROACH**: Stunning property image or video background. Search box prominently placed. "Find Your Dream Home" or agent value proposition.
-
-**COLOR PSYCHOLOGY**:
-- Navy and dark blues = trust and stability
-- Gold/champagne = luxury and aspiration
-- Clean whites = space and possibility
-- Warm woods and greens = home and comfort
-
-**MUST-HAVE SECTIONS**:
-1. Hero with search or featured property
-2. Featured listings with beautiful cards
-3. Agent/team introduction with photo
-4. Why work with us (local expertise, results)
-5. Neighborhoods/areas served
-6. Testimonials from happy homeowners
-7. Sold properties or success metrics
-8. Contact with multiple options
-
-**TYPOGRAPHY**: Strong, trustworthy sans-serif (Poppins, Montserrat), elegant serif for accents (Playfair Display)
-
-**SPECIAL TOUCHES**:
-- Property cards with image carousel dots
-- Listing badges (New, Price Drop, Featured)
-- Animated counters (homes sold, years experience)
-- Map section with interactive feel`,
-
-  'portfolio': `
-## CREATIVE PORTFOLIO BRIEF
-
-**THE FEELING**: "Wow, I need to hire this person." Creative confidence. Unique voice. The work speaks for itself.
-
-**HERO APPROACH**: Bold, oversized name. Minimal distraction. Maybe a subtle animation or unique interaction. Let personality shine immediately.
-
-**COLOR PSYCHOLOGY**:
-- Dark backgrounds feel editorial and premium
-- High contrast creates drama
-- One accent color for personality
-- Could go bold and unexpected
-
-**MUST-HAVE SECTIONS**:
-1. Hero with name/title and brief positioning
-2. Selected works in a beautiful grid
-3. About section with personality
-4. Services or what you offer
-5. Kind words from clients
-6. Contact that encourages reaching out
-
-**TYPOGRAPHY**: Distinctive headline font (Space Grotesk, Clash Display), clean body (Inter, DM Sans)
-
-**SPECIAL TOUCHES**:
-- Project thumbnails with hover effects revealing title
-- Smooth page-feel scrolling
-- Custom cursor (optional)
-- Unique layout that breaks the grid`,
-
-  'banking': `
-## BANKING / FINTECH BRIEF
-
-**THE FEELING**: "My money is safe and working for me." Modern trust. Innovation meets security. Finance made human.
-
-**HERO APPROACH**: Clean gradient or abstract shapes. Mobile app mockup or card design floating. Headline about financial freedom or security. "Get Started" CTA.
-
-**COLOR PSYCHOLOGY**:
-- Deep blues and navy = trust and security
-- Teal and cyan = innovation and freshness
-- Green = growth and money
-- White space = clarity and transparency
-- Purple = modern fintech energy
-
-**MUST-HAVE SECTIONS**:
-1. Hero with app showcase or value proposition
-2. Features/products with clear benefits
-3. Security and trust section (encryption, FDIC, etc.)
-4. How it works in 3-4 simple steps
-5. Mobile app showcase with device mockup
-6. Rates or product comparison
-7. Customer testimonials
-8. FAQ accordion
-9. Download app / Open account CTAs
-10. Footer with legal links and security badges
-
-**TYPOGRAPHY**: Modern, geometric sans-serif (Inter, Plus Jakarta Sans, Satoshi), monospace for numbers (JetBrains Mono)
-
-**SPECIAL TOUCHES**:
-- Floating UI elements and cards
-- Animated gradient backgrounds
-- Security badges that inspire confidence
-- Stats counters (users, transactions, etc.)
-- Device mockups with app screenshots`
-};
-
-// Style modifiers
 const STYLE_MODIFIERS: Record<string, string> = {
-  'modern': `
-**STYLE: MODERN**
-- Clean lines and geometric shapes
-- Bold, confident typography
-- Strategic whitespace
-- Subtle animations and micro-interactions
-- Gradient accents
-- Sans-serif typography
-- Card-based layouts with soft shadows`,
-
-  'elegant': `
-**STYLE: ELEGANT**
-- Refined serif typography
-- Generous whitespace and breathing room
-- Muted, sophisticated color palette
-- Subtle gold or champagne accents
-- Delicate hover effects
-- Editorial-quality imagery
-- Thin lines and borders`,
-
-  'bold': `
-**STYLE: BOLD**
-- Oversized typography that demands attention
-- High contrast colors
+  modern: `
+STYLE: MODERN
+- Clean lines with subtle shadows
+- Gradient accents on buttons and highlights
+- Card-based layouts with rounded corners (16-24px)
+- Ample whitespace
+- Sans-serif fonts (Inter, DM Sans, Outfit)
+- Subtle animations on scroll
+- Light backgrounds with dark text
+`,
+  elegant: `
+STYLE: ELEGANT
+- Refined serif typography for headlines (Playfair Display, Cormorant)
+- Sophisticated color palette (navy, gold, cream)
+- Generous letter-spacing on headings
+- Thin borders and delicate dividers
+- Subtle gold or metallic accents
+- Smooth, understated animations
+- Premium feel with attention to typographic details
+`,
+  bold: `
+STYLE: BOLD
+- Oversized typography (headlines 80-120px)
+- High contrast colors (black/white with vibrant accent)
 - Strong geometric shapes
-- Dynamic, energetic animations
-- Unexpected layout choices
-- Thick borders and heavy shadows
-- Maximum visual impact`,
-
-  'minimal': `
-**STYLE: MINIMAL**
-- Maximum whitespace
-- Limited color palette (2-3 colors max)
-- Typography does the heavy lifting
-- Invisible design that gets out of the way
-- Subtle, almost imperceptible animations
-- Focus entirely on content
-- Every element must earn its place`,
-
-  'playful': `
-**STYLE: PLAYFUL**
-- Rounded corners and organic shapes
+- Full-bleed images
+- Dramatic hover effects
+- Striking section transitions
+- Unapologetic, confident design
+`,
+  minimal: `
+STYLE: MINIMAL
+- Maximum whitespace (150px+ section padding)
+- Limited color palette (2 colors max)
+- Essential elements only - no decoration
+- Typography as the hero element
+- Subtle micro-interactions
+- Clean, borderless cards
+- Content-first approach
+`,
+  playful: `
+STYLE: PLAYFUL
+- Rounded corners everywhere (20px+)
 - Bright, cheerful colors
-- Bouncy animations
-- Illustrated elements or icons
-- Casual, friendly typography
-- Unexpected delightful interactions
-- Emoji-friendly where appropriate`,
-
-  'corporate': `
-**STYLE: CORPORATE**
-- Professional and trustworthy
-- Structured grid layouts
-- Conservative color palette
-- Clear information hierarchy
-- Polished but not flashy
-- Credibility-building elements
-- Traditional navigation patterns`
+- Bouncy animations and hover effects
+- Friendly, casual copy tone
+- Illustrations or playful icons
+- Asymmetric layouts
+- Fun micro-interactions
+`,
+  dark: `
+STYLE: DARK MODE
+- Dark background (#09090b or #0a0a0a)
+- Light text (#fafafa)
+- Glowing accent colors
+- Subtle gradients in backgrounds
+- Glass morphism effects
+- Neon-style hover states
+- Grid patterns or noise textures
+`,
+  corporate: `
+STYLE: CORPORATE
+- Professional blue color scheme
+- Clean, structured grid layouts
+- Conservative typography (Inter, Source Sans)
+- Formal imagery (team photos, offices)
+- Trust badges and certifications prominent
+- Clear hierarchy and navigation
+- Accessible and ADA-compliant
+`,
 };
 
-// Main function to call Claude
-async function callClaude(systemPrompt: string, userPrompt: string): Promise<string> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY!,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 16000,
-      temperature: 0.7, // Adds creativity
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Claude API error: ${error}`);
+function cleanHTML(content: string): string {
+  // Remove markdown code blocks
+  let cleaned = content.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '');
+  
+  // Find the actual HTML document
+  const doctypeMatch = cleaned.match(/<!DOCTYPE html>/i);
+  const htmlEndMatch = cleaned.match(/<\/html>/i);
+  
+  if (doctypeMatch && htmlEndMatch) {
+    const startIndex = doctypeMatch.index!;
+    const endIndex = htmlEndMatch.index! + 7;
+    cleaned = cleaned.substring(startIndex, endIndex);
   }
-
-  const data = await response.json();
-  return data.content[0].text;
+  
+  return cleaned.trim();
 }
 
-// Clean HTML response
-function cleanHtmlResponse(response: string): string {
-  let html = response.trim();
+function buildSystemPrompt(industry: string, style: string): string {
+  // Get industry template
+  const industryTemplate = getIndustryTemplate(industry);
+  const industryPrompt = industryTemplate 
+    ? generateIndustryPrompt(industryTemplate) 
+    : '';
   
-  // Remove markdown code blocks if present
-  if (html.startsWith('```html')) {
-    html = html.replace(/^```html\n?/, '').replace(/\n?```$/, '');
-  }
-  if (html.startsWith('```')) {
-    html = html.replace(/^```\n?/, '').replace(/\n?```$/, '');
-  }
+  // Get style modifier
+  const styleModifier = STYLE_MODIFIERS[style] || STYLE_MODIFIERS.modern;
   
-  // Find the actual HTML start if there's preamble
-  const doctypeIndex = html.toLowerCase().indexOf('<!doctype');
-  if (doctypeIndex > 0) {
-    html = html.substring(doctypeIndex);
-  }
+  // Get recommended effects, icons, animations for this industry
+  const recommendedEffects = getRecommendedEffects(industry);
+  const recommendedIcons = getRecommendedIcons(industry);
+  const recommendedAnimations = getRecommendedAnimations(industry);
   
-  // Find the HTML end if there's content after
-  const htmlEndIndex = html.toLowerCase().lastIndexOf('</html>');
-  if (htmlEndIndex > 0) {
-    html = html.substring(0, htmlEndIndex + 7);
-  }
-  
-  return html;
-}
+  // Build the complete system prompt
+  return `${getMasterPrompt()}
 
-// Generate website
-async function generateWebsite(project: any): Promise<string> {
-  const industryKey = (project.industry || 'local-services').toLowerCase().replace(/\s+/g, '-');
-  const styleKey = (project.style || 'modern').toLowerCase();
-  
-  // Get industry brief, fallback to local-services
-  const industryBrief = INDUSTRY_BRIEFS[industryKey] || INDUSTRY_BRIEFS['local-services'];
-  const styleModifier = STYLE_MODIFIERS[styleKey] || STYLE_MODIFIERS['modern'];
-
-  const userPrompt = `
-# CREATE A MILLION-DOLLAR WEBSITE
-
-## THE CLIENT
-**Business Name**: ${project.business_name}
-**Industry**: ${project.industry}
-**What They Do**: ${project.description || 'A professional business serving their community with excellence'}
-**Website Goal**: ${project.website_goal || 'Generate leads, build trust, and convert visitors into customers'}
-${project.features?.length ? `**Requested Features**: ${project.features.join(', ')}` : ''}
-${project.inspirations ? `**Design Inspiration**: ${project.inspirations}` : ''}
-${project.customers?.email ? `**Contact Email**: ${project.customers.email}` : ''}
-${project.customers?.phone ? `**Contact Phone**: ${project.customers.phone}` : ''}
-
-${industryBrief}
+${industryPrompt}
 
 ${styleModifier}
 
----
+## RECOMMENDED FOR THIS PROJECT
+- Effects to use: ${recommendedEffects.join(', ')}
+- Icons to use: ${recommendedIcons.join(', ')}
+- Animations to use: ${recommendedAnimations.join(', ')}
 
-## TECHNICAL EXECUTION
+${getComponentReference()}
 
-**IMAGES**: Use https://picsum.photos for realistic images
-- Hero: https://picsum.photos/1920/1080?random=1
-- Sections: https://picsum.photos/800/600?random=2 (increment the number)
-- Team/People: https://picsum.photos/400/500?random=10
-- Gallery: https://picsum.photos/600/400?random=20
+${getEffectsReference()}
 
-**FONTS**: Use Google Fonts (include proper link tags)
+${getIconsReference()}
 
-**REQUIRED CSS FEATURES**:
+${getAnimationsReference()}
+
+## CRITICAL REQUIREMENTS
+
+1. Return ONLY the complete HTML file - no explanations, no markdown
+2. Start with <!DOCTYPE html> and end with </html>
+3. ALL CSS must be in a single <style> tag in <head>
+4. ALL JavaScript must be in a single <script> tag before </body>
+5. Must be 100% mobile responsive
+6. Must include all sections specified for the industry
+7. Use the EXACT colors from the industry template
+8. Use the EXACT fonts from the industry template (include Google Fonts import)
+9. Use the provided Unsplash image URLs
+10. Include scroll reveal animations (.reveal class with IntersectionObserver)
+11. Include smooth scrolling and navbar scroll effect
+12. Forms should have visual feedback on submission
+13. All buttons must have hover states
+14. Include a floating back-to-top button
+15. The website must look like it cost $50,000-$100,000 to build
+
+## CSS VARIABLES TO INCLUDE
 \`\`\`css
 :root {
-  --primary: /* your choice */;
-  --secondary: /* your choice */;
-  --accent: /* your choice */;
-  --bg: /* your choice */;
-  --text: /* your choice */;
-}
-
-/* Smooth scroll */
-html { scroll-behavior: smooth; }
-
-/* Reveal animation */
-.reveal {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.8s ease;
-}
-.reveal.active {
-  opacity: 1;
-  transform: translateY(0);
+${industryTemplate ? getIndustryCSSVariables(industryTemplate) : '  --primary: #6366f1;'}
 }
 \`\`\`
+`;
+}
 
-**REQUIRED JAVASCRIPT**:
-\`\`\`javascript
-// Intersection Observer for scroll animations
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('active');
-    }
-  });
-}, { threshold: 0.1 });
+function buildUserPrompt(project: any): string {
+  const features = project.features?.join(', ') || 'general services';
+  
+  return `Create a complete, premium, production-ready website for:
 
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+## BUSINESS DETAILS
+- **Name:** ${project.business_name}
+- **Industry:** ${project.industry}
+- **Description:** ${project.description || 'A premium business in its industry'}
+- **Goal:** ${project.website_goal || 'Generate leads and showcase services'}
+- **Target Customer:** ${project.target_customer || 'Quality-focused customers'}
+- **Features/Services:** ${features}
+
+## CONTACT INFORMATION
+- **Email:** ${project.contact_email || 'contact@example.com'}
+- **Phone:** ${project.contact_phone || '(555) 123-4567'}
+- **Address:** ${project.address || '123 Main Street, City, State'}
+
+## REQUIREMENTS
+1. Create a stunning hero section that immediately captures attention
+2. Use the industry-specific color palette and fonts
+3. Include ALL sections appropriate for this industry
+4. Write compelling, benefit-focused copy throughout
+5. Include social proof (testimonials, stats, trust badges)
+6. Make CTAs prominent and action-oriented
+7. Ensure perfect mobile responsiveness
+8. Add smooth scroll reveal animations
+9. Include a functional contact form
+10. Add a professional footer with all necessary links
+
+Generate the complete HTML file now.`;
+}
+
+function buildQuickEditPrompt(project: any, currentHtml: string, editRequest: string): string {
+  return `You are editing an existing website. Here is the current HTML:
+
+\`\`\`html
+${currentHtml}
 \`\`\`
 
----
+## EDIT REQUEST
+${editRequest}
 
-Now create a website so stunning that the client will immediately want to pay. Make it look like a $50,000 custom build.
+## INSTRUCTIONS
+1. Make ONLY the requested changes
+2. Keep all existing styles, scripts, and structure intact
+3. Return the COMPLETE modified HTML file
+4. Do not add explanations - just return the HTML
 
-Output ONLY the HTML. Start with <!DOCTYPE html>, end with </html>. No explanations.`;
-
-  const response = await callClaude(ELITE_SYSTEM_PROMPT, userPrompt);
-  return cleanHtmlResponse(response);
+Return the complete modified HTML file now.`;
 }
 
-// Revise website
-async function reviseWebsite(currentHtml: string, feedback: string, project: any): Promise<string> {
-  const systemPrompt = `You are an elite web designer making revisions. Maintain the premium quality while implementing all requested changes. Output ONLY the complete HTML.`;
+function buildRevisionPrompt(project: any, currentHtml: string, feedback: string): string {
+  return `You are revising a website based on client feedback. Here is the current HTML:
 
-  const userPrompt = `
-## REVISION REQUEST
-
-**Client**: ${project.business_name}
-**Feedback**: ${feedback}
-
-Apply all requested changes while maintaining the premium design quality.
-
-**Current Website**:
+\`\`\`html
 ${currentHtml}
+\`\`\`
 
-Output the COMPLETE revised HTML. Start with <!DOCTYPE html>, end with </html>.`;
+## CLIENT FEEDBACK
+${feedback}
 
-  const response = await callClaude(systemPrompt, userPrompt);
-  return cleanHtmlResponse(response);
+## BUSINESS CONTEXT
+- **Name:** ${project.business_name}
+- **Industry:** ${project.industry}
+- **Goal:** ${project.website_goal || 'Generate leads'}
+
+## INSTRUCTIONS
+1. Address ALL points in the client feedback
+2. Maintain the overall design quality and consistency
+3. Keep the same color scheme and fonts unless specifically asked to change
+4. Return the COMPLETE revised HTML file
+5. Ensure the revision still looks premium and professional
+
+Return the complete revised HTML file now.`;
 }
 
-// Quick edit
-async function quickEdit(currentHtml: string, instruction: string): Promise<string> {
-  const systemPrompt = `Make this specific edit while preserving everything else. Output ONLY the complete HTML.`;
+// ============================================================================
+// MAIN API HANDLER
+// ============================================================================
 
-  const userPrompt = `
-**Edit requested**: ${instruction}
-
-**Current HTML**:
-${currentHtml}
-
-Output the COMPLETE updated HTML. Start with <!DOCTYPE html>, end with </html>.`;
-
-  const response = await callClaude(systemPrompt, userPrompt);
-  return cleanHtmlResponse(response);
-}
-
-// API Route Handler
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { projectId, action } = body;
+    const { projectId, action = 'generate', editRequest, feedback } = body;
 
     if (!projectId) {
-      return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Project ID is required' },
+        { status: 400 }
+      );
     }
 
-    const { data: project, error: projectError } = await supabase
+    // Fetch project from database
+    const { data: project, error: fetchError } = await supabase
       .from('projects')
-      .select('*, customers(name, email, phone, business_name)')
+      .select('*')
       .eq('id', projectId)
       .single();
 
-    if (projectError || !project) {
-      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    if (fetchError || !project) {
+      return NextResponse.json(
+        { error: 'Project not found' },
+        { status: 404 }
+      );
     }
 
-    if (action === 'generate') {
-      const html = await generateWebsite(project);
-      
-      await supabase
-        .from('projects')
-        .update({ 
-          generated_html: html,
-          status: 'PREVIEW_READY',
-        })
-        .eq('id', projectId);
+    // Detect industry if not set or generic
+    let industry = project.industry?.toLowerCase().replace(/\s+/g, '-') || 'professional';
+    if (industry === 'other' || industry === 'general') {
+      industry = detectIndustry(project.description || project.business_name || '');
+    }
+    
+    // Get style
+    const style = project.style?.toLowerCase() || 'modern';
 
-      return NextResponse.json({ success: true, html, message: 'Website generated successfully' });
+    let messages: any[] = [];
+    let systemPrompt = '';
+
+    // Build prompts based on action
+    switch (action) {
+      case 'generate':
+        systemPrompt = buildSystemPrompt(industry, style);
+        messages = [
+          { role: 'user', content: buildUserPrompt({ ...project, industry }) }
+        ];
+        break;
+
+      case 'quick-edit':
+        if (!project.generated_html) {
+          return NextResponse.json(
+            { error: 'No existing website to edit' },
+            { status: 400 }
+          );
+        }
+        systemPrompt = getMasterPrompt();
+        messages = [
+          { role: 'user', content: buildQuickEditPrompt(project, project.generated_html, editRequest || 'Make general improvements') }
+        ];
+        break;
+
+      case 'revise':
+        if (!project.generated_html) {
+          return NextResponse.json(
+            { error: 'No existing website to revise' },
+            { status: 400 }
+          );
+        }
+        systemPrompt = buildSystemPrompt(industry, style);
+        messages = [
+          { role: 'user', content: buildRevisionPrompt(project, project.generated_html, feedback || 'Make it better') }
+        ];
+        break;
+
+      default:
+        return NextResponse.json(
+          { error: 'Invalid action. Use: generate, quick-edit, or revise' },
+          { status: 400 }
+        );
     }
 
-    if (action === 'revise') {
-      const { feedback, currentHtml } = body;
-      
-      if (!feedback) {
-        return NextResponse.json({ error: 'Feedback required' }, { status: 400 });
+    // Update project status
+    await supabase
+      .from('projects')
+      .update({ status: 'generating' })
+      .eq('id', projectId);
+
+    // Call Claude API
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 16000,
+      system: systemPrompt,
+      messages: messages,
+    });
+
+    // Extract the generated HTML
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Unexpected response type from Claude');
+    }
+
+    const generatedHtml = cleanHTML(content.text);
+
+    // Validate the HTML
+    if (!generatedHtml.includes('<!DOCTYPE html>') || !generatedHtml.includes('</html>')) {
+      throw new Error('Generated content is not valid HTML');
+    }
+
+    // Update project with generated HTML
+    const { error: updateError } = await supabase
+      .from('projects')
+      .update({
+        generated_html: generatedHtml,
+        status: 'completed',
+        revision_count: (project.revision_count || 0) + (action === 'revise' ? 1 : 0),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return NextResponse.json({
+      success: true,
+      html: generatedHtml,
+      action: action,
+      industry: industry,
+      style: style,
+      tokensUsed: response.usage?.output_tokens || 0,
+    });
+
+  } catch (error: any) {
+    console.error('Generation error:', error);
+
+    // Try to update project status to failed
+    try {
+      const body = await request.clone().json();
+      if (body.projectId) {
+        await supabase
+          .from('projects')
+          .update({ status: 'failed' })
+          .eq('id', body.projectId);
       }
-
-      const html = await reviseWebsite(currentHtml || project.generated_html, feedback, project);
-      
-      await supabase
-        .from('projects')
-        .update({ 
-          generated_html: html,
-          revision_count: (project.revision_count || 0) + 1,
-        })
-        .eq('id', projectId);
-
-      return NextResponse.json({ success: true, html, message: 'Revisions applied' });
+    } catch (e) {
+      // Ignore update errors
     }
 
-    if (action === 'quick-edit') {
-      const { instruction, currentHtml } = body;
-      
-      if (!instruction) {
-        return NextResponse.json({ error: 'Instruction required' }, { status: 400 });
-      }
-
-      const html = await quickEdit(currentHtml || project.generated_html, instruction);
-      
-      await supabase
-        .from('projects')
-        .update({ generated_html: html })
-        .eq('id', projectId);
-
-      return NextResponse.json({ success: true, html, message: 'Edit applied' });
-    }
-
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-
-  } catch (error) {
-    console.error('AI Generation Error:', error);
     return NextResponse.json(
-      { error: 'Failed to process request', details: String(error) },
+      { 
+        error: 'Failed to generate website',
+        details: error.message || 'Unknown error'
+      },
       { status: 500 }
     );
   }
+}
+
+// ============================================================================
+// GET HANDLER - Health check and info
+// ============================================================================
+
+export async function GET(request: NextRequest) {
+  return NextResponse.json({
+    status: 'ok',
+    service: 'AI Website Generator',
+    version: '2.0.0',
+    features: [
+      '12 industry templates',
+      '7 style modifiers',
+      '100+ icons',
+      '40+ animations',
+      'Glassmorphism & gradients',
+      'Mobile responsive',
+      'Scroll animations',
+      'Premium design system',
+    ],
+    endpoints: {
+      POST: {
+        description: 'Generate or edit website',
+        body: {
+          projectId: 'string (required)',
+          action: 'generate | quick-edit | revise',
+          editRequest: 'string (for quick-edit)',
+          feedback: 'string (for revise)',
+        },
+      },
+    },
+    industries: [
+      'restaurant',
+      'local-services',
+      'professional',
+      'health-beauty',
+      'real-estate',
+      'fitness',
+      'tech-startup',
+      'medical',
+      'construction',
+      'ecommerce',
+      'portfolio',
+      'education',
+    ],
+    styles: [
+      'modern',
+      'elegant',
+      'bold',
+      'minimal',
+      'playful',
+      'dark',
+      'corporate',
+    ],
+  });
 }
