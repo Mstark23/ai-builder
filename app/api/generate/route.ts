@@ -1,6 +1,3 @@
-// /app/api/generate/route.ts
-// AI Website Generator - Connected to Claude
-
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -78,7 +75,7 @@ function buildUserPrompt(data: any): string {
 - **Goal:** ${data.goal || 'Generate leads and showcase services'}
 
 ## CONTACT INFO (use in contact section & footer)
-- **Email:** ${data.email || 'hello@' + data.businessName.toLowerCase().replace(/\s+/g, '') + '.com'}
+- **Email:** ${data.email || 'hello@example.com'}
 - **Phone:** ${data.phone || '(555) 123-4567'}
 - **Address:** ${data.address || '123 Business Ave, City, State'}
 
@@ -111,10 +108,8 @@ Generate the complete HTML file now. Remember: NO explanations, just the HTML.`;
 }
 
 function cleanHTML(content: string): string {
-  // Remove markdown code blocks if present
   let cleaned = content.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '');
   
-  // Find DOCTYPE and closing html tag
   const doctypeMatch = cleaned.match(/<!DOCTYPE html>/i);
   const htmlEndMatch = cleaned.match(/<\/html>/i);
   
@@ -138,7 +133,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call Claude API
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 16000,
@@ -148,7 +142,6 @@ export async function POST(request: NextRequest) {
       ],
     });
 
-    // Extract HTML from response
     const content = response.content[0];
     if (content.type !== 'text') {
       throw new Error('Unexpected response type');
@@ -156,7 +149,6 @@ export async function POST(request: NextRequest) {
 
     const html = cleanHTML(content.text);
 
-    // Validate HTML
     if (!html.includes('<!DOCTYPE html>') || !html.includes('</html>')) {
       throw new Error('Invalid HTML generated');
     }
@@ -191,10 +183,6 @@ export async function GET() {
           businessName: 'string (required)',
           industry: 'string',
           description: 'string',
-          goal: 'string',
-          email: 'string',
-          phone: 'string',
-          address: 'string',
           style: 'modern | elegant | bold | minimal | dark',
           primaryColor: 'hex color',
           darkMode: 'boolean'
@@ -203,12 +191,3 @@ export async function GET() {
     }
   });
 }
-```
-
----
-
-## 🔑 Don't forget to add your API key!
-
-In Vercel, go to **Settings → Environment Variables** and add:
-```
-ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxx
