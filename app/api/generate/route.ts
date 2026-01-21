@@ -1,6 +1,6 @@
 // app/api/generate/route.ts
-// IMPROVED VERSION - Multi-Stage Pipeline
-// Drop-in replacement for your existing route.ts
+// IMPROVED VERSION - Multi-Stage Pipeline with Auto-Review
+// Uses new fields: design_direction, brand_voice, primary_services, etc.
 
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
@@ -18,7 +18,7 @@ const supabase = createClient(
 );
 
 // =============================================================================
-// STAGE 1: DESIGN DIRECTIONS (6 distinct styles instead of generic)
+// DESIGN DIRECTIONS (6 distinct styles)
 // =============================================================================
 
 const DESIGN_DIRECTIONS: Record<string, {
@@ -161,7 +161,43 @@ const DESIGN_DIRECTIONS: Record<string, {
 };
 
 // =============================================================================
-// STAGE 2: INDUSTRY-SPECIFIC IMAGES (Curated, not random)
+// BRAND VOICE CONFIGURATIONS
+// =============================================================================
+
+const BRAND_VOICE_CONFIG: Record<string, {
+  tone: string;
+  characteristics: string[];
+  examplePhrases: string[];
+}> = {
+  formal: {
+    tone: "Professional, authoritative, precise",
+    characteristics: ["Third person perspective", "Industry terminology", "Measured claims", "Formal sentence structure"],
+    examplePhrases: ["We deliver exceptional results", "Our expertise ensures", "Trusted by industry leaders"]
+  },
+  conversational: {
+    tone: "Warm, friendly, approachable",
+    characteristics: ["Second person (you/your)", "Contractions allowed", "Relatable language", "Encouraging tone"],
+    examplePhrases: ["Let's work together", "You deserve the best", "We're here to help"]
+  },
+  playful: {
+    tone: "Fun, energetic, light-hearted",
+    characteristics: ["Casual language", "Exclamation points (sparingly)", "Creative metaphors", "Upbeat rhythm"],
+    examplePhrases: ["Ready to shake things up?", "Let's make magic happen", "Your journey starts here!"]
+  },
+  authoritative: {
+    tone: "Expert, confident, knowledge-driven",
+    characteristics: ["Data-backed claims", "Industry expertise", "Definitive statements", "Educational approach"],
+    examplePhrases: ["With 20+ years of expertise", "The industry standard", "Proven methodology"]
+  },
+  luxurious: {
+    tone: "Refined, sophisticated, exclusive",
+    characteristics: ["Elegant vocabulary", "Understated confidence", "Sensory language", "Exclusive positioning"],
+    examplePhrases: ["Experience the art of", "Crafted for the discerning", "Where excellence meets elegance"]
+  }
+};
+
+// =============================================================================
+// CURATED IMAGES BY INDUSTRY
 // =============================================================================
 
 const CURATED_IMAGES: Record<string, {
@@ -252,10 +288,26 @@ const CURATED_IMAGES: Record<string, {
     feature3: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&q=80',
     testimonialBg: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&q=80',
   },
+  'construction': {
+    hero: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1920&q=85',
+    about: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&q=80',
+    feature1: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&q=80',
+    feature2: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=600&q=80',
+    feature3: 'https://images.unsplash.com/photo-1590725121839-892b458a74fe?w=600&q=80',
+    testimonialBg: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80',
+  },
+  'portfolio': {
+    hero: 'https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=1920&q=85',
+    about: 'https://images.unsplash.com/photo-1542744094-3a31f272c490?w=800&q=80',
+    feature1: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600&q=80',
+    feature2: 'https://images.unsplash.com/photo-1545235617-9465d2a55698?w=600&q=80',
+    feature3: 'https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=600&q=80',
+    testimonialBg: 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=1920&q=80',
+  },
 };
 
 // =============================================================================
-// STAGE 3: INDUSTRY-TO-STYLE MAPPING (Smart defaults)
+// INDUSTRY TO STYLE MAPPING (Smart defaults)
 // =============================================================================
 
 const INDUSTRY_STYLE_MAP: Record<string, string[]> = {
@@ -272,6 +324,8 @@ const INDUSTRY_STYLE_MAP: Record<string, string[]> = {
   'construction': ['bold_modern', 'dark_premium', 'editorial_classic'],
   'nonprofit': ['warm_organic', 'bold_modern', 'vibrant_energy'],
   'portfolio': ['dark_premium', 'luxury_minimal', 'vibrant_energy'],
+  'banking': ['editorial_classic', 'bold_modern', 'luxury_minimal'],
+  'automotive': ['dark_premium', 'bold_modern', 'editorial_classic'],
 };
 
 // =============================================================================
@@ -331,14 +385,15 @@ Output ONLY valid JSON with this exact structure:
   "competitive_advantage": "what makes them unique"
 }`;
 
-async function analyzeBusinesss(project: any): Promise<any> {
+async function analyzeBusiness(project: any): Promise<any> {
   const prompt = `Analyze this business:
 Name: ${project.business_name}
 Industry: ${project.industry || 'professional'}
 Description: ${project.description || 'A quality business'}
 Target Customer: ${project.target_customer || 'Not specified'}
 Unique Value: ${project.unique_value || 'Not specified'}
-Website Goal: ${project.website_goal || 'Generate leads'}`;
+Website Goal: ${project.website_goal || 'Generate leads'}
+Primary Services: ${project.primary_services?.join(', ') || 'Not specified'}`;
 
   const result = await callClaude(STAGE_1_SYSTEM, prompt, 1500);
   return parseJSON(result);
@@ -348,14 +403,23 @@ Website Goal: ${project.website_goal || 'Generate leads'}`;
 // STAGE 2: Conversion-Focused Copywriting
 // =============================================================================
 
-const STAGE_2_SYSTEM = `You are a direct-response copywriter who has generated millions in revenue. Write website copy that CONVERTS.
+function buildCopywritingPrompt(project: any): string {
+  const brandVoice = project.brand_voice || 'conversational';
+  const voiceConfig = BRAND_VOICE_CONFIG[brandVoice] || BRAND_VOICE_CONFIG.conversational;
+  
+  return `You are a direct-response copywriter who has generated millions in revenue. Write website copy that CONVERTS.
+
+BRAND VOICE: ${voiceConfig.tone}
+Voice Characteristics: ${voiceConfig.characteristics.join(', ')}
+Example Phrases: ${voiceConfig.examplePhrases.join(', ')}
 
 RULES:
 - Headlines: Create EMOTION, not description. Max 8 words.
 - Subheadlines: Clarify the benefit. Max 20 words.
-- CTAs: Action verb + benefit (e.g., "Get Your Free Quote", "Start Saving Today")
+- CTAs: ${project.call_to_action ? `Use "${project.call_to_action}" as primary CTA` : 'Action verb + benefit'}
 - ALWAYS include specific numbers (make them up if needed but keep believable)
 - NEVER use: "solutions", "leverage", "synergy", "cutting-edge", "world-class"
+- Match the brand voice throughout ALL copy
 
 Output ONLY valid JSON:
 {
@@ -363,7 +427,7 @@ Output ONLY valid JSON:
     "badge": "short trust indicator",
     "headline": "emotional 6-8 word headline",
     "subheadline": "clarifying benefit statement",
-    "cta_primary": "action + benefit",
+    "cta_primary": "${project.call_to_action || 'action + benefit'}",
     "cta_secondary": "lower commitment action"
   },
   "social_proof": {
@@ -394,26 +458,38 @@ Output ONLY valid JSON:
   "cta_section": {
     "headline": "conversion-focused headline",
     "subheadline": "overcome final objection",
-    "cta": "strong call to action",
+    "cta": "${project.call_to_action || 'strong call to action'}",
     "trust_note": "guarantee or reassurance"
   },
   "footer": {
     "tagline": "memorable one-liner"
   }
 }`;
+}
 
 async function writeCopy(project: any, brandAnalysis: any): Promise<any> {
+  const systemPrompt = buildCopywritingPrompt(project);
+  
+  // Build services list from primary_services if available
+  const servicesList = project.primary_services?.length > 0
+    ? `Key Services to Feature: ${project.primary_services.join(', ')}`
+    : '';
+  
   const prompt = `Write conversion-focused copy for:
 Business: ${project.business_name}
 Industry: ${project.industry}
 Description: ${project.description || 'A quality business'}
+${servicesList}
 
 Brand Strategy:
 ${JSON.stringify(brandAnalysis, null, 2)}
 
-Contact: ${project.contact_email || 'hello@example.com'} | ${project.contact_phone || '(555) 123-4567'}`;
+Contact: ${project.contact_email || 'hello@example.com'} | ${project.contact_phone || '(555) 123-4567'}
 
-  const result = await callClaude(STAGE_2_SYSTEM, prompt, 3000);
+Target Customer: ${project.target_customer || 'Not specified'}
+Unique Value: ${project.unique_value || 'Not specified'}`;
+
+  const result = await callClaude(systemPrompt, prompt, 3000);
   return parseJSON(result);
 }
 
@@ -421,7 +497,22 @@ Contact: ${project.contact_email || 'hello@example.com'} | ${project.contact_pho
 // STAGE 3: Design Direction Selection
 // =============================================================================
 
-const STAGE_3_SYSTEM = `You are a creative director choosing the perfect design direction for a website.
+async function selectDesignDirection(project: any, brandAnalysis: any): Promise<any> {
+  const industry = project.industry || 'professional';
+  const suggestedStyles = INDUSTRY_STYLE_MAP[industry] || ['bold_modern', 'editorial_classic'];
+  
+  // If design_direction is already set, use it
+  if (project.design_direction && DESIGN_DIRECTIONS[project.design_direction]) {
+    return {
+      selected_direction: project.design_direction,
+      reasoning: 'Customer selected this direction',
+      hero_layout: project.hero_preference || 'split_left',
+      special_effects: ['subtle animations', 'smooth scrolling']
+    };
+  }
+  
+  // Otherwise, let AI choose
+  const STAGE_3_SYSTEM = `You are a creative director choosing the perfect design direction for a website.
 
 Available directions:
 1. luxury_minimal - Serif fonts, lots of whitespace, muted colors, editorial feel
@@ -438,16 +529,12 @@ Output ONLY valid JSON:
   "hero_layout": "split_left | split_right | centered | full_bleed",
   "special_effects": ["effect1", "effect2"]
 }`;
-
-async function selectDesignDirection(project: any, brandAnalysis: any): Promise<any> {
-  const industry = project.industry || 'professional';
-  const suggestedStyles = INDUSTRY_STYLE_MAP[industry] || ['bold_modern', 'editorial_classic'];
   
   const prompt = `Select the best design direction for:
 Business: ${project.business_name}
 Industry: ${industry}
-Style Preference: ${project.style || 'modern'}
-Mood: ${Array.isArray(project.mood_tags) ? project.mood_tags.join(', ') : 'professional'}
+Mood Tags: ${project.mood_tags?.join(', ') || 'professional, modern'}
+Color Preference: ${project.color_preference || 'auto'}
 
 Brand Analysis:
 ${JSON.stringify(brandAnalysis, null, 2)}
@@ -456,11 +543,18 @@ Suggested directions for this industry: ${suggestedStyles.join(', ')}
 But choose what's BEST for this specific brand.`;
 
   const result = await callClaude(STAGE_3_SYSTEM, prompt, 1000);
-  return parseJSON(result);
+  const parsed = parseJSON(result);
+  
+  // Apply hero preference if set
+  if (project.hero_preference) {
+    parsed.hero_layout = project.hero_preference;
+  }
+  
+  return parsed;
 }
 
 // =============================================================================
-// STAGE 4: HTML Generation (with Golden Examples)
+// STAGE 4: HTML Generation
 // =============================================================================
 
 function buildMasterPrompt(
@@ -470,8 +564,6 @@ function buildMasterPrompt(
   direction: typeof DESIGN_DIRECTIONS[string],
   images: typeof CURATED_IMAGES[string]
 ): string {
-  const isDark = designChoice.selected_direction === 'dark_premium';
-  
   return `You are an elite frontend developer creating a $50,000+ website.
 
 ## BUSINESS
@@ -506,7 +598,7 @@ Characteristics: ${direction.characteristics}
   --font-body: '${direction.fonts.body}', sans-serif;
 }
 
-## IMAGES (Use these EXACTLY)
+## IMAGES
 Hero: ${images.hero}
 About: ${images.about}
 Feature 1: ${images.feature1}
@@ -517,171 +609,13 @@ Testimonial avatars: https://i.pravatar.cc/100?img=1, https://i.pravatar.cc/100?
 ## HERO LAYOUT: ${designChoice.hero_layout}
 ## SPECIAL EFFECTS: ${designChoice.special_effects?.join(', ') || 'subtle animations'}
 
-## GOLDEN EXAMPLE: Premium Hero Section
-\`\`\`html
-<section class="hero">
-  <div class="hero-bg">
-    <div class="hero-gradient hero-gradient-1"></div>
-    <div class="hero-gradient hero-gradient-2"></div>
-  </div>
-  <div class="container">
-    <div class="hero-grid">
-      <div class="hero-content">
-        <div class="hero-badge">
-          <span class="badge-dot"></span>
-          <span>{{BADGE_TEXT}}</span>
-        </div>
-        <h1 class="hero-title">
-          {{HEADLINE_PART_1}}<br>
-          <span class="text-gradient">{{HEADLINE_PART_2}}</span>
-        </h1>
-        <p class="hero-subtitle">{{SUBHEADLINE}}</p>
-        <div class="hero-ctas">
-          <a href="#contact" class="btn btn-primary">{{CTA_PRIMARY}}</a>
-          <a href="#services" class="btn btn-secondary">{{CTA_SECONDARY}}</a>
-        </div>
-        <div class="hero-stats">
-          <div class="stat"><span class="stat-number">{{STAT_1_NUM}}</span><span class="stat-label">{{STAT_1_LABEL}}</span></div>
-          <div class="stat"><span class="stat-number">{{STAT_2_NUM}}</span><span class="stat-label">{{STAT_2_LABEL}}</span></div>
-          <div class="stat"><span class="stat-number">{{STAT_3_NUM}}</span><span class="stat-label">{{STAT_3_LABEL}}</span></div>
-        </div>
-      </div>
-      <div class="hero-visual">
-        <div class="hero-image-wrapper">
-          <img src="{{HERO_IMAGE}}" alt="{{ALT}}" class="hero-image">
-          <div class="floating-card floating-card-1">
-            <div class="card-icon">✓</div>
-            <div class="card-content">
-              <span class="card-title">{{CARD_TITLE}}</span>
-              <span class="card-text">{{CARD_TEXT}}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-\`\`\`
-
-## REQUIRED CSS PATTERNS
-\`\`\`css
-/* Hero */
-.hero { min-height: 100vh; display: flex; align-items: center; position: relative; overflow: hidden; padding-top: 100px; }
-.hero-bg { position: absolute; inset: 0; z-index: -1; }
-.hero-gradient { position: absolute; width: 600px; height: 600px; border-radius: 50%; filter: blur(80px); opacity: 0.5; }
-.hero-gradient-1 { background: var(--primary); top: -200px; right: -100px; animation: float 20s ease-in-out infinite; }
-.hero-gradient-2 { background: var(--secondary); bottom: -200px; left: -100px; animation: float 15s ease-in-out infinite reverse; }
-@keyframes float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, -30px); } }
-
-.hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
-.hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgba(var(--primary-rgb), 0.1); border-radius: 100px; font-size: 14px; margin-bottom: 24px; }
-.badge-dot { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; animation: pulse 2s infinite; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-.hero-title { font-family: var(--font-display); font-size: clamp(48px, 6vw, 72px); font-weight: 700; line-height: 1.1; margin-bottom: 24px; }
-.text-gradient { background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.hero-subtitle { font-size: 20px; color: var(--text-secondary); margin-bottom: 40px; max-width: 500px; line-height: 1.6; }
-
-.hero-ctas { display: flex; gap: 16px; margin-bottom: 48px; }
-.btn { display: inline-flex; align-items: center; justify-content: center; padding: 16px 32px; font-weight: 600; border-radius: 12px; transition: all 0.3s ease; }
-.btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 20px rgba(var(--primary-rgb), 0.4); }
-.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(var(--primary-rgb), 0.5); }
-.btn-secondary { background: transparent; color: var(--text-primary); border: 2px solid var(--border); }
-.btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
-
-.hero-stats { display: flex; gap: 48px; }
-.stat-number { display: block; font-family: var(--font-display); font-size: 32px; font-weight: 700; }
-.stat-label { font-size: 14px; color: var(--text-secondary); }
-
-.hero-image { width: 100%; border-radius: 24px; box-shadow: 0 25px 50px rgba(0,0,0,0.15); }
-.floating-card { position: absolute; background: white; padding: 16px 20px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); animation: float-card 6s ease-in-out infinite; }
-@keyframes float-card { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
-/* Cards */
-.card { background: var(--bg-secondary); border-radius: 24px; padding: 40px; border: 1px solid var(--border); transition: all 0.4s ease; }
-.card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); border-color: transparent; }
-
-/* Sections */
-section { padding: 120px 0; }
-.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-.section-badge { display: inline-block; padding: 8px 16px; background: rgba(var(--primary-rgb), 0.1); color: var(--primary); border-radius: 100px; font-size: 14px; font-weight: 600; margin-bottom: 16px; }
-.section-title { font-family: var(--font-display); font-size: clamp(36px, 5vw, 56px); font-weight: 700; margin-bottom: 24px; }
-
-/* Animations */
-.reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s ease; }
-.reveal.active { opacity: 1; transform: translateY(0); }
-
-/* Responsive */
-@media (max-width: 968px) {
-  .hero-grid { grid-template-columns: 1fr; text-align: center; }
-  .hero-subtitle { margin-inline: auto; }
-  .hero-ctas { justify-content: center; }
-  .hero-stats { justify-content: center; }
-  .hero-visual { display: none; }
-}
-\`\`\`
-
-## REQUIRED JAVASCRIPT
-\`\`\`javascript
-document.addEventListener('DOMContentLoaded', () => {
-  // Scroll reveal
-  const reveals = document.querySelectorAll('.reveal');
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('active');
-      }
-    });
-  }, { threshold: 0.1 });
-  reveals.forEach(el => observer.observe(el));
-  
-  // Nav scroll
-  const nav = document.querySelector('nav');
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 50);
-  });
-  
-  // Smooth scroll
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function(e) {
-      e.preventDefault();
-      const target = document.querySelector(this.getAttribute('href'));
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
-  });
-  
-  // Counter animation
-  const counters = document.querySelectorAll('[data-count]');
-  const counterObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const el = entry.target;
-        const target = parseInt(el.dataset.count);
-        const duration = 2000;
-        const start = performance.now();
-        const animate = (now) => {
-          const progress = Math.min((now - start) / duration, 1);
-          el.textContent = Math.floor(progress * target);
-          if (progress < 1) requestAnimationFrame(animate);
-        };
-        requestAnimationFrame(animate);
-        counterObserver.unobserve(el);
-      }
-    });
-  }, { threshold: 0.5 });
-  counters.forEach(el => counterObserver.observe(el));
-});
-\`\`\`
-
 ## SECTIONS TO GENERATE (In Order)
 1. NAV - Fixed, blur on scroll, logo + links + CTA
-2. HERO - Use the golden example pattern above, fill in the copy
+2. HERO - ${designChoice.hero_layout} layout with stats
 3. FEATURES/SERVICES - 3-6 cards with icons
 4. ABOUT - Split layout with image
-5. STATS - 4 animated counters (use data-count attribute)
-6. TESTIMONIALS - 3 cards with real-looking quotes
+5. STATS - 4 animated counters
+6. TESTIMONIALS - 3 cards with quotes
 7. CTA - Gradient background, compelling copy
 8. CONTACT - Form + contact info
 9. FOOTER - Logo, links, social, copyright
@@ -736,14 +670,82 @@ ${html.substring(0, 30000)}`;
 }
 
 // =============================================================================
+// AUTO-REVIEW FUNCTION
+// =============================================================================
+
+async function runAutoReview(projectId: string, html: string, project: any): Promise<any> {
+  try {
+    const designDirection = project.design_direction || 'bold_modern';
+    const direction = DESIGN_DIRECTIONS[designDirection];
+    
+    const reviewPrompt = `Review this generated website against requirements.
+
+## REQUIREMENTS
+Business: ${project.business_name}
+Design Direction: ${designDirection} (${direction?.name || 'Unknown'})
+Brand Voice: ${project.brand_voice || 'conversational'}
+Hero Preference: ${project.hero_preference || 'not specified'}
+Requested Features: ${project.features?.join(', ') || 'None'}
+Primary Services: ${project.primary_services?.join(', ') || 'None'}
+
+## HTML
+${html.substring(0, 25000)}
+
+## TASK
+Score each category 0-100 and provide overall assessment.
+
+Output JSON:
+{
+  "overallScore": <0-100>,
+  "passesQuality": <true if score >= 75>,
+  "categories": {
+    "designDirection": { "score": <0-100>, "status": "pass|warning|fail", "issues": [] },
+    "brandVoice": { "score": <0-100>, "status": "pass|warning|fail", "issues": [] },
+    "features": { "score": <0-100>, "status": "pass|warning|fail", "missingFeatures": [], "foundFeatures": [] },
+    "heroSection": { "score": <0-100>, "status": "pass|warning|fail", "issues": [] },
+    "contentQuality": { "score": <0-100>, "status": "pass|warning|fail", "issues": [] },
+    "technicalQuality": { "score": <0-100>, "status": "pass|warning|fail", "issues": [] }
+  },
+  "criticalIssues": [],
+  "warnings": [],
+  "suggestions": [],
+  "summary": "<2-3 sentence summary>"
+}`;
+
+    const result = await callClaude(
+      'You are a web design QA specialist. Review websites against requirements.',
+      reviewPrompt,
+      3000
+    );
+
+    const reviewData = parseJSON(result);
+
+    // Save review to database
+    await supabase
+      .from('projects')
+      .update({
+        review_score: reviewData.overallScore,
+        review_details: reviewData,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+
+    return reviewData;
+  } catch (error) {
+    console.error('Auto-review error:', error);
+    return null;
+  }
+}
+
+// =============================================================================
 // MAIN GENERATION PIPELINE
 // =============================================================================
 
-async function generateWebsite(project: any): Promise<string> {
+async function generateWebsite(project: any): Promise<{ html: string; review?: any }> {
   const industry = (project.industry || 'professional').toLowerCase();
   
   console.log('🚀 Stage 1: Analyzing business...');
-  const brandAnalysis = await analyzeBusinesss(project);
+  const brandAnalysis = await analyzeBusiness(project);
   
   console.log('🚀 Stage 2: Writing copy...');
   const copy = await writeCopy(project, brandAnalysis);
@@ -777,7 +779,7 @@ async function generateWebsite(project: any): Promise<string> {
   html = await reviewAndFix(html, direction);
   
   console.log('✅ Generation complete!');
-  return html;
+  return { html };
 }
 
 // =============================================================================
@@ -811,7 +813,7 @@ export async function POST(request: NextRequest) {
       .eq('id', projectId);
 
     // Generate website
-    const html = await generateWebsite(project);
+    const { html } = await generateWebsite(project);
 
     // Validate output
     if (!html.includes('<!DOCTYPE html>') && !html.includes('<!doctype html>')) {
@@ -827,9 +829,22 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', projectId);
 
+    // Run auto-review in background
+    console.log('🔍 Running auto-review...');
+    const review = await runAutoReview(projectId, html, project);
+    
+    // Update status based on review
+    if (review && !review.passesQuality) {
+      await supabase
+        .from('projects')
+        .update({ status: 'NEEDS_REVISION' })
+        .eq('id', projectId);
+    }
+
     return NextResponse.json({ 
       success: true, 
       html,
+      review,
       message: 'Website generated successfully'
     });
 
@@ -857,15 +872,17 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    version: '4.0 - Multi-Stage Pipeline',
+    version: '5.0 - Multi-Stage Pipeline with Auto-Review',
     stages: [
       '1. Business Analysis',
-      '2. Copywriting',
-      '3. Design Direction',
+      '2. Copywriting (with Brand Voice)',
+      '3. Design Direction Selection',
       '4. HTML Generation',
-      '5. Quality Review'
+      '5. Quality Review',
+      '6. Auto-Review & Scoring'
     ],
     designDirections: Object.keys(DESIGN_DIRECTIONS),
+    brandVoices: Object.keys(BRAND_VOICE_CONFIG),
     supportedIndustries: Object.keys(CURATED_IMAGES),
   });
 }
