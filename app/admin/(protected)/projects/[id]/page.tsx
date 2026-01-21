@@ -326,7 +326,7 @@ function SectionEditor({ projectId, html, onUpdate }: { projectId: string; html:
       const response = await fetch('/api/regenerate-section', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, sectionId: selectedSection.id, feedback: feedback.trim() }),
+        body: JSON.stringify({ projectId, section: selectedSection.id, feedback: feedback.trim() }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Regeneration failed');
