@@ -1,421 +1,531 @@
-// app/preview/[id]/page.tsx
-// Customer-facing preview with section feedback
+// app/api/regenerate-section/route.ts
+// Regenerate individual sections without rebuilding entire site
+// V2 - Improved section detection and regeneration
 
-'use client';
+import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
+import { createClient } from '@supabase/supabase-js';
 
-import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+export const maxDuration = 120;
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+});
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // =============================================================================
-// TYPES
+// SECTION DEFINITIONS
 // =============================================================================
 
-interface Project {
-  id: string;
-  business_name: string;
-  generated_html: string | null;
-  status: string;
-  plan: string;
+const SECTIONS = {
+  nav: {
+    name: 'Navigation',
+    selector: /<nav[\s\S]*?<\/nav>/i,
+    description: 'Top navigation bar with logo and menu links',
+  },
+  hero: {
+    name: 'Hero Section',
+    selector: /<section[^>]*(?:id=["']hero["']|class=["'][^"']*hero[^"']*["'])[\s\S]*?<\/section>/i,
+    fallbackSelector: /<section[^>]*>[\s\S]*?<\/section>/i, // First section after nav
+    description: 'Main hero banner with headline, subheadline, and CTA',
+  },
+  services: {
+    name: 'Services Section',
+    selector: /<section[^>]*(?:id=["'](?:services|features)["']|class=["'][^"']*(?:services|features)[^"']*["'])[\s\S]*?<\/section>/i,
+    description: 'Services or features grid with cards',
+  },
+  about: {
+    name: 'About Section',
+    selector: /<section[^>]*(?:id=["']about["']|class=["'][^"']*about[^"']*["'])[\s\S]*?<\/section>/i,
+    description: 'About us section with company story',
+  },
+  testimonials: {
+    name: 'Testimonials Section',
+    selector: /<section[^>]*(?:id=["']testimonials["']|class=["'][^"']*testimonial[^"']*["'])[\s\S]*?<\/section>/i,
+    description: 'Customer testimonials and reviews',
+  },
+  stats: {
+    name: 'Stats Section',
+    selector: /<section[^>]*(?:id=["']stats["']|class=["'][^"']*stats[^"']*["'])[\s\S]*?<\/section>/i,
+    description: 'Statistics and numbers section',
+  },
+  cta: {
+    name: 'CTA Section',
+    selector: /<section[^>]*(?:id=["']cta["']|class=["'][^"']*cta[^"']*["'])[\s\S]*?<\/section>/i,
+    description: 'Call-to-action banner section',
+  },
+  contact: {
+    name: 'Contact Section',
+    selector: /<section[^>]*(?:id=["']contact["']|class=["'][^"']*contact[^"']*["'])[\s\S]*?<\/section>/i,
+    description: 'Contact form and information',
+  },
+  footer: {
+    name: 'Footer',
+    selector: /<footer[\s\S]*?<\/footer>/i,
+    description: 'Page footer with links and copyright',
+  },
+};
+
+type SectionKey = keyof typeof SECTIONS;
+
+// =============================================================================
+// DESIGN DIRECTIONS (same as generate route)
+// =============================================================================
+
+const DESIGN_DIRECTIONS: Record<string, {
+  name: string;
+  fonts: { display: string; body: string };
+  colors: Record<string, string>;
+  characteristics: string;
+}> = {
+  luxury_minimal: {
+    name: "Luxury Minimal",
+    fonts: { display: "Cormorant Garamond", body: "Crimson Pro" },
+    colors: {
+      primary: "#1a1a1a", secondary: "#c9a227", bgPrimary: "#faf9f7",
+      bgSecondary: "#f5f3ef", textPrimary: "#1a1a1a", textSecondary: "#5c5c5c"
+    },
+    characteristics: "Lots of whitespace, subtle animations, serif typography, muted earth tones"
+  },
+  bold_modern: {
+    name: "Bold Modern",
+    fonts: { display: "Space Grotesk", body: "DM Sans" },
+    colors: {
+      primary: "#6366f1", secondary: "#8b5cf6", bgPrimary: "#ffffff",
+      bgSecondary: "#f8fafc", textPrimary: "#0f172a", textSecondary: "#475569"
+    },
+    characteristics: "Strong geometric typography, gradient accents, card-based layouts"
+  },
+  warm_organic: {
+    name: "Warm Organic",
+    fonts: { display: "Fraunces", body: "Source Serif Pro" },
+    colors: {
+      primary: "#2d5016", secondary: "#b45309", bgPrimary: "#fffbeb",
+      bgSecondary: "#fef3c7", textPrimary: "#1c1917", textSecondary: "#57534e"
+    },
+    characteristics: "Rounded corners, warm earth palette, friendly approachable vibe"
+  },
+  dark_premium: {
+    name: "Dark Premium",
+    fonts: { display: "Bebas Neue", body: "Barlow" },
+    colors: {
+      primary: "#ffffff", secondary: "#a855f7", bgPrimary: "#09090b",
+      bgSecondary: "#18181b", textPrimary: "#fafafa", textSecondary: "#a1a1aa"
+    },
+    characteristics: "Dark theme, glowing effects, gradient borders, glassmorphism"
+  },
+  editorial_classic: {
+    name: "Editorial Classic",
+    fonts: { display: "Playfair Display", body: "Source Sans Pro" },
+    colors: {
+      primary: "#1e3a5f", secondary: "#b8860b", bgPrimary: "#ffffff",
+      bgSecondary: "#f8f6f3", textPrimary: "#1e293b", textSecondary: "#64748b"
+    },
+    characteristics: "Classic typography, structured grid, professional trustworthy feel"
+  },
+  vibrant_energy: {
+    name: "Vibrant Energy",
+    fonts: { display: "Syne", body: "Outfit" },
+    colors: {
+      primary: "#7c3aed", secondary: "#ec4899", bgPrimary: "#fafafa",
+      bgSecondary: "#f3e8ff", textPrimary: "#18181b", textSecondary: "#52525b"
+    },
+    characteristics: "Bold gradients, playful animations, colorful accents"
+  }
+};
+
+// =============================================================================
+// BRAND VOICE CONFIG
+// =============================================================================
+
+const BRAND_VOICE_CONFIG: Record<string, { tone: string; style: string }> = {
+  formal: { tone: "Professional, authoritative", style: "Third person, precise language" },
+  conversational: { tone: "Warm, friendly", style: "Second person, contractions allowed" },
+  playful: { tone: "Fun, energetic", style: "Casual, exclamation points sparingly" },
+  authoritative: { tone: "Expert, confident", style: "Data-backed, definitive statements" },
+  luxurious: { tone: "Refined, sophisticated", style: "Elegant vocabulary, sensory language" },
+};
+
+// =============================================================================
+// HELPER: Extract existing section
+// =============================================================================
+
+function extractSection(html: string, sectionKey: SectionKey): string | null {
+  const section = SECTIONS[sectionKey];
+  const match = html.match(section.selector);
+  return match ? match[0] : null;
 }
 
-interface SectionFeedback {
-  sectionId: string;
-  sectionName: string;
-  feedback: string;
-  timestamp: Date;
+// =============================================================================
+// HELPER: Replace section in HTML
+// =============================================================================
+
+function replaceSection(html: string, sectionKey: SectionKey, newSection: string): string {
+  const section = SECTIONS[sectionKey];
+  
+  // Try main selector first
+  if (section.selector.test(html)) {
+    return html.replace(section.selector, newSection);
+  }
+  
+  // If no match and has fallback, try that
+  if ('fallbackSelector' in section && section.fallbackSelector) {
+    const fallback = section.fallbackSelector as RegExp;
+    if (fallback.test(html)) {
+      return html.replace(fallback, newSection);
+    }
+  }
+  
+  return html;
 }
 
-const SECTIONS = [
-  { id: 'hero', name: 'Hero Banner', icon: '🦸', description: 'Main headline and call-to-action' },
-  { id: 'services', name: 'Services', icon: '⚡', description: 'Your offerings' },
-  { id: 'about', name: 'About', icon: '📖', description: 'Your story' },
-  { id: 'testimonials', name: 'Testimonials', icon: '💬', description: 'Customer reviews' },
-  { id: 'stats', name: 'Statistics', icon: '📊', description: 'Key numbers' },
-  { id: 'cta', name: 'Call to Action', icon: '📢', description: 'Final push' },
-  { id: 'contact', name: 'Contact', icon: '✉️', description: 'Get in touch' },
-];
-
 // =============================================================================
-// MAIN COMPONENT
+// HELPER: Extract CSS variables from existing HTML
 // =============================================================================
 
-export default function CustomerPreviewPage() {
-  const params = useParams();
-  const projectId = params.id as string;
+function extractCSSVariables(html: string): string {
+  const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+  if (!styleMatch) return '';
   
-  const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
-  const [feedbackMode, setFeedbackMode] = useState(false);
-  const [selectedSection, setSelectedSection] = useState<typeof SECTIONS[0] | null>(null);
-  const [feedback, setFeedback] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [pendingFeedback, setPendingFeedback] = useState<SectionFeedback[]>([]);
+  const rootMatch = styleMatch[1].match(/:root\s*{([^}]*)}/i);
+  return rootMatch ? rootMatch[1] : '';
+}
+
+// =============================================================================
+// SECTION-SPECIFIC PROMPTS
+// =============================================================================
+
+function getSectionPrompt(
+  sectionKey: SectionKey,
+  project: any,
+  direction: typeof DESIGN_DIRECTIONS[string],
+  feedback: string,
+  existingSection: string | null,
+  cssVariables: string
+): string {
+  const section = SECTIONS[sectionKey];
+  const brandVoice = BRAND_VOICE_CONFIG[project.brand_voice] || BRAND_VOICE_CONFIG.conversational;
   
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const baseContext = `
+## BUSINESS CONTEXT
+Name: ${project.business_name}
+Industry: ${project.industry}
+Description: ${project.description || ''}
+Target Customer: ${project.target_customer || ''}
+Unique Value: ${project.unique_value || ''}
+Primary Services: ${project.primary_services?.join(', ') || ''}
+CTA Text: ${project.call_to_action || 'Get Started'}
 
-  useEffect(() => {
-    loadProject();
-  }, [projectId]);
+## DESIGN DIRECTION: ${direction.name}
+${direction.characteristics}
+Fonts: ${direction.fonts.display} (headlines), ${direction.fonts.body} (body)
 
-  const loadProject = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id, business_name, generated_html, status, plan')
-        .eq('id', projectId)
-        .single();
+## BRAND VOICE: ${brandVoice.tone}
+Style: ${brandVoice.style}
 
-      if (!error && data) {
-        setProject(data);
+## CSS VARIABLES (use these exactly)
+${cssVariables}
+
+## CONTACT INFO
+Email: ${project.contact_email || 'hello@example.com'}
+Phone: ${project.contact_phone || '(555) 123-4567'}
+Address: ${project.address || ''}
+`;
+
+  const feedbackSection = feedback ? `
+## CUSTOMER FEEDBACK
+"${feedback}"
+
+Address this feedback directly in the new design.
+` : '';
+
+  const existingContext = existingSection ? `
+## EXISTING SECTION (for reference)
+\`\`\`html
+${existingSection.substring(0, 3000)}
+\`\`\`
+
+Improve upon this while maintaining consistency with the rest of the page.
+` : '';
+
+  // Section-specific instructions
+  const sectionInstructions: Record<SectionKey, string> = {
+    nav: `
+Generate a fixed navigation bar with:
+- Logo/brand name on left
+- Navigation links (Home, About, Services, Contact)
+- CTA button on right
+- Blur effect on scroll (add .scrolled class via JS)
+- Mobile hamburger menu
+`,
+    hero: `
+Generate a hero section with:
+- Trust badge (e.g., "Trusted by 500+ clients")
+- Powerful headline (6-8 words, emotional)
+- Subheadline (clarify the benefit)
+- Primary CTA button: "${project.call_to_action || 'Get Started'}"
+- Secondary CTA (lower commitment)
+- 3-4 social proof stats
+- Hero image or visual element
+- Layout: ${project.hero_preference || 'split_left'}
+`,
+    services: `
+Generate a services/features section with:
+- Section badge
+- Compelling headline
+- 3-6 service cards with:
+  - Icon (use SVG or emoji)
+  - Service name
+  - 2-sentence benefit-focused description
+- Hover effects on cards
+${project.primary_services?.length > 0 ? `
+Feature these services: ${project.primary_services.join(', ')}` : ''}
+`,
+    about: `
+Generate an about section with:
+- Section badge "About Us"
+- Headline about company mission/story
+- 2 paragraphs of compelling copy
+- Image on one side, text on other
+- Optional: key differentiators or values
+`,
+    testimonials: `
+Generate a testimonials section with:
+- Section badge
+- Headline
+- 3 testimonial cards with:
+  - Quote (specific, with results if possible)
+  - Customer name
+  - Role/Company
+  - Avatar image (use https://i.pravatar.cc/100?img=X)
+  - Star rating
+`,
+    stats: `
+Generate a stats/numbers section with:
+- 4 key statistics
+- Large animated numbers (use data-count attribute)
+- Labels below numbers
+- Examples: clients served, years experience, satisfaction rate, projects completed
+`,
+    cta: `
+Generate a CTA section with:
+- Gradient or colored background
+- Compelling headline (overcome objections)
+- Subheadline
+- Primary CTA button
+- Trust note (guarantee, no commitment, etc.)
+`,
+    contact: `
+Generate a contact section with:
+- Section headline
+- Contact form (name, email, phone, message)
+- Contact information sidebar:
+  - Email: ${project.contact_email || 'hello@example.com'}
+  - Phone: ${project.contact_phone || '(555) 123-4567'}
+  - Address: ${project.address || ''}
+- Optional: map placeholder or social links
+`,
+    footer: `
+Generate a footer with:
+- Logo/brand name
+- Quick links (Home, About, Services, Contact)
+- Contact information
+- Social media icons
+- Copyright notice with current year
+- Optional: newsletter signup
+`,
+  };
+
+  return `You are an elite frontend developer. Generate ONLY the HTML for the ${section.name}.
+
+${baseContext}
+${feedbackSection}
+${existingContext}
+
+## SECTION REQUIREMENTS
+${sectionInstructions[sectionKey]}
+
+## RULES
+1. Output ONLY the section HTML (starting with <section>, <nav>, or <footer>)
+2. Use the CSS variables provided (var(--primary), var(--bg-primary), etc.)
+3. Use the correct font families: var(--font-display), var(--font-body)
+4. Include class="reveal" for scroll animation
+5. Make it mobile responsive
+6. NO <style> tags - use inline styles only if needed for unique elements
+7. NO <script> tags
+8. NO explanations, NO markdown code blocks
+
+Output the HTML now:`;
+}
+
+// =============================================================================
+// MAIN HANDLER
+// =============================================================================
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { projectId, section, feedback } = body;
+
+    // Validate inputs
+    if (!projectId) {
+      return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
+    }
+
+    if (!section || !SECTIONS[section as SectionKey]) {
+      return NextResponse.json({ 
+        error: 'Invalid section', 
+        validSections: Object.keys(SECTIONS) 
+      }, { status: 400 });
+    }
+
+    const sectionKey = section as SectionKey;
+
+    // Fetch project
+    const { data: project, error: fetchError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .single();
+
+    if (fetchError || !project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    if (!project.generated_html) {
+      return NextResponse.json({ error: 'No generated HTML to modify' }, { status: 400 });
+    }
+
+    // Get design direction
+    const directionKey = project.design_direction || 'bold_modern';
+    const direction = DESIGN_DIRECTIONS[directionKey] || DESIGN_DIRECTIONS.bold_modern;
+
+    // Extract existing section and CSS
+    const existingSection = extractSection(project.generated_html, sectionKey);
+    const cssVariables = extractCSSVariables(project.generated_html);
+
+    // Build prompt
+    const prompt = getSectionPrompt(
+      sectionKey,
+      project,
+      direction,
+      feedback || '',
+      existingSection,
+      cssVariables
+    );
+
+    console.log(`🔄 Regenerating ${sectionKey} for project ${projectId}...`);
+
+    // Call Claude
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Unexpected response type');
+    }
+
+    // Clean up response
+    let newSection = content.text.trim();
+    newSection = newSection.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '');
+
+    // Validate we got HTML
+    const validTags = ['<section', '<nav', '<footer', '<header'];
+    const hasValidTag = validTags.some(tag => newSection.toLowerCase().startsWith(tag));
+    
+    if (!hasValidTag) {
+      // Try to extract section from response
+      const sectionMatch = newSection.match(/<(?:section|nav|footer|header)[\s\S]*<\/(?:section|nav|footer|header)>/i);
+      if (sectionMatch) {
+        newSection = sectionMatch[0];
+      } else {
+        throw new Error('Invalid section HTML generated');
       }
-    } catch (err) {
-      console.error('Error loading project:', err);
-    } finally {
-      setLoading(false);
     }
-  };
 
-  const submitFeedback = async () => {
-    if (!selectedSection || !feedback.trim()) return;
-    
-    setSubmitting(true);
-    
-    try {
-      // Save feedback to messages table
-      await supabase.from('messages').insert({
-        project_id: projectId,
-        content: `[Section Feedback: ${selectedSection.name}]\n\n${feedback.trim()}`,
-        sender_type: 'customer',
-        read: false,
-      });
+    // Replace section in full HTML
+    const updatedHtml = replaceSection(project.generated_html, sectionKey, newSection);
 
-      // Add to pending feedback list
-      setPendingFeedback(prev => [...prev, {
-        sectionId: selectedSection.id,
-        sectionName: selectedSection.name,
-        feedback: feedback.trim(),
-        timestamp: new Date()
-      }]);
-
-      setSubmitted(true);
-      setFeedback('');
-      
-      setTimeout(() => {
-        setSubmitted(false);
-        setSelectedSection(null);
-      }, 2000);
-      
-    } catch (err) {
-      console.error('Error submitting feedback:', err);
-      alert('Failed to submit feedback. Please try again.');
-    } finally {
-      setSubmitting(false);
+    // Validate replacement worked
+    if (updatedHtml === project.generated_html && existingSection) {
+      console.warn('Section replacement may have failed - HTML unchanged');
     }
-  };
 
-  const approveDesign = async () => {
-    if (!confirm('Are you ready to approve this design? You can still request changes later.')) return;
-    
-    try {
-      await supabase.from('messages').insert({
-        project_id: projectId,
-        content: '✅ Customer approved the design',
-        sender_type: 'customer',
-        read: false,
-      });
-      
-      alert('Thank you! Your approval has been recorded. We\'ll be in touch soon.');
-    } catch (err) {
-      console.error('Error:', err);
+    // Save updated HTML
+    const { error: updateError } = await supabase
+      .from('projects')
+      .update({ 
+        generated_html: updatedHtml,
+        status: 'PREVIEW_READY'
+      })
+      .eq('id', projectId);
+
+    if (updateError) {
+      throw updateError;
     }
-  };
 
-  const getViewportWidth = () => {
-    switch (viewMode) {
-      case 'mobile': return '375px';
-      case 'tablet': return '768px';
-      default: return '100%';
-    }
-  };
+    console.log(`✅ Section ${sectionKey} regenerated successfully`);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-neutral-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-3 border-neutral-200 border-t-violet-600 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-neutral-600">Loading preview...</p>
-        </div>
-      </div>
+    return NextResponse.json({
+      success: true,
+      section: sectionKey,
+      message: `${SECTIONS[sectionKey].name} regenerated successfully`,
+      newSection: newSection.substring(0, 500) + '...', // Preview
+    });
+
+  } catch (error: any) {
+    console.error('❌ Section regeneration error:', error);
+    return NextResponse.json(
+      { error: 'Regeneration failed', details: error.message },
+      { status: 500 }
     );
   }
+}
 
-  if (!project || !project.generated_html) {
-    return (
-      <div className="min-h-screen bg-neutral-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-md text-center shadow-xl">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-black mb-2">Preview Coming Soon</h1>
-          <p className="text-neutral-600">
-            Your website is being crafted. We'll notify you when it's ready for review.
-          </p>
-        </div>
-      </div>
-    );
+// =============================================================================
+// GET: List available sections
+// =============================================================================
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const projectId = searchParams.get('projectId');
+
+  if (projectId) {
+    // Return detected sections for a specific project
+    const { data: project } = await supabase
+      .from('projects')
+      .select('generated_html')
+      .eq('id', projectId)
+      .single();
+
+    if (!project?.generated_html) {
+      return NextResponse.json({ error: 'Project not found or no HTML' }, { status: 404 });
+    }
+
+    const detectedSections: Record<string, boolean> = {};
+    for (const [key, section] of Object.entries(SECTIONS)) {
+      detectedSections[key] = section.selector.test(project.generated_html);
+    }
+
+    return NextResponse.json({
+      sections: detectedSections,
+      available: Object.keys(SECTIONS),
+    });
   }
 
-  return (
-    <div className="min-h-screen bg-neutral-100">
-      {/* Top Bar */}
-      <div className="bg-white border-b border-neutral-200 sticky top-0 z-50">
-        <div className="max-w-screen-2xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Logo & Title */}
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-sm">V</span>
-              </div>
-              <div>
-                <h1 className="font-semibold text-black">{project.business_name}</h1>
-                <p className="text-xs text-neutral-500">Website Preview</p>
-              </div>
-            </div>
-
-            {/* Viewport Toggle */}
-            <div className="hidden sm:flex items-center gap-1 bg-neutral-100 rounded-lg p-1">
-              {[
-                { id: 'desktop', icon: '🖥️', label: 'Desktop' },
-                { id: 'tablet', icon: '📱', label: 'Tablet' },
-                { id: 'mobile', icon: '📲', label: 'Mobile' },
-              ].map((mode) => (
-                <button
-                  key={mode.id}
-                  onClick={() => setViewMode(mode.id as any)}
-                  className={`px-3 py-1.5 rounded-md text-sm transition-all ${
-                    viewMode === mode.id
-                      ? 'bg-white shadow text-black'
-                      : 'text-neutral-600 hover:text-black'
-                  }`}
-                >
-                  {mode.icon}
-                </button>
-              ))}
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setFeedbackMode(!feedbackMode)}
-                className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all ${
-                  feedbackMode
-                    ? 'bg-violet-600 text-white'
-                    : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-                }`}
-              >
-                {feedbackMode ? (
-                  <>✏️ Editing</>
-                ) : (
-                  <>💬 Request Changes</>
-                )}
-              </button>
-              <button
-                onClick={approveDesign}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium text-sm hover:bg-emerald-700 transition-colors flex items-center gap-2"
-              >
-                ✓ Approve Design
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex">
-        {/* Preview Area */}
-        <div className="flex-1 p-4">
-          <div 
-            className="bg-white rounded-xl shadow-lg overflow-hidden mx-auto transition-all duration-300"
-            style={{ 
-              maxWidth: getViewportWidth(),
-              height: 'calc(100vh - 120px)'
-            }}
-          >
-            <iframe
-              ref={iframeRef}
-              srcDoc={project.generated_html}
-              className="w-full h-full border-0"
-              title="Website Preview"
-            />
-          </div>
-        </div>
-
-        {/* Feedback Panel */}
-        {feedbackMode && (
-          <div className="w-80 bg-white border-l border-neutral-200 p-4 overflow-y-auto" style={{ height: 'calc(100vh - 73px)' }}>
-            <h2 className="font-semibold text-black mb-4 flex items-center gap-2">
-              <span className="text-lg">💬</span>
-              Request Changes
-            </h2>
-            
-            <p className="text-sm text-neutral-600 mb-4">
-              Select a section you'd like us to change, then describe what you'd like different.
-            </p>
-
-            {/* Section Grid */}
-            <div className="grid grid-cols-2 gap-2 mb-6">
-              {SECTIONS.map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => setSelectedSection(section)}
-                  className={`p-3 rounded-xl text-center transition-all ${
-                    selectedSection?.id === section.id
-                      ? 'bg-violet-600 text-white ring-2 ring-violet-600 ring-offset-2'
-                      : 'bg-neutral-50 hover:bg-violet-50 border border-neutral-200'
-                  }`}
-                >
-                  <span className="text-xl block mb-1">{section.icon}</span>
-                  <span className="text-xs font-medium">{section.name}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Pending Feedback */}
-            {pendingFeedback.length > 0 && (
-              <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                <h3 className="font-medium text-amber-800 text-sm mb-2">
-                  📋 Pending Requests ({pendingFeedback.length})
-                </h3>
-                <ul className="space-y-1">
-                  {pendingFeedback.map((fb, i) => (
-                    <li key={i} className="text-xs text-amber-700">
-                      • {fb.sectionName}: {fb.feedback.substring(0, 30)}...
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Section Feedback Modal */}
-      {selectedSection && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
-            {submitted ? (
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="font-semibold text-black text-lg mb-2">Feedback Sent!</h3>
-                <p className="text-neutral-600">We'll update your {selectedSection.name} section soon.</p>
-              </div>
-            ) : (
-              <>
-                <div className="p-6 border-b border-neutral-100">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl">{selectedSection.icon}</span>
-                      <div>
-                        <h2 className="font-semibold text-black text-lg">
-                          Change {selectedSection.name}
-                        </h2>
-                        <p className="text-sm text-neutral-500">
-                          {selectedSection.description}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setSelectedSection(null)}
-                      className="p-2 hover:bg-neutral-100 rounded-lg"
-                    >
-                      <svg className="w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    What would you like changed?
-                  </label>
-                  <textarea
-                    value={feedback}
-                    onChange={(e) => setFeedback(e.target.value)}
-                    placeholder="E.g., 'Make the headline shorter and punchier' or 'Use warmer colors' or 'Add my company tagline'"
-                    rows={4}
-                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
-                  />
-                  
-                  {/* Quick suggestions */}
-                  <div className="mt-3">
-                    <p className="text-xs text-neutral-500 mb-2">Quick suggestions:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        'Make it more bold',
-                        'Use friendlier tone',
-                        'Add more visuals',
-                        'Simplify the text',
-                        'Change the colors',
-                      ].map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          onClick={() => setFeedback(suggestion)}
-                          className="px-2 py-1 bg-neutral-100 text-neutral-600 rounded text-xs hover:bg-violet-100 hover:text-violet-700 transition-colors"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex justify-end gap-3 rounded-b-2xl">
-                  <button
-                    onClick={() => setSelectedSection(null)}
-                    className="px-5 py-2.5 text-neutral-700 font-medium rounded-lg hover:bg-neutral-100 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={submitFeedback}
-                    disabled={submitting || !feedback.trim()}
-                    className="px-5 py-2.5 bg-violet-600 text-white font-medium rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {submitting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>Send Request</>
-                    )}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Status Bar */}
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-black text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-4 text-sm">
-        <span className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${project.status === 'PREVIEW_READY' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-          {project.status === 'PREVIEW_READY' ? 'Ready for Review' : project.status}
-        </span>
-        <span className="text-white/40">|</span>
-        <span className="text-white/70 capitalize">{project.plan} Plan</span>
-      </div>
-    </div>
-  );
+  // Return all available sections
+  return NextResponse.json({
+    sections: Object.entries(SECTIONS).map(([key, value]) => ({
+      id: key,
+      name: value.name,
+      description: value.description,
+    })),
+  });
 }
