@@ -884,4 +884,4 @@ export default function DynamicProjectPage() {
       )}
     </div>
   );
-}s
+}
