@@ -1,12 +1,12 @@
 // app/api/generate/route.ts
-// IMPROVED VERSION - Multi-Stage Pipeline with Auto-Review
-// Uses new fields: design_direction, brand_voice, primary_services, etc.
+// VERKTORLABS - High-Quality Website Generation
+// Produces clean, professional single-page websites
 
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 
-export const maxDuration = 300;
+export const maxDuration = 180;
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -18,14 +18,25 @@ const supabase = createClient(
 );
 
 // =============================================================================
-// DESIGN DIRECTIONS (6 distinct styles)
+// DESIGN SYSTEM
 // =============================================================================
 
 const DESIGN_DIRECTIONS: Record<string, {
   name: string;
   fonts: { display: string; body: string; import: string };
-  colors: Record<string, string>;
-  characteristics: string;
+  colors: {
+    primary: string;
+    primaryRgb: string;
+    secondary: string;
+    secondaryRgb: string;
+    accent: string;
+    bgPrimary: string;
+    bgSecondary: string;
+    textPrimary: string;
+    textSecondary: string;
+    border: string;
+  };
+  style: string;
 }> = {
   luxury_minimal: {
     name: "Luxury Minimal",
@@ -46,9 +57,8 @@ const DESIGN_DIRECTIONS: Record<string, {
       textSecondary: "#5c5c5c",
       border: "#e8e6e1"
     },
-    characteristics: "Lots of whitespace (160px+ section padding), subtle animations, serif typography, muted earth tones, editorial feel, thin borders, understated elegance"
+    style: "Elegant serif typography, generous whitespace, subtle gold accents, refined and sophisticated"
   },
-  
   bold_modern: {
     name: "Bold Modern",
     fonts: {
@@ -68,9 +78,8 @@ const DESIGN_DIRECTIONS: Record<string, {
       textSecondary: "#475569",
       border: "#e2e8f0"
     },
-    characteristics: "Strong geometric typography, gradient accents, card-based layouts, smooth micro-interactions, vibrant but professional"
+    style: "Strong geometric sans-serif, vibrant gradients, card-based layouts, tech-forward feel"
   },
-  
   warm_organic: {
     name: "Warm Organic",
     fonts: {
@@ -90,9 +99,8 @@ const DESIGN_DIRECTIONS: Record<string, {
       textSecondary: "#57534e",
       border: "#e7e5e4"
     },
-    characteristics: "Rounded corners (20px+), warm earth palette, friendly approachable vibe, organic shapes, soft shadows"
+    style: "Friendly rounded corners, warm earth tones, approachable and natural feeling"
   },
-  
   dark_premium: {
     name: "Dark Premium",
     fonts: {
@@ -112,9 +120,8 @@ const DESIGN_DIRECTIONS: Record<string, {
       textSecondary: "#a1a1aa",
       border: "rgba(255,255,255,0.1)"
     },
-    characteristics: "Dark theme, glowing effects, gradient borders, glassmorphism cards, high contrast, neon accents, dramatic"
+    style: "Dark theme, glowing accents, gradient borders, modern and edgy"
   },
-  
   editorial_classic: {
     name: "Editorial Classic",
     fonts: {
@@ -134,9 +141,8 @@ const DESIGN_DIRECTIONS: Record<string, {
       textSecondary: "#64748b",
       border: "#e2e8f0"
     },
-    characteristics: "Classic typography pairing, structured grid, professional trustworthy feel, navy/gold color story, refined borders"
+    style: "Classic editorial feel, structured grid, professional and trustworthy"
   },
-  
   vibrant_energy: {
     name: "Vibrant Energy",
     fonts: {
@@ -156,433 +162,49 @@ const DESIGN_DIRECTIONS: Record<string, {
       textSecondary: "#52525b",
       border: "#e4e4e7"
     },
-    characteristics: "Bold gradients, playful animations, colorful accents, energetic feel, bouncy hover effects, gradient text"
+    style: "Bold gradients, playful animations, energetic and youthful"
   }
 };
 
-// =============================================================================
-// BRAND VOICE CONFIGURATIONS
-// =============================================================================
-
-const BRAND_VOICE_CONFIG: Record<string, {
-  tone: string;
-  characteristics: string[];
-  examplePhrases: string[];
-}> = {
-  formal: {
-    tone: "Professional, authoritative, precise",
-    characteristics: ["Third person perspective", "Industry terminology", "Measured claims", "Formal sentence structure"],
-    examplePhrases: ["We deliver exceptional results", "Our expertise ensures", "Trusted by industry leaders"]
-  },
-  conversational: {
-    tone: "Warm, friendly, approachable",
-    characteristics: ["Second person (you/your)", "Contractions allowed", "Relatable language", "Encouraging tone"],
-    examplePhrases: ["Let's work together", "You deserve the best", "We're here to help"]
-  },
-  playful: {
-    tone: "Fun, energetic, light-hearted",
-    characteristics: ["Casual language", "Exclamation points (sparingly)", "Creative metaphors", "Upbeat rhythm"],
-    examplePhrases: ["Ready to shake things up?", "Let's make magic happen", "Your journey starts here!"]
-  },
-  authoritative: {
-    tone: "Expert, confident, knowledge-driven",
-    characteristics: ["Data-backed claims", "Industry expertise", "Definitive statements", "Educational approach"],
-    examplePhrases: ["With 20+ years of expertise", "The industry standard", "Proven methodology"]
-  },
-  luxurious: {
-    tone: "Refined, sophisticated, exclusive",
-    characteristics: ["Elegant vocabulary", "Understated confidence", "Sensory language", "Exclusive positioning"],
-    examplePhrases: ["Experience the art of", "Crafted for the discerning", "Where excellence meets elegance"]
-  }
+// Industry-specific image keywords for Unsplash
+const INDUSTRY_IMAGES: Record<string, string[]> = {
+  'jewelry': ['jewelry', 'gold jewelry', 'diamond ring', 'necklace elegant', 'jewelry display'],
+  'restaurant': ['restaurant interior', 'fine dining', 'chef cooking', 'food plating', 'restaurant ambiance'],
+  'health-beauty': ['spa interior', 'beauty salon', 'skincare', 'wellness', 'massage therapy'],
+  'fitness': ['gym interior', 'fitness training', 'workout', 'personal trainer', 'fitness equipment'],
+  'real-estate': ['modern home', 'luxury apartment', 'house interior', 'real estate', 'architecture'],
+  'tech-startup': ['modern office', 'tech workspace', 'startup team', 'coding', 'technology'],
+  'professional': ['business meeting', 'corporate office', 'professional team', 'consulting', 'business'],
+  'local-services': ['home service', 'handyman', 'cleaning service', 'local business', 'service professional'],
+  'medical': ['medical clinic', 'healthcare', 'doctor office', 'medical professional', 'clinic interior'],
+  'education': ['classroom', 'education', 'learning', 'students studying', 'library'],
+  'construction': ['construction site', 'building', 'architecture', 'contractor', 'renovation'],
+  'ecommerce': ['shopping', 'product display', 'retail', 'online shopping', 'store'],
+  'portfolio': ['creative work', 'design studio', 'artist workspace', 'portfolio', 'creative'],
 };
 
-// =============================================================================
-// CURATED IMAGES BY INDUSTRY
-// =============================================================================
-
-const CURATED_IMAGES: Record<string, {
-  hero: string;
-  about: string;
-  feature1: string;
-  feature2: string;
-  feature3: string;
-  testimonialBg: string;
-}> = {
-  'restaurant': {
-    hero: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=80',
-  },
-  'health-beauty': {
-    hero: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1920&q=80',
-  },
-  'fitness': {
-    hero: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1581009146145-b5ef050c149a?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1920&q=80',
-  },
-  'professional': {
-    hero: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1497215842964-222b430dc094?w=1920&q=80',
-  },
-  'tech-startup': {
-    hero: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=1920&q=80',
-  },
-  'real-estate': {
-    hero: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1920&q=80',
-  },
-  'local-services': {
-    hero: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1920&q=80',
-  },
-  'ecommerce': {
-    hero: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=1920&q=80',
-  },
-  'medical': {
-    hero: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1666214280557-f1b5022eb634?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1551076805-e1869033e561?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=1920&q=80',
-  },
-  'education': {
-    hero: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&q=80',
-  },
-  'construction': {
-    hero: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1590725121839-892b458a74fe?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80',
-  },
-  'portfolio': {
-    hero: 'https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=1920&q=85',
-    about: 'https://images.unsplash.com/photo-1542744094-3a31f272c490?w=800&q=80',
-    feature1: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600&q=80',
-    feature2: 'https://images.unsplash.com/photo-1545235617-9465d2a55698?w=600&q=80',
-    feature3: 'https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=600&q=80',
-    testimonialBg: 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=1920&q=80',
-  },
-};
-
-// =============================================================================
-// INDUSTRY TO STYLE MAPPING (Smart defaults)
-// =============================================================================
-
-const INDUSTRY_STYLE_MAP: Record<string, string[]> = {
-  'restaurant': ['luxury_minimal', 'warm_organic', 'dark_premium'],
-  'health-beauty': ['luxury_minimal', 'warm_organic', 'vibrant_energy'],
-  'fitness': ['dark_premium', 'vibrant_energy', 'bold_modern'],
-  'professional': ['editorial_classic', 'bold_modern', 'luxury_minimal'],
-  'tech-startup': ['bold_modern', 'dark_premium', 'vibrant_energy'],
-  'real-estate': ['editorial_classic', 'luxury_minimal', 'bold_modern'],
-  'local-services': ['bold_modern', 'warm_organic', 'editorial_classic'],
-  'ecommerce': ['bold_modern', 'vibrant_energy', 'dark_premium'],
-  'medical': ['editorial_classic', 'bold_modern', 'luxury_minimal'],
-  'education': ['bold_modern', 'warm_organic', 'vibrant_energy'],
-  'construction': ['bold_modern', 'dark_premium', 'editorial_classic'],
-  'nonprofit': ['warm_organic', 'bold_modern', 'vibrant_energy'],
-  'portfolio': ['dark_premium', 'luxury_minimal', 'vibrant_energy'],
-  'banking': ['editorial_classic', 'bold_modern', 'luxury_minimal'],
-  'automotive': ['dark_premium', 'bold_modern', 'editorial_classic'],
-};
-
-// =============================================================================
-// HELPER: Call Claude API
-// =============================================================================
-
-async function callClaude(systemPrompt: string, userMessage: string, maxTokens: number = 4000): Promise<string> {
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: maxTokens,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userMessage }],
-  });
-
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type');
-  }
-  return content.text.trim();
+function getIndustryImage(industry: string, index: number = 0): string {
+  const keywords = INDUSTRY_IMAGES[industry] || INDUSTRY_IMAGES['professional'];
+  const keyword = keywords[index % keywords.length];
+  // Use different image IDs based on index to get variety
+  const imageId = 1000 + (index * 100);
+  return `https://images.unsplash.com/photo-${imageId}?w=800&h=600&fit=crop&q=80`;
 }
 
 // =============================================================================
-// HELPER: Parse JSON safely
+// CSS GENERATOR
 // =============================================================================
 
-function parseJSON(text: string): any {
-  let cleaned = text.replace(/```json\n?/gi, '').replace(/```\n?/gi, '');
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start !== -1 && end !== -1) {
-    cleaned = cleaned.substring(start, end + 1);
-  }
-  return JSON.parse(cleaned);
+function generateCSS(direction: typeof DESIGN_DIRECTIONS[string]): string {
+  return `
+@import url('${direction.fonts.import}');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-// =============================================================================
-// STAGE 1: Business Analysis & Brand Strategy
-// =============================================================================
-
-const STAGE_1_SYSTEM = `You are a brand strategist who has worked with Fortune 500 companies. Analyze the business and create a brand strategy.
-
-Output ONLY valid JSON with this exact structure:
-{
-  "target_audience": {
-    "primary": "description of ideal customer",
-    "pain_points": ["pain 1", "pain 2", "pain 3"],
-    "desires": ["desire 1", "desire 2", "desire 3"]
-  },
-  "brand_voice": {
-    "personality": "3-4 adjectives",
-    "tone": "how the brand should speak"
-  },
-  "value_proposition": {
-    "main": "one compelling sentence",
-    "proof_points": ["proof 1", "proof 2", "proof 3"]
-  },
-  "competitive_advantage": "what makes them unique"
-}`;
-
-async function analyzeBusiness(project: any): Promise<any> {
-  const prompt = `Analyze this business:
-Name: ${project.business_name}
-Industry: ${project.industry || 'professional'}
-Description: ${project.description || 'A quality business'}
-Target Customer: ${project.target_customer || 'Not specified'}
-Unique Value: ${project.unique_value || 'Not specified'}
-Website Goal: ${project.website_goal || 'Generate leads'}
-Primary Services: ${project.primary_services?.join(', ') || 'Not specified'}`;
-
-  const result = await callClaude(STAGE_1_SYSTEM, prompt, 1500);
-  return parseJSON(result);
-}
-
-// =============================================================================
-// STAGE 2: Conversion-Focused Copywriting
-// =============================================================================
-
-function buildCopywritingPrompt(project: any): string {
-  const brandVoice = project.brand_voice || 'conversational';
-  const voiceConfig = BRAND_VOICE_CONFIG[brandVoice] || BRAND_VOICE_CONFIG.conversational;
-  
-  return `You are a direct-response copywriter who has generated millions in revenue. Write website copy that CONVERTS.
-
-BRAND VOICE: ${voiceConfig.tone}
-Voice Characteristics: ${voiceConfig.characteristics.join(', ')}
-Example Phrases: ${voiceConfig.examplePhrases.join(', ')}
-
-RULES:
-- Headlines: Create EMOTION, not description. Max 8 words.
-- Subheadlines: Clarify the benefit. Max 20 words.
-- CTAs: ${project.call_to_action ? `Use "${project.call_to_action}" as primary CTA` : 'Action verb + benefit'}
-- ALWAYS include specific numbers (make them up if needed but keep believable)
-- NEVER use: "solutions", "leverage", "synergy", "cutting-edge", "world-class"
-- Match the brand voice throughout ALL copy
-
-Output ONLY valid JSON:
-{
-  "hero": {
-    "badge": "short trust indicator",
-    "headline": "emotional 6-8 word headline",
-    "subheadline": "clarifying benefit statement",
-    "cta_primary": "${project.call_to_action || 'action + benefit'}",
-    "cta_secondary": "lower commitment action"
-  },
-  "social_proof": {
-    "stat_1": { "number": "500+", "label": "Happy Clients" },
-    "stat_2": { "number": "15", "label": "Years Experience" },
-    "stat_3": { "number": "98%", "label": "Satisfaction Rate" },
-    "stat_4": { "number": "24h", "label": "Response Time" }
-  },
-  "about": {
-    "badge": "About Us",
-    "headline": "why we exist headline",
-    "paragraphs": ["paragraph 1 about story", "paragraph 2 about mission"]
-  },
-  "services": {
-    "badge": "What We Offer",
-    "headline": "services section headline",
-    "items": [
-      { "title": "Service Name", "description": "2 sentence benefit-focused description", "icon": "sparkles" },
-      { "title": "Service Name", "description": "2 sentence benefit-focused description", "icon": "shield" },
-      { "title": "Service Name", "description": "2 sentence benefit-focused description", "icon": "clock" }
-    ]
-  },
-  "testimonials": [
-    { "quote": "specific testimonial with result", "name": "First Last", "role": "Title, Company", "rating": 5 },
-    { "quote": "specific testimonial with result", "name": "First Last", "role": "Title, Company", "rating": 5 },
-    { "quote": "specific testimonial with result", "name": "First Last", "role": "Title, Company", "rating": 5 }
-  ],
-  "cta_section": {
-    "headline": "conversion-focused headline",
-    "subheadline": "overcome final objection",
-    "cta": "${project.call_to_action || 'strong call to action'}",
-    "trust_note": "guarantee or reassurance"
-  },
-  "footer": {
-    "tagline": "memorable one-liner"
-  }
-}`;
-}
-
-async function writeCopy(project: any, brandAnalysis: any): Promise<any> {
-  const systemPrompt = buildCopywritingPrompt(project);
-  
-  // Build services list from primary_services if available
-  const servicesList = project.primary_services?.length > 0
-    ? `Key Services to Feature: ${project.primary_services.join(', ')}`
-    : '';
-  
-  const prompt = `Write conversion-focused copy for:
-Business: ${project.business_name}
-Industry: ${project.industry}
-Description: ${project.description || 'A quality business'}
-${servicesList}
-
-Brand Strategy:
-${JSON.stringify(brandAnalysis, null, 2)}
-
-Contact: ${project.contact_email || 'hello@example.com'} | ${project.contact_phone || '(555) 123-4567'}
-
-Target Customer: ${project.target_customer || 'Not specified'}
-Unique Value: ${project.unique_value || 'Not specified'}`;
-
-  const result = await callClaude(systemPrompt, prompt, 3000);
-  return parseJSON(result);
-}
-
-// =============================================================================
-// STAGE 3: Design Direction Selection
-// =============================================================================
-
-async function selectDesignDirection(project: any, brandAnalysis: any): Promise<any> {
-  const industry = project.industry || 'professional';
-  const suggestedStyles = INDUSTRY_STYLE_MAP[industry] || ['bold_modern', 'editorial_classic'];
-  
-  // If design_direction is already set, use it
-  if (project.design_direction && DESIGN_DIRECTIONS[project.design_direction]) {
-    return {
-      selected_direction: project.design_direction,
-      reasoning: 'Customer selected this direction',
-      hero_layout: project.hero_preference || 'split_left',
-      special_effects: ['subtle animations', 'smooth scrolling']
-    };
-  }
-  
-  // Otherwise, let AI choose
-  const STAGE_3_SYSTEM = `You are a creative director choosing the perfect design direction for a website.
-
-Available directions:
-1. luxury_minimal - Serif fonts, lots of whitespace, muted colors, editorial feel
-2. bold_modern - Geometric sans-serif, gradient accents, vibrant but professional
-3. warm_organic - Rounded corners, earth tones, friendly approachable vibe
-4. dark_premium - Dark theme, glowing effects, glassmorphism, dramatic
-5. editorial_classic - Classic serif/sans pairing, navy/gold, professional trust
-6. vibrant_energy - Bold gradients, playful animations, energetic colorful
-
-Output ONLY valid JSON:
-{
-  "selected_direction": "direction_key",
-  "reasoning": "why this fits the brand",
-  "hero_layout": "split_left | split_right | centered | full_bleed",
-  "special_effects": ["effect1", "effect2"]
-}`;
-  
-  const prompt = `Select the best design direction for:
-Business: ${project.business_name}
-Industry: ${industry}
-Mood Tags: ${project.mood_tags?.join(', ') || 'professional, modern'}
-Color Preference: ${project.color_preference || 'auto'}
-
-Brand Analysis:
-${JSON.stringify(brandAnalysis, null, 2)}
-
-Suggested directions for this industry: ${suggestedStyles.join(', ')}
-But choose what's BEST for this specific brand.`;
-
-  const result = await callClaude(STAGE_3_SYSTEM, prompt, 1000);
-  const parsed = parseJSON(result);
-  
-  // Apply hero preference if set
-  if (project.hero_preference) {
-    parsed.hero_layout = project.hero_preference;
-  }
-  
-  return parsed;
-}
-
-// =============================================================================
-// STAGE 4: HTML Generation
-// =============================================================================
-
-function buildMasterPrompt(
-  project: any,
-  copy: any,
-  designChoice: any,
-  direction: typeof DESIGN_DIRECTIONS[string],
-  images: typeof CURATED_IMAGES[string]
-): string {
-  return `You are an elite frontend developer creating a $50,000+ website.
-
-## BUSINESS
-Name: ${project.business_name}
-Industry: ${project.industry}
-Email: ${project.contact_email || 'hello@' + (project.business_name || 'company').toLowerCase().replace(/[^a-z]/g, '') + '.com'}
-Phone: ${project.contact_phone || '(555) 123-4567'}
-Address: ${project.address || ''}
-
-## COPY (Use this EXACT content)
-${JSON.stringify(copy, null, 2)}
-
-## DESIGN DIRECTION: ${direction.name}
-Font Import: ${direction.fonts.import}
-Display Font: ${direction.fonts.display}
-Body Font: ${direction.fonts.body}
-Characteristics: ${direction.characteristics}
-
-## CSS VARIABLES (Use these EXACTLY)
 :root {
   --primary: ${direction.colors.primary};
   --primary-rgb: ${direction.colors.primaryRgb};
@@ -596,206 +218,773 @@ Characteristics: ${direction.characteristics}
   --border: ${direction.colors.border};
   --font-display: '${direction.fonts.display}', serif;
   --font-body: '${direction.fonts.body}', sans-serif;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
 }
 
-## IMAGES
-Hero: ${images.hero}
-About: ${images.about}
-Feature 1: ${images.feature1}
-Feature 2: ${images.feature2}
-Feature 3: ${images.feature3}
-Testimonial avatars: https://i.pravatar.cc/100?img=1, https://i.pravatar.cc/100?img=2, https://i.pravatar.cc/100?img=3
-
-## HERO LAYOUT: ${designChoice.hero_layout}
-## SPECIAL EFFECTS: ${designChoice.special_effects?.join(', ') || 'subtle animations'}
-
-## SECTIONS TO GENERATE (In Order)
-1. NAV - Fixed, blur on scroll, logo + links + CTA
-2. HERO - ${designChoice.hero_layout} layout with stats
-3. FEATURES/SERVICES - 3-6 cards with icons
-4. ABOUT - Split layout with image
-5. STATS - 4 animated counters
-6. TESTIMONIALS - 3 cards with quotes
-7. CTA - Gradient background, compelling copy
-8. CONTACT - Form + contact info
-9. FOOTER - Logo, links, social, copyright
-
-## OUTPUT
-Generate the COMPLETE HTML file starting with <!DOCTYPE html> and ending with </html>.
-- ALL CSS in <style> tag in <head>
-- ALL JavaScript in <script> tag before </body>
-- Use the EXACT copy provided
-- Use the EXACT colors and fonts from the design direction
-- Mobile responsive (test at 375px, 768px, 1024px)
-- Add class="reveal" to sections for scroll animation
-
-NO explanations. NO markdown code blocks. Just the HTML.`;
+html {
+  scroll-behavior: smooth;
 }
 
-// =============================================================================
-// STAGE 5: Quality Review
-// =============================================================================
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
 
-async function reviewAndFix(html: string, direction: typeof DESIGN_DIRECTIONS[string]): Promise<string> {
-  const reviewPrompt = `Review this HTML for quality issues:
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
 
-CHECKLIST:
-1. Does it use the correct fonts? (${direction.fonts.display} / ${direction.fonts.body})
-2. Are colors consistent with the design direction?
-3. Is it mobile responsive?
-4. Do all animations work?
-5. Is the hero impactful?
-6. Are CTAs prominent?
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
 
-If you find issues, fix them and output the corrected HTML.
-If no issues, output the HTML unchanged.
+h1 { font-size: clamp(2.5rem, 5vw, 4rem); }
+h2 { font-size: clamp(2rem, 4vw, 3rem); }
+h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 
-Output ONLY the complete HTML starting with <!DOCTYPE html>
+p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
 
-HTML TO REVIEW:
-${html.substring(0, 30000)}`;
+/* Navigation */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 16px 0;
+  background: transparent;
+  transition: all 0.3s ease;
+}
 
-  const result = await callClaude(
-    'You are a QA specialist reviewing websites. Fix any issues found.',
-    reviewPrompt,
-    16000
-  );
+.nav.scrolled {
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-md);
+}
 
-  let fixed = result.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '');
-  const doctypeIndex = fixed.toLowerCase().indexOf('<!doctype');
-  if (doctypeIndex > 0) {
-    fixed = fixed.substring(doctypeIndex);
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  list-style: none;
+}
+
+.nav-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: color 0.3s;
+}
+
+.nav-links a:hover {
+  color: var(--primary);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(var(--primary-rgb), 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.4);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 2px solid var(--border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Sections */
+section {
+  padding: 100px 0;
+}
+
+.section-header {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 60px;
+}
+
+.section-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  background: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary);
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  margin-bottom: 16px;
+}
+
+.section-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+/* Hero */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding-top: 80px;
+  background: var(--bg-secondary);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(var(--secondary-rgb), 0.15);
+  color: var(--secondary);
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.hero h1 {
+  margin-bottom: 24px;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  margin-bottom: 32px;
+  max-width: 500px;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.hero-image {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.hero-image img {
+  width: 100%;
+  height: 500px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Stats */
+.stats-row {
+  display: flex;
+  gap: 48px;
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.stat-item {
+  text-align: left;
+}
+
+.stat-number {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Cards */
+.card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(var(--primary-rgb), 0.1);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+.card h3 {
+  margin-bottom: 12px;
+}
+
+/* Services Grid */
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* Testimonials */
+.testimonials {
+  background: var(--bg-secondary);
+}
+
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.testimonial-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  border: 1px solid var(--border);
+}
+
+.testimonial-stars {
+  color: #fbbf24;
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+}
+
+.testimonial-text {
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-bottom: 24px;
+  font-style: italic;
+}
+
+.testimonial-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.testimonial-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.testimonial-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.testimonial-role {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* CTA */
+.cta {
+  background: var(--primary);
+  color: white;
+  text-align: center;
+  padding: 80px 0;
+}
+
+.cta h2 {
+  color: white;
+  margin-bottom: 16px;
+}
+
+.cta p {
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 32px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cta .btn-primary {
+  background: white;
+  color: var(--primary);
+}
+
+/* Contact */
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  background: var(--bg-secondary);
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.contact-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.contact-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(var(--primary-rgb), 0.1);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.2rem;
+}
+
+.contact-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.contact-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Footer */
+.footer {
+  background: var(--bg-secondary);
+  padding: 60px 0 30px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 48px;
+  margin-bottom: 48px;
+}
+
+.footer-logo {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.footer-desc {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  max-width: 300px;
+}
+
+.footer-title {
+  font-weight: 600;
+  margin-bottom: 20px;
+  font-size: 1rem;
+}
+
+.footer-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.3s;
+}
+
+.footer-links a:hover {
+  color: var(--primary);
+}
+
+.footer-bottom {
+  padding-top: 30px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
   }
-  return fixed;
-}
-
-// =============================================================================
-// AUTO-REVIEW FUNCTION
-// =============================================================================
-
-async function runAutoReview(projectId: string, html: string, project: any): Promise<any> {
-  try {
-    const designDirection = project.design_direction || 'bold_modern';
-    const direction = DESIGN_DIRECTIONS[designDirection];
-    
-    const reviewPrompt = `Review this generated website against requirements.
-
-## REQUIREMENTS
-Business: ${project.business_name}
-Design Direction: ${designDirection} (${direction?.name || 'Unknown'})
-Brand Voice: ${project.brand_voice || 'conversational'}
-Hero Preference: ${project.hero_preference || 'not specified'}
-Requested Features: ${project.features?.join(', ') || 'None'}
-Primary Services: ${project.primary_services?.join(', ') || 'None'}
-
-## HTML
-${html.substring(0, 25000)}
-
-## TASK
-Score each category 0-100 and provide overall assessment.
-
-Output JSON:
-{
-  "overallScore": <0-100>,
-  "passesQuality": <true if score >= 75>,
-  "categories": {
-    "designDirection": { "score": <0-100>, "status": "pass|warning|fail", "issues": [] },
-    "brandVoice": { "score": <0-100>, "status": "pass|warning|fail", "issues": [] },
-    "features": { "score": <0-100>, "status": "pass|warning|fail", "missingFeatures": [], "foundFeatures": [] },
-    "heroSection": { "score": <0-100>, "status": "pass|warning|fail", "issues": [] },
-    "contentQuality": { "score": <0-100>, "status": "pass|warning|fail", "issues": [] },
-    "technicalQuality": { "score": <0-100>, "status": "pass|warning|fail", "issues": [] }
-  },
-  "criticalIssues": [],
-  "warnings": [],
-  "suggestions": [],
-  "summary": "<2-3 sentence summary>"
-}`;
-
-    const result = await callClaude(
-      'You are a web design QA specialist. Review websites against requirements.',
-      reviewPrompt,
-      3000
-    );
-
-    const reviewData = parseJSON(result);
-
-    // Save review to database
-    await supabase
-      .from('projects')
-      .update({
-        review_score: reviewData.overallScore,
-        review_details: reviewData,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq('id', projectId);
-
-    return reviewData;
-  } catch (error) {
-    console.error('Auto-review error:', error);
-    return null;
+  
+  .hero p {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .hero-buttons {
+    justify-content: center;
+  }
+  
+  .hero-image {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  
+  .stats-row {
+    justify-content: center;
+  }
+  
+  .services-grid,
+  .testimonials-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .nav-links {
+    display: none;
   }
 }
 
-// =============================================================================
-// MAIN GENERATION PIPELINE
-// =============================================================================
-
-async function generateWebsite(project: any): Promise<{ html: string; review?: any }> {
-  const industry = (project.industry || 'professional').toLowerCase();
-  
-  console.log('🚀 Stage 1: Analyzing business...');
-  const brandAnalysis = await analyzeBusiness(project);
-  
-  console.log('🚀 Stage 2: Writing copy...');
-  const copy = await writeCopy(project, brandAnalysis);
-  
-  console.log('🚀 Stage 3: Selecting design direction...');
-  const designChoice = await selectDesignDirection(project, brandAnalysis);
-  
-  const directionKey = designChoice.selected_direction || 'bold_modern';
-  const direction = DESIGN_DIRECTIONS[directionKey] || DESIGN_DIRECTIONS['bold_modern'];
-  console.log(`   Selected: ${direction.name}`);
-  
-  const images = CURATED_IMAGES[industry] || CURATED_IMAGES['professional'];
-  
-  console.log('🚀 Stage 4: Generating HTML...');
-  const masterPrompt = buildMasterPrompt(project, copy, designChoice, direction, images);
-  
-  let html = await callClaude(
-    'You are an elite frontend developer. Generate production-ready HTML.',
-    masterPrompt,
-    16000
-  );
-  
-  // Clean up response
-  html = html.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '');
-  const doctypeIndex = html.toLowerCase().indexOf('<!doctype');
-  if (doctypeIndex > 0) {
-    html = html.substring(doctypeIndex);
+@media (max-width: 640px) {
+  section {
+    padding: 60px 0;
   }
   
-  console.log('🚀 Stage 5: Quality review...');
-  html = await reviewAndFix(html, direction);
+  .hero {
+    padding-top: 100px;
+  }
   
-  console.log('✅ Generation complete!');
-  return { html };
+  .hero-image img {
+    height: 300px;
+  }
+  
+  .stats-row {
+    flex-direction: column;
+    gap: 24px;
+    align-items: center;
+  }
+  
+  .stat-item {
+    text-align: center;
+  }
+  
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: fadeInUp 0.6s ease forwards;
+}
+`;
 }
 
 // =============================================================================
-// API HANDLERS
+// GENERATE HTML
+// =============================================================================
+
+async function generateWebsite(project: any): Promise<string> {
+  const directionKey = project.design_direction || 'bold_modern';
+  const direction = DESIGN_DIRECTIONS[directionKey] || DESIGN_DIRECTIONS.bold_modern;
+  const css = generateCSS(direction);
+  
+  // Get industry-appropriate images
+  const industry = project.industry || 'professional';
+  
+  const systemPrompt = `You are an expert web developer creating a high-quality, professional landing page.
+
+CRITICAL RULES:
+1. Output ONLY valid HTML - no markdown, no code blocks, no explanations
+2. Use semantic HTML5 elements
+3. All content must be realistic and specific to the business
+4. Use the exact CSS classes provided - do not invent new ones
+5. Include proper alt text for images
+6. Make sure all sections flow naturally
+
+BUSINESS CONTEXT:
+- Name: ${project.business_name}
+- Industry: ${project.industry || 'professional services'}
+- Description: ${project.description || 'A quality business'}
+- Target Customer: ${project.target_customer || 'discerning customers'}
+- Unique Value: ${project.unique_value || 'exceptional quality and service'}
+- Services: ${project.primary_services?.join(', ') || 'various professional services'}
+- CTA: ${project.call_to_action || 'Get Started'}
+- Email: ${project.contact_email || 'hello@example.com'}
+- Phone: ${project.contact_phone || '(555) 123-4567'}
+- Address: ${project.address || '123 Main Street'}
+
+DESIGN STYLE: ${direction.name}
+${direction.style}
+
+IMAGE URLS TO USE:
+- Hero: https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=600&fit=crop (for jewelry)
+- Use placeholder images from: https://images.unsplash.com/ with appropriate search terms for ${industry}
+- Avatar images: https://i.pravatar.cc/100?img=1, ?img=2, ?img=3, etc.
+
+REQUIRED SECTIONS (use these exact class names):
+1. nav - Fixed navigation with logo and links
+2. hero - Full height hero with headline, subheadline, CTA buttons, image, and stats
+3. services - Services grid with 3 cards
+4. testimonials - 3 testimonial cards
+5. cta - Call-to-action banner
+6. contact - Contact form and info
+7. footer - Footer with links`;
+
+  const userPrompt = `Create a complete landing page HTML for "${project.business_name}".
+
+The page must include ALL these sections with the EXACT structure shown:
+
+1. NAVIGATION (class="nav"):
+<nav class="nav" id="nav">
+  <div class="container nav-inner">
+    <a href="#" class="nav-logo">[Business Name]</a>
+    <ul class="nav-links">
+      <li><a href="#services">Services</a></li>
+      <li><a href="#testimonials">Reviews</a></li>
+      <li><a href="#contact">Contact</a></li>
+      <li><a href="#contact" class="btn btn-primary">[CTA]</a></li>
+    </ul>
+  </div>
+</nav>
+
+2. HERO (class="hero", id="hero"):
+- hero-grid with hero-content and hero-image
+- Include hero-badge, h1, p, hero-buttons, and stats-row
+
+3. SERVICES (id="services"):
+- section-header with badge, title, subtitle
+- services-grid with 3 cards, each having card-icon, h3, p
+
+4. TESTIMONIALS (class="testimonials", id="testimonials"):
+- section-header
+- testimonials-grid with 3 testimonial-card elements
+
+5. CTA (class="cta"):
+- Centered h2, p, and button
+
+6. CONTACT (id="contact"):
+- contact-grid with contact-form and contact-info
+
+7. FOOTER (class="footer"):
+- footer-grid and footer-bottom
+
+Use realistic, compelling copy that matches the ${project.industry || 'professional'} industry.
+For images, use Unsplash URLs with relevant search terms.
+For avatars, use https://i.pravatar.cc/100?img=N
+
+Output ONLY the HTML starting with <!DOCTYPE html>. No other text.`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 8000,
+    messages: [
+      { role: 'user', content: userPrompt }
+    ],
+    system: systemPrompt,
+  });
+
+  const content = response.content[0];
+  if (content.type !== 'text') {
+    throw new Error('Unexpected response type');
+  }
+
+  let html = content.text.trim();
+  
+  // Clean up any markdown artifacts
+  html = html.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '').trim();
+  
+  // Inject our CSS
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', `<style>${css}</style></head>`);
+  } else if (html.includes('<head>')) {
+    html = html.replace('<head>', `<head><style>${css}</style>`);
+  }
+  
+  // Add navigation scroll script
+  const script = `
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Nav scroll effect
+  const nav = document.querySelector('.nav');
+  window.addEventListener('scroll', function() {
+    if (window.scrollY > 50) {
+      nav.classList.add('scrolled');
+    } else {
+      nav.classList.remove('scrolled');
+    }
+  });
+  
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+});
+</script>`;
+  
+  if (html.includes('</body>')) {
+    html = html.replace('</body>', `${script}</body>`);
+  }
+  
+  return html;
+}
+
+// =============================================================================
+// API HANDLER
 // =============================================================================
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 Starting website generation...');
+  
   try {
     const body = await request.json();
     const { projectId } = body;
 
     if (!projectId) {
-      return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
+      return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
 
-    // Fetch project
+    // Fetch project data
     const { data: project, error: fetchError } = await supabase
       .from('projects')
       .select('*')
@@ -803,86 +992,59 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (fetchError || !project) {
+      console.error('Project fetch error:', fetchError);
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    // Update status to generating
-    await supabase
-      .from('projects')
-      .update({ status: 'GENERATING' })
-      .eq('id', projectId);
+    console.log(`📋 Generating for: ${project.business_name}`);
+    console.log(`🎨 Design: ${project.design_direction || 'bold_modern'}`);
 
-    // Generate website
-    const { html } = await generateWebsite(project);
+    // Generate the website
+    const html = await generateWebsite(project);
 
-    // Validate output
-    if (!html.includes('<!DOCTYPE html>') && !html.includes('<!doctype html>')) {
-      throw new Error('Invalid HTML output');
+    // Validate HTML
+    if (!html || html.length < 1000) {
+      throw new Error('Generated HTML is too short or empty');
     }
 
-    // Save result
-    await supabase
+    if (!html.includes('<!DOCTYPE') && !html.includes('<html')) {
+      throw new Error('Generated content is not valid HTML');
+    }
+
+    // Save to database
+    const { error: updateError } = await supabase
       .from('projects')
-      .update({ 
-        generated_html: html, 
-        status: 'PREVIEW_READY' 
+      .update({
+        generated_html: html,
+        status: 'PREVIEW_READY',
+        review_score: null, // Clear previous review
+        review_details: null,
       })
       .eq('id', projectId);
 
-    // Run auto-review in background
-    console.log('🔍 Running auto-review...');
-    const review = await runAutoReview(projectId, html, project);
-    
-    // Update status based on review
-    if (review && !review.passesQuality) {
-      await supabase
-        .from('projects')
-        .update({ status: 'NEEDS_REVISION' })
-        .eq('id', projectId);
+    if (updateError) {
+      console.error('Update error:', updateError);
+      throw new Error('Failed to save generated website');
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      html,
-      review,
-      message: 'Website generated successfully'
+    console.log('✅ Generation complete!');
+
+    return NextResponse.json({
+      success: true,
+      message: 'Website generated successfully',
+      htmlLength: html.length,
     });
 
   } catch (error: any) {
     console.error('❌ Generation error:', error);
     
-    // Try to update status on error
-    try {
-      const body = await request.clone().json();
-      if (body.projectId) {
-        await supabase
-          .from('projects')
-          .update({ status: 'QUEUED' })
-          .eq('id', body.projectId);
-      }
-    } catch {}
-
     return NextResponse.json(
-      { error: 'Generation failed', details: error.message },
+      { 
+        error: 'Generation failed', 
+        details: error.message || 'Unknown error',
+        success: false 
+      },
       { status: 500 }
     );
   }
-}
-
-export async function GET() {
-  return NextResponse.json({
-    status: 'ok',
-    version: '5.0 - Multi-Stage Pipeline with Auto-Review',
-    stages: [
-      '1. Business Analysis',
-      '2. Copywriting (with Brand Voice)',
-      '3. Design Direction Selection',
-      '4. HTML Generation',
-      '5. Quality Review',
-      '6. Auto-Review & Scoring'
-    ],
-    designDirections: Object.keys(DESIGN_DIRECTIONS),
-    brandVoices: Object.keys(BRAND_VOICE_CONFIG),
-    supportedIndustries: Object.keys(CURATED_IMAGES),
-  });
 }
