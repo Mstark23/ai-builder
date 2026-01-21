@@ -1,12 +1,12 @@
 // app/api/generate/route.ts
-// VERKTORLABS - High-Quality Website Generation
-// Produces clean, professional single-page websites
+// VERKTORLABS - Professional Website Generation v3
+// High-quality, multi-page capable generation
 
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 
-export const maxDuration = 180;
+export const maxDuration = 300;
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -18,249 +18,250 @@ const supabase = createClient(
 );
 
 // =============================================================================
+// CURATED IMAGE LIBRARY - Real working Unsplash URLs
+// =============================================================================
+
+const CURATED_IMAGES = {
+  jewelry: {
+    hero: [
+      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=800&h=600&fit=crop',
+    ],
+    products: [
+      'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?w=400&h=400&fit=crop',
+    ],
+    about: 'https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=800&h=500&fit=crop',
+    lifestyle: [
+      'https://images.unsplash.com/photo-1509941943102-10c232fc06e0?w=600&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1581952976147-5a2d15560349?w=600&h=400&fit=crop',
+    ],
+  },
+  restaurant: {
+    hero: [
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800&h=600&fit=crop',
+    ],
+    products: [
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&h=400&fit=crop',
+    ],
+    about: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=500&fit=crop',
+  },
+  'health-beauty': {
+    hero: [
+      'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&h=600&fit=crop',
+    ],
+    products: [
+      'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=400&h=400&fit=crop',
+    ],
+    about: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=500&fit=crop',
+  },
+  fitness: {
+    hero: [
+      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=600&fit=crop',
+    ],
+    products: [
+      'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1581009146145-b5ef050c149a?w=400&h=400&fit=crop',
+    ],
+    about: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=500&fit=crop',
+  },
+  professional: {
+    hero: [
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=800&h=600&fit=crop',
+    ],
+    products: [
+      'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=400&h=400&fit=crop',
+    ],
+    about: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&h=500&fit=crop',
+  },
+  ecommerce: {
+    hero: [
+      'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=600&fit=crop',
+    ],
+    products: [
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400&h=400&fit=crop',
+    ],
+    about: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=500&fit=crop',
+  },
+};
+
+function getImages(industry: string) {
+  const key = industry?.toLowerCase().replace(/[^a-z]/g, '') || 'professional';
+  return CURATED_IMAGES[key as keyof typeof CURATED_IMAGES] || CURATED_IMAGES.professional;
+}
+
+// =============================================================================
 // DESIGN SYSTEM
 // =============================================================================
 
-const DESIGN_DIRECTIONS: Record<string, {
+const DESIGNS: Record<string, {
   name: string;
-  fonts: { display: string; body: string; import: string };
-  colors: {
-    primary: string;
-    primaryRgb: string;
-    secondary: string;
-    secondaryRgb: string;
-    accent: string;
-    bgPrimary: string;
-    bgSecondary: string;
-    textPrimary: string;
-    textSecondary: string;
-    border: string;
-  };
+  fonts: string;
+  colors: Record<string, string>;
   style: string;
 }> = {
   luxury_minimal: {
     name: "Luxury Minimal",
-    fonts: {
-      display: "Cormorant Garamond",
-      body: "Crimson Pro",
-      import: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@400;500;600&display=swap"
-    },
+    fonts: `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@400;500;600&display=swap');
+    :root { --font-display: 'Cormorant Garamond', serif; --font-body: 'Montserrat', sans-serif; }`,
     colors: {
-      primary: "#1a1a1a",
-      primaryRgb: "26, 26, 26",
-      secondary: "#c9a227",
-      secondaryRgb: "201, 162, 39",
-      accent: "#8b7355",
-      bgPrimary: "#faf9f7",
-      bgSecondary: "#f5f3ef",
-      textPrimary: "#1a1a1a",
-      textSecondary: "#5c5c5c",
-      border: "#e8e6e1"
+      '--primary': '#1a1a1a',
+      '--primary-rgb': '26, 26, 26',
+      '--secondary': '#c4a052',
+      '--secondary-rgb': '196, 160, 82',
+      '--accent': '#8b7355',
+      '--bg': '#fdfcfa',
+      '--bg-alt': '#f7f5f0',
+      '--text': '#1a1a1a',
+      '--text-muted': '#6b6b6b',
+      '--border': '#e8e4dc',
     },
-    style: "Elegant serif typography, generous whitespace, subtle gold accents, refined and sophisticated"
+    style: "Elegant, refined, lots of whitespace, gold accents"
   },
   bold_modern: {
     name: "Bold Modern",
-    fonts: {
-      display: "Space Grotesk",
-      body: "DM Sans",
-      import: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
-    },
+    fonts: `@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+    :root { --font-display: 'Space Grotesk', sans-serif; --font-body: 'Inter', sans-serif; }`,
     colors: {
-      primary: "#6366f1",
-      primaryRgb: "99, 102, 241",
-      secondary: "#8b5cf6",
-      secondaryRgb: "139, 92, 246",
-      accent: "#22d3ee",
-      bgPrimary: "#ffffff",
-      bgSecondary: "#f8fafc",
-      textPrimary: "#0f172a",
-      textSecondary: "#475569",
-      border: "#e2e8f0"
+      '--primary': '#6366f1',
+      '--primary-rgb': '99, 102, 241',
+      '--secondary': '#8b5cf6',
+      '--secondary-rgb': '139, 92, 246',
+      '--accent': '#06b6d4',
+      '--bg': '#ffffff',
+      '--bg-alt': '#f8fafc',
+      '--text': '#0f172a',
+      '--text-muted': '#64748b',
+      '--border': '#e2e8f0',
     },
-    style: "Strong geometric sans-serif, vibrant gradients, card-based layouts, tech-forward feel"
+    style: "Tech-forward, vibrant, gradient accents"
   },
   warm_organic: {
     name: "Warm Organic",
-    fonts: {
-      display: "Fraunces",
-      body: "Source Serif Pro",
-      import: "https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Source+Serif+Pro:wght@400;600&display=swap"
-    },
+    fonts: `@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap');
+    :root { --font-display: 'DM Serif Display', serif; --font-body: 'DM Sans', sans-serif; }`,
     colors: {
-      primary: "#2d5016",
-      primaryRgb: "45, 80, 22",
-      secondary: "#b45309",
-      secondaryRgb: "180, 83, 9",
-      accent: "#dc2626",
-      bgPrimary: "#fffbeb",
-      bgSecondary: "#fef3c7",
-      textPrimary: "#1c1917",
-      textSecondary: "#57534e",
-      border: "#e7e5e4"
+      '--primary': '#b45309',
+      '--primary-rgb': '180, 83, 9',
+      '--secondary': '#15803d',
+      '--secondary-rgb': '21, 128, 61',
+      '--accent': '#dc2626',
+      '--bg': '#fffbeb',
+      '--bg-alt': '#fef3c7',
+      '--text': '#1c1917',
+      '--text-muted': '#78716c',
+      '--border': '#e7e5e4',
     },
-    style: "Friendly rounded corners, warm earth tones, approachable and natural feeling"
+    style: "Warm, friendly, natural feel"
   },
   dark_premium: {
     name: "Dark Premium",
-    fonts: {
-      display: "Bebas Neue",
-      body: "Barlow",
-      import: "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap"
-    },
+    fonts: `@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
+    :root { --font-display: 'Outfit', sans-serif; --font-body: 'Outfit', sans-serif; }`,
     colors: {
-      primary: "#ffffff",
-      primaryRgb: "255, 255, 255",
-      secondary: "#a855f7",
-      secondaryRgb: "168, 85, 247",
-      accent: "#06b6d4",
-      bgPrimary: "#09090b",
-      bgSecondary: "#18181b",
-      textPrimary: "#fafafa",
-      textSecondary: "#a1a1aa",
-      border: "rgba(255,255,255,0.1)"
+      '--primary': '#ffffff',
+      '--primary-rgb': '255, 255, 255',
+      '--secondary': '#a855f7',
+      '--secondary-rgb': '168, 85, 247',
+      '--accent': '#22d3ee',
+      '--bg': '#0a0a0a',
+      '--bg-alt': '#171717',
+      '--text': '#fafafa',
+      '--text-muted': '#a1a1aa',
+      '--border': 'rgba(255,255,255,0.1)',
     },
-    style: "Dark theme, glowing accents, gradient borders, modern and edgy"
+    style: "Dark, sleek, glowing accents"
   },
   editorial_classic: {
     name: "Editorial Classic",
-    fonts: {
-      display: "Playfair Display",
-      body: "Source Sans Pro",
-      import: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+Pro:wght@400;600;700&display=swap"
-    },
+    fonts: `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+Pro:wght@400;600&display=swap');
+    :root { --font-display: 'Playfair Display', serif; --font-body: 'Source Sans Pro', sans-serif; }`,
     colors: {
-      primary: "#1e3a5f",
-      primaryRgb: "30, 58, 95",
-      secondary: "#b8860b",
-      secondaryRgb: "184, 134, 11",
-      accent: "#166534",
-      bgPrimary: "#ffffff",
-      bgSecondary: "#f8f6f3",
-      textPrimary: "#1e293b",
-      textSecondary: "#64748b",
-      border: "#e2e8f0"
+      '--primary': '#1e3a5f',
+      '--primary-rgb': '30, 58, 95',
+      '--secondary': '#b8860b',
+      '--secondary-rgb': '184, 134, 11',
+      '--accent': '#166534',
+      '--bg': '#ffffff',
+      '--bg-alt': '#f8f6f3',
+      '--text': '#1e293b',
+      '--text-muted': '#64748b',
+      '--border': '#e2e8f0',
     },
-    style: "Classic editorial feel, structured grid, professional and trustworthy"
+    style: "Professional, trustworthy, classic"
   },
   vibrant_energy: {
     name: "Vibrant Energy",
-    fonts: {
-      display: "Syne",
-      body: "Outfit",
-      import: "https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap"
-    },
+    fonts: `@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap');
+    :root { --font-display: 'Syne', sans-serif; --font-body: 'Work Sans', sans-serif; }`,
     colors: {
-      primary: "#7c3aed",
-      primaryRgb: "124, 58, 237",
-      secondary: "#ec4899",
-      secondaryRgb: "236, 72, 153",
-      accent: "#14b8a6",
-      bgPrimary: "#fafafa",
-      bgSecondary: "#f3e8ff",
-      textPrimary: "#18181b",
-      textSecondary: "#52525b",
-      border: "#e4e4e7"
+      '--primary': '#7c3aed',
+      '--primary-rgb': '124, 58, 237',
+      '--secondary': '#ec4899',
+      '--secondary-rgb': '236, 72, 153',
+      '--accent': '#14b8a6',
+      '--bg': '#fafafa',
+      '--bg-alt': '#f5f3ff',
+      '--text': '#18181b',
+      '--text-muted': '#71717a',
+      '--border': '#e4e4e7',
     },
-    style: "Bold gradients, playful animations, energetic and youthful"
-  }
+    style: "Energetic, playful, bold gradients"
+  },
 };
 
-// Industry-specific image keywords for Unsplash
-const INDUSTRY_IMAGES: Record<string, string[]> = {
-  'jewelry': ['jewelry', 'gold jewelry', 'diamond ring', 'necklace elegant', 'jewelry display'],
-  'restaurant': ['restaurant interior', 'fine dining', 'chef cooking', 'food plating', 'restaurant ambiance'],
-  'health-beauty': ['spa interior', 'beauty salon', 'skincare', 'wellness', 'massage therapy'],
-  'fitness': ['gym interior', 'fitness training', 'workout', 'personal trainer', 'fitness equipment'],
-  'real-estate': ['modern home', 'luxury apartment', 'house interior', 'real estate', 'architecture'],
-  'tech-startup': ['modern office', 'tech workspace', 'startup team', 'coding', 'technology'],
-  'professional': ['business meeting', 'corporate office', 'professional team', 'consulting', 'business'],
-  'local-services': ['home service', 'handyman', 'cleaning service', 'local business', 'service professional'],
-  'medical': ['medical clinic', 'healthcare', 'doctor office', 'medical professional', 'clinic interior'],
-  'education': ['classroom', 'education', 'learning', 'students studying', 'library'],
-  'construction': ['construction site', 'building', 'architecture', 'contractor', 'renovation'],
-  'ecommerce': ['shopping', 'product display', 'retail', 'online shopping', 'store'],
-  'portfolio': ['creative work', 'design studio', 'artist workspace', 'portfolio', 'creative'],
-};
-
-function getIndustryImage(industry: string, index: number = 0): string {
-  const keywords = INDUSTRY_IMAGES[industry] || INDUSTRY_IMAGES['professional'];
-  const keyword = keywords[index % keywords.length];
-  // Use different image IDs based on index to get variety
-  const imageId = 1000 + (index * 100);
-  return `https://images.unsplash.com/photo-${imageId}?w=800&h=600&fit=crop&q=80`;
-}
-
 // =============================================================================
-// CSS GENERATOR
+// CSS TEMPLATE
 // =============================================================================
 
-function generateCSS(direction: typeof DESIGN_DIRECTIONS[string]): string {
+function generateCSS(design: typeof DESIGNS[string]): string {
+  const colorVars = Object.entries(design.colors).map(([k, v]) => `${k}: ${v};`).join('\n  ');
+  
   return `
-@import url('${direction.fonts.import}');
+${design.fonts}
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --primary: ${direction.colors.primary};
-  --primary-rgb: ${direction.colors.primaryRgb};
-  --secondary: ${direction.colors.secondary};
-  --secondary-rgb: ${direction.colors.secondaryRgb};
-  --accent: ${direction.colors.accent};
-  --bg-primary: ${direction.colors.bgPrimary};
-  --bg-secondary: ${direction.colors.bgSecondary};
-  --text-primary: ${direction.colors.textPrimary};
-  --text-secondary: ${direction.colors.textSecondary};
-  --border: ${direction.colors.border};
-  --font-display: '${direction.fonts.display}', serif;
-  --font-body: '${direction.fonts.body}', sans-serif;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
-  --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  ${colorVars}
 }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-body);
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: var(--bg);
+  color: var(--text);
   line-height: 1.6;
-  overflow-x: hidden;
 }
 
-/* Container */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
-}
+/* Layout */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+section { padding: 100px 0; }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--text-primary);
-}
-
-h1 { font-size: clamp(2.5rem, 5vw, 4rem); }
-h2 { font-size: clamp(2rem, 4vw, 3rem); }
-h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
-
-p {
-  color: var(--text-secondary);
-  line-height: 1.7;
-}
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; line-height: 1.2; }
+h1 { font-size: clamp(2.5rem, 5vw, 4rem); letter-spacing: -0.02em; }
+h2 { font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.01em; }
+h3 { font-size: 1.25rem; }
+p { color: var(--text-muted); }
 
 /* Navigation */
 .nav {
@@ -269,14 +270,9 @@ p {
   left: 0;
   right: 0;
   z-index: 1000;
-  padding: 16px 0;
-  background: transparent;
-  transition: all 0.3s ease;
-}
-
-.nav.scrolled {
-  background: var(--bg-primary);
-  box-shadow: var(--shadow-md);
+  padding: 20px 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
 }
 
 .nav-inner {
@@ -285,32 +281,30 @@ p {
   justify-content: space-between;
 }
 
-.nav-logo {
+.logo {
   font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-weight: 600;
+  color: var(--text);
   text-decoration: none;
 }
 
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 40px;
   list-style: none;
 }
 
 .nav-links a {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   text-decoration: none;
-  font-weight: 500;
   font-size: 0.95rem;
+  font-weight: 500;
   transition: color 0.3s;
 }
 
-.nav-links a:hover {
-  color: var(--primary);
-}
+.nav-links a:hover { color: var(--text); }
 
 /* Buttons */
 .btn {
@@ -318,68 +312,35 @@ p {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px 28px;
+  padding: 14px 32px;
   font-family: var(--font-body);
   font-size: 0.95rem;
   font-weight: 600;
   text-decoration: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.3s ease;
+  border-radius: 8px;
   border: none;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 
 .btn-primary {
-  background: var(--primary);
-  color: white;
-  box-shadow: 0 4px 14px rgba(var(--primary-rgb), 0.3);
+  background: var(--text);
+  color: var(--bg);
 }
 
 .btn-primary:hover {
+  opacity: 0.9;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.4);
 }
 
-.btn-secondary {
+.btn-outline {
   background: transparent;
-  color: var(--text-primary);
+  color: var(--text);
   border: 2px solid var(--border);
 }
 
-.btn-secondary:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-/* Sections */
-section {
-  padding: 100px 0;
-}
-
-.section-header {
-  text-align: center;
-  max-width: 600px;
-  margin: 0 auto 60px;
-}
-
-.section-badge {
-  display: inline-block;
-  padding: 6px 16px;
-  background: rgba(var(--primary-rgb), 0.1);
-  color: var(--primary);
-  border-radius: 50px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
-
-.section-title {
-  margin-bottom: 16px;
-}
-
-.section-subtitle {
-  font-size: 1.1rem;
-  color: var(--text-secondary);
+.btn-outline:hover {
+  border-color: var(--text);
 }
 
 /* Hero */
@@ -388,27 +349,18 @@ section {
   display: flex;
   align-items: center;
   padding-top: 80px;
-  background: var(--bg-secondary);
-  position: relative;
-  overflow: hidden;
+  background: var(--bg-alt);
 }
 
 .hero-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 60px;
+  gap: 80px;
   align-items: center;
-}
-
-.hero-content {
-  position: relative;
-  z-index: 2;
 }
 
 .hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  display: inline-block;
   padding: 8px 16px;
   background: rgba(var(--secondary-rgb), 0.15);
   color: var(--secondary);
@@ -418,114 +370,175 @@ section {
   margin-bottom: 24px;
 }
 
-.hero h1 {
-  margin-bottom: 24px;
-}
+.hero h1 { margin-bottom: 24px; }
 
-.hero p {
-  font-size: 1.2rem;
-  margin-bottom: 32px;
-  max-width: 500px;
+.hero-text {
+  font-size: 1.15rem;
+  margin-bottom: 40px;
+  max-width: 480px;
 }
 
 .hero-buttons {
   display: flex;
   gap: 16px;
-  flex-wrap: wrap;
+  margin-bottom: 48px;
 }
 
 .hero-image {
   position: relative;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
 }
 
 .hero-image img {
   width: 100%;
-  height: 500px;
+  height: 550px;
   object-fit: cover;
-  display: block;
+  border-radius: 16px;
 }
 
-/* Stats */
-.stats-row {
+.hero-stats {
   display: flex;
   gap: 48px;
-  margin-top: 48px;
   padding-top: 32px;
   border-top: 1px solid var(--border);
 }
 
-.stat-item {
-  text-align: left;
-}
+.stat { text-align: left; }
 
 .stat-number {
   font-family: var(--font-display);
   font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--primary);
-  line-height: 1;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .stat-label {
   font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-top: 4px;
+  color: var(--text-muted);
 }
 
-/* Cards */
-.card {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  padding: 32px;
-  border: 1px solid var(--border);
-  transition: all 0.3s ease;
+/* Section Header */
+.section-header {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 60px;
 }
 
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-}
-
-.card-icon {
-  width: 56px;
-  height: 56px;
+.section-badge {
+  display: inline-block;
+  padding: 6px 14px;
   background: rgba(var(--primary-rgb), 0.1);
-  border-radius: var(--radius-md);
+  color: var(--text);
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 16px;
+}
+
+.section-title { margin-bottom: 16px; }
+.section-desc { font-size: 1.1rem; }
+
+/* Products/Services Grid */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.product-card {
+  background: var(--bg);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: all 0.3s;
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.product-image {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-image img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  transition: transform 0.5s;
+}
+
+.product-card:hover .product-image img {
+  transform: scale(1.05);
+}
+
+.product-tag {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 6px 12px;
+  background: var(--bg);
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.product-info {
+  padding: 24px;
+}
+
+.product-title {
+  margin-bottom: 8px;
+}
+
+.product-price {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Features */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+}
+
+.feature {
+  text-align: center;
+  padding: 32px 24px;
+}
+
+.feature-icon {
+  width: 64px;
+  height: 64px;
+  background: var(--bg-alt);
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin: 0 auto 20px;
   font-size: 1.5rem;
 }
 
-.card h3 {
-  margin-bottom: 12px;
-}
-
-/* Services Grid */
-.services-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
+.feature h3 { margin-bottom: 8px; }
 
 /* Testimonials */
-.testimonials {
-  background: var(--bg-secondary);
-}
+.testimonials { background: var(--bg-alt); }
 
 .testimonials-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: 32px;
 }
 
-.testimonial-card {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
+.testimonial {
+  background: var(--bg);
+  border-radius: 16px;
   padding: 32px;
   border: 1px solid var(--border);
 }
@@ -556,121 +569,87 @@ section {
   object-fit: cover;
 }
 
-.testimonial-name {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.testimonial-role {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
+.testimonial-name { font-weight: 600; }
+.testimonial-role { font-size: 0.85rem; color: var(--text-muted); }
 
 /* CTA */
 .cta {
-  background: var(--primary);
-  color: white;
+  background: var(--text);
+  color: var(--bg);
   text-align: center;
   padding: 80px 0;
 }
 
-.cta h2 {
-  color: white;
-  margin-bottom: 16px;
-}
-
-.cta p {
-  color: rgba(255,255,255,0.8);
-  margin-bottom: 32px;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.cta .btn-primary {
-  background: white;
-  color: var(--primary);
-}
+.cta h2 { color: var(--bg); margin-bottom: 16px; }
+.cta p { color: rgba(255,255,255,0.7); margin-bottom: 32px; max-width: 500px; margin-left: auto; margin-right: auto; }
+.cta .btn-primary { background: var(--bg); color: var(--text); }
 
 /* Contact */
 .contact-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 60px;
+  gap: 80px;
 }
 
 .contact-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 24px;
 }
 
 .form-group label {
+  display: block;
   font-weight: 500;
-  font-size: 0.95rem;
+  margin-bottom: 8px;
 }
 
 .form-group input,
 .form-group textarea {
-  padding: 14px 18px;
+  width: 100%;
+  padding: 16px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   font-family: var(--font-body);
   font-size: 1rem;
-  background: var(--bg-secondary);
-  transition: border-color 0.3s;
+  background: var(--bg-alt);
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--text);
 }
 
 .contact-info {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px;
 }
 
 .contact-item {
   display: flex;
   gap: 16px;
-  align-items: flex-start;
 }
 
 .contact-icon {
-  width: 48px;
-  height: 48px;
-  background: rgba(var(--primary-rgb), 0.1);
-  border-radius: var(--radius-md);
+  width: 56px;
+  height: 56px;
+  background: var(--bg-alt);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1.25rem;
   flex-shrink: 0;
-  font-size: 1.2rem;
 }
 
-.contact-label {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.contact-value {
-  font-weight: 600;
-  color: var(--text-primary);
-}
+.contact-label { font-size: 0.9rem; color: var(--text-muted); }
+.contact-value { font-weight: 600; font-size: 1.1rem; }
 
 /* Footer */
 .footer {
-  background: var(--bg-secondary);
-  padding: 60px 0 30px;
+  background: var(--bg-alt);
+  padding: 80px 0 40px;
 }
 
 .footer-grid {
@@ -683,20 +662,18 @@ section {
 .footer-logo {
   font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 16px;
 }
 
 .footer-desc {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-  max-width: 300px;
+  color: var(--text-muted);
+  max-width: 280px;
 }
 
 .footer-title {
   font-weight: 600;
   margin-bottom: 20px;
-  font-size: 1rem;
 }
 
 .footer-links {
@@ -707,257 +684,143 @@ section {
 }
 
 .footer-links a {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   text-decoration: none;
-  font-size: 0.95rem;
-  transition: color 0.3s;
 }
 
-.footer-links a:hover {
-  color: var(--primary);
-}
+.footer-links a:hover { color: var(--text); }
 
 .footer-bottom {
-  padding-top: 30px;
+  padding-top: 32px;
   border-top: 1px solid var(--border);
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 0.9rem;
 }
 
 /* Responsive */
-@media (max-width: 968px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
-    text-align: center;
-  }
-  
-  .hero p {
-    margin-left: auto;
-    margin-right: auto;
-  }
-  
-  .hero-buttons {
-    justify-content: center;
-  }
-  
-  .hero-image {
-    max-width: 500px;
-    margin: 0 auto;
-  }
-  
-  .stats-row {
-    justify-content: center;
-  }
-  
-  .services-grid,
-  .testimonials-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .contact-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .footer-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .nav-links {
-    display: none;
-  }
+@media (max-width: 1024px) {
+  .hero-grid { grid-template-columns: 1fr; text-align: center; }
+  .hero-text { margin-left: auto; margin-right: auto; }
+  .hero-buttons { justify-content: center; }
+  .hero-stats { justify-content: center; }
+  .hero-image { max-width: 500px; margin: 40px auto 0; }
+  .products-grid { grid-template-columns: repeat(2, 1fr); }
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+  .testimonials-grid { grid-template-columns: 1fr; max-width: 500px; margin: 0 auto; }
+  .contact-grid { grid-template-columns: 1fr; }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 640px) {
-  section {
-    padding: 60px 0;
-  }
-  
-  .hero {
-    padding-top: 100px;
-  }
-  
-  .hero-image img {
-    height: 300px;
-  }
-  
-  .stats-row {
-    flex-direction: column;
-    gap: 24px;
-    align-items: center;
-  }
-  
-  .stat-item {
-    text-align: center;
-  }
-  
-  .footer-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-in {
-  animation: fadeInUp 0.6s ease forwards;
+  section { padding: 60px 0; }
+  .nav-links { display: none; }
+  .products-grid { grid-template-columns: 1fr; }
+  .features-grid { grid-template-columns: 1fr; }
+  .hero-stats { flex-direction: column; gap: 24px; }
+  .footer-grid { grid-template-columns: 1fr; }
 }
 `;
 }
 
 // =============================================================================
-// GENERATE HTML
+// HTML GENERATION
 // =============================================================================
 
-async function generateWebsite(project: any): Promise<string> {
-  const directionKey = project.design_direction || 'bold_modern';
-  const direction = DESIGN_DIRECTIONS[directionKey] || DESIGN_DIRECTIONS.bold_modern;
-  const css = generateCSS(direction);
-  
-  // Get industry-appropriate images
-  const industry = project.industry || 'professional';
-  
-  const systemPrompt = `You are an expert web developer creating a high-quality, professional landing page.
+async function generateHTML(project: any): Promise<string> {
+  const designKey = project.design_direction || 'luxury_minimal';
+  const design = DESIGNS[designKey] || DESIGNS.luxury_minimal;
+  const images = getImages(project.industry);
+  const css = generateCSS(design);
+
+  const systemPrompt = `You are an expert web developer. Create a beautiful, professional landing page.
 
 CRITICAL RULES:
-1. Output ONLY valid HTML - no markdown, no code blocks, no explanations
-2. Use semantic HTML5 elements
-3. All content must be realistic and specific to the business
-4. Use the exact CSS classes provided - do not invent new ones
-5. Include proper alt text for images
-6. Make sure all sections flow naturally
+1. Output ONLY valid HTML - NO markdown, NO code blocks, NO explanations
+2. Start with <!DOCTYPE html> and end with </html>
+3. Use ONLY the CSS classes provided - they are already styled
+4. Use the EXACT image URLs provided
+5. Create realistic, compelling content for this specific business
+6. DO NOT add any inline styles - use only the provided classes`;
 
-BUSINESS CONTEXT:
-- Name: ${project.business_name}
-- Industry: ${project.industry || 'professional services'}
-- Description: ${project.description || 'A quality business'}
-- Target Customer: ${project.target_customer || 'discerning customers'}
-- Unique Value: ${project.unique_value || 'exceptional quality and service'}
-- Services: ${project.primary_services?.join(', ') || 'various professional services'}
-- CTA: ${project.call_to_action || 'Get Started'}
-- Email: ${project.contact_email || 'hello@example.com'}
-- Phone: ${project.contact_phone || '(555) 123-4567'}
-- Address: ${project.address || '123 Main Street'}
+  const userPrompt = `Create a landing page for:
 
-DESIGN STYLE: ${direction.name}
-${direction.style}
+BUSINESS: ${project.business_name}
+INDUSTRY: ${project.industry || 'jewelry'}
+DESCRIPTION: ${project.description || 'Premium quality products and services'}
+TARGET CUSTOMER: ${project.target_customer || 'style-conscious customers'}
+UNIQUE VALUE: ${project.unique_value || 'exceptional quality'}
+SERVICES/PRODUCTS: ${project.primary_services?.join(', ') || 'Premium products'}
+CTA TEXT: ${project.call_to_action || 'Shop Now'}
+EMAIL: ${project.contact_email || 'hello@example.com'}
+PHONE: ${project.contact_phone || '(555) 123-4567'}
 
 IMAGE URLS TO USE:
-- Hero: https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=600&fit=crop (for jewelry)
-- Use placeholder images from: https://images.unsplash.com/ with appropriate search terms for ${industry}
-- Avatar images: https://i.pravatar.cc/100?img=1, ?img=2, ?img=3, etc.
+- Hero image: ${images.hero[0]}
+- Product 1: ${images.products[0]}
+- Product 2: ${images.products[1]}
+- Product 3: ${images.products[2]}
+- Avatars: https://i.pravatar.cc/100?img=1, ?img=5, ?img=8
 
-REQUIRED SECTIONS (use these exact class names):
-1. nav - Fixed navigation with logo and links
-2. hero - Full height hero with headline, subheadline, CTA buttons, image, and stats
-3. services - Services grid with 3 cards
-4. testimonials - 3 testimonial cards
-5. cta - Call-to-action banner
-6. contact - Contact form and info
-7. footer - Footer with links`;
+REQUIRED SECTIONS (in order):
 
-  const userPrompt = `Create a complete landing page HTML for "${project.business_name}".
-
-The page must include ALL these sections with the EXACT structure shown:
-
-1. NAVIGATION (class="nav"):
-<nav class="nav" id="nav">
+1. NAVIGATION:
+<nav class="nav">
   <div class="container nav-inner">
-    <a href="#" class="nav-logo">[Business Name]</a>
+    <a href="#" class="logo">${project.business_name}</a>
     <ul class="nav-links">
-      <li><a href="#services">Services</a></li>
-      <li><a href="#testimonials">Reviews</a></li>
+      <li><a href="#products">Shop</a></li>
+      <li><a href="#features">Why Us</a></li>
+      <li><a href="#reviews">Reviews</a></li>
       <li><a href="#contact">Contact</a></li>
-      <li><a href="#contact" class="btn btn-primary">[CTA]</a></li>
+      <li><a href="#contact" class="btn btn-primary">${project.call_to_action || 'Shop Now'}</a></li>
     </ul>
   </div>
 </nav>
 
-2. HERO (class="hero", id="hero"):
-- hero-grid with hero-content and hero-image
-- Include hero-badge, h1, p, hero-buttons, and stats-row
+2. HERO with hero-grid, hero-badge, h1, hero-text, hero-buttons, hero-image, hero-stats
 
-3. SERVICES (id="services"):
-- section-header with badge, title, subtitle
-- services-grid with 3 cards, each having card-icon, h3, p
+3. PRODUCTS section (id="products") with products-grid and 3 product-card items
 
-4. TESTIMONIALS (class="testimonials", id="testimonials"):
-- section-header
-- testimonials-grid with 3 testimonial-card elements
+4. FEATURES section with features-grid and 4 feature items with icons (use emojis like ✨ 🔒 💎 🚚)
 
-5. CTA (class="cta"):
-- Centered h2, p, and button
+5. TESTIMONIALS section (id="reviews", class="testimonials") with testimonials-grid and 3 testimonial items
 
-6. CONTACT (id="contact"):
-- contact-grid with contact-form and contact-info
+6. CTA section (class="cta")
 
-7. FOOTER (class="footer"):
-- footer-grid and footer-bottom
+7. CONTACT section (id="contact") with contact-grid
 
-Use realistic, compelling copy that matches the ${project.industry || 'professional'} industry.
-For images, use Unsplash URLs with relevant search terms.
-For avatars, use https://i.pravatar.cc/100?img=N
+8. FOOTER (class="footer") with footer-grid
 
-Output ONLY the HTML starting with <!DOCTYPE html>. No other text.`;
+Make the content specific and compelling for a ${project.industry || 'jewelry'} business. 
+Use realistic product names and prices.
+Output ONLY the complete HTML document.`;
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 8000,
-    messages: [
-      { role: 'user', content: userPrompt }
-    ],
+    messages: [{ role: 'user', content: userPrompt }],
     system: systemPrompt,
   });
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type');
-  }
-
-  let html = content.text.trim();
+  let html = (response.content[0] as any).text.trim();
   
-  // Clean up any markdown artifacts
+  // Clean markdown artifacts
   html = html.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '').trim();
   
-  // Inject our CSS
+  // Inject CSS
   if (html.includes('</head>')) {
     html = html.replace('</head>', `<style>${css}</style></head>`);
-  } else if (html.includes('<head>')) {
-    html = html.replace('<head>', `<head><style>${css}</style>`);
   }
   
-  // Add navigation scroll script
-  const script = `
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Nav scroll effect
-  const nav = document.querySelector('.nav');
-  window.addEventListener('scroll', function() {
-    if (window.scrollY > 50) {
-      nav.classList.add('scrolled');
-    } else {
-      nav.classList.remove('scrolled');
-    }
-  });
-  
-  // Smooth scroll for anchor links
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function(e) {
-      e.preventDefault();
-      const target = document.querySelector(this.getAttribute('href'));
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
+  // Add scroll behavior script
+  const script = `<script>
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth' });
   });
 });
 </script>`;
@@ -974,17 +837,16 @@ document.addEventListener('DOMContentLoaded', function() {
 // =============================================================================
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 Starting website generation...');
+  console.log('🚀 Starting generation...');
   
   try {
-    const body = await request.json();
-    const { projectId } = body;
+    const { projectId } = await request.json();
 
     if (!projectId) {
-      return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
     }
 
-    // Fetch project data
+    // Fetch project
     const { data: project, error: fetchError } = await supabase
       .from('projects')
       .select('*')
@@ -992,58 +854,38 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (fetchError || !project) {
-      console.error('Project fetch error:', fetchError);
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
     console.log(`📋 Generating for: ${project.business_name}`);
-    console.log(`🎨 Design: ${project.design_direction || 'bold_modern'}`);
 
-    // Generate the website
-    const html = await generateWebsite(project);
+    // Generate HTML
+    const html = await generateHTML(project);
 
-    // Validate HTML
-    if (!html || html.length < 1000) {
-      throw new Error('Generated HTML is too short or empty');
+    // Validate
+    if (!html || html.length < 500 || !html.includes('<!DOCTYPE')) {
+      throw new Error('Invalid HTML generated');
     }
 
-    if (!html.includes('<!DOCTYPE') && !html.includes('<html')) {
-      throw new Error('Generated content is not valid HTML');
-    }
-
-    // Save to database
-    const { error: updateError } = await supabase
+    // Save
+    await supabase
       .from('projects')
       .update({
         generated_html: html,
         status: 'PREVIEW_READY',
-        review_score: null, // Clear previous review
+        review_score: null,
         review_details: null,
       })
       .eq('id', projectId);
 
-    if (updateError) {
-      console.error('Update error:', updateError);
-      throw new Error('Failed to save generated website');
-    }
-
     console.log('✅ Generation complete!');
 
-    return NextResponse.json({
-      success: true,
-      message: 'Website generated successfully',
-      htmlLength: html.length,
-    });
+    return NextResponse.json({ success: true, htmlLength: html.length });
 
   } catch (error: any) {
-    console.error('❌ Generation error:', error);
-    
+    console.error('❌ Error:', error);
     return NextResponse.json(
-      { 
-        error: 'Generation failed', 
-        details: error.message || 'Unknown error',
-        success: false 
-      },
+      { error: 'Generation failed', details: error.message },
       { status: 500 }
     );
   }
