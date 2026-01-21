@@ -35,7 +35,7 @@ export default function CustomerLoginPage() {
         localStorage.setItem('customerName', customer.name || 'Customer');
         localStorage.setItem('customerEmail', customer.email);
         setSuccess(true);
-        setTimeout(() => router.push('/customer/dashboard'), 1500);
+        setTimeout(() => router.push('/portal'), 1500);  // ← FIXED
       } else {
         setError('No account found with this email. Please check your email or contact support.');
       }
@@ -63,14 +63,14 @@ export default function CustomerLoginPage() {
         localStorage.setItem('customerId', customer.id);
         localStorage.setItem('customerName', customer.name || 'Demo Customer');
         localStorage.setItem('customerEmail', customer.email);
-        router.push('/customer/dashboard');
+        router.push('/portal');  // ← FIXED
       } else {
         // Fallback demo login
         localStorage.setItem('customerLoggedIn', 'true');
         localStorage.setItem('customerId', 'demo-id');
         localStorage.setItem('customerName', 'Demo Customer');
         localStorage.setItem('customerEmail', 'demo@example.com');
-        router.push('/customer/dashboard');
+        router.push('/portal');  // ← FIXED
       }
     } catch (err) {
       console.error('Error:', err);
@@ -78,7 +78,7 @@ export default function CustomerLoginPage() {
       localStorage.setItem('customerId', 'demo-id');
       localStorage.setItem('customerName', 'Demo Customer');
       localStorage.setItem('customerEmail', 'demo@example.com');
-      router.push('/customer/dashboard');
+      router.push('/portal');  // ← FIXED
     } finally {
       setLoading(false);
     }
