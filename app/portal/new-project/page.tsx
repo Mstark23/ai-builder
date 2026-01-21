@@ -4,6 +4,18 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import StyleSelector from '@/components/StyleSelector';
+
+// ============================================
+// UPDATED TYPE DEFINITION
+// ============================================
+type DesignDirection = 
+  | 'luxury_minimal'
+  | 'bold_modern'
+  | 'warm_organic'
+  | 'dark_premium'
+  | 'editorial_classic'
+  | 'vibrant_energy';
 
 type FormData = {
   // Step 1: Business Basics
@@ -13,24 +25,45 @@ type FormData = {
   websiteGoal: string;
   targetCustomer: string;
   
-  // Step 2: Style & Vibe
-  style: string;
+  // Step 2: Brand & Voice (NEW)
+  brandVoice: string;              // NEW: formal, conversational, playful, authoritative
+  existingLogo: boolean;           // NEW: do they have a logo?
+  existingColors: string;          // NEW: brand colors they must use (hex codes)
+  primaryServices: string[];       // NEW: top 3-5 services/products
+  competitorUrls: string;          // NEW: competitors to differentiate from
+  
+  // Step 3: Design Direction (UPDATED)
+  designDirection: DesignDirection | '';  // RENAMED from 'style' - now uses 6 directions
   colorPreference: string;
   moodTags: string[];
   inspirations: string;
+  heroPreference: string;          // NEW: image-led, text-led, video, split
   
-  // Step 3: Plan
+  // Step 4: Plan
   plan: string;
   
-  // Step 4: Features & Contact
+  // Step 5: Features & Contact
   features: string[];
   contactEmail: string;
   contactPhone: string;
   address: string;
   uniqueValue: string;
+  socialLinks: {                   // NEW: social media
+    instagram: string;
+    facebook: string;
+    linkedin: string;
+    twitter: string;
+    youtube: string;
+    tiktok: string;
+  };
+  businessHours: string;           // NEW: for local businesses
+  callToAction: string;            // NEW: preferred CTA text
 };
 
-// Enhanced industries with icons and better categorization
+// ============================================
+// DATA CONSTANTS
+// ============================================
+
 const industries = [
   { id: 'restaurant', name: 'Restaurant / Food', icon: '🍽️' },
   { id: 'local-services', name: 'Local Services', icon: '🔧' },
@@ -50,7 +83,6 @@ const industries = [
   { id: 'other', name: 'Other', icon: '✨' },
 ];
 
-// Website goals with descriptions
 const websiteGoals = [
   { id: 'leads', name: 'Generate Leads', desc: 'Get inquiries & contact form submissions', icon: '📩' },
   { id: 'bookings', name: 'Get Bookings', desc: 'Let customers schedule appointments', icon: '📅' },
@@ -60,18 +92,74 @@ const websiteGoals = [
   { id: 'brand', name: 'Build Brand', desc: 'Establish online presence', icon: '⭐' },
 ];
 
-// Enhanced styles with visual preview colors
-const styles = [
-  { id: 'modern', name: 'Modern & Clean', desc: 'Bold typography, clean lines, whitespace', icon: '◻️', gradient: 'from-blue-500 to-cyan-400' },
-  { id: 'elegant', name: 'Elegant & Luxurious', desc: 'Refined, sophisticated, premium feel', icon: '✨', gradient: 'from-amber-500 to-yellow-400' },
-  { id: 'bold', name: 'Bold & Dynamic', desc: 'High contrast, oversized text, energetic', icon: '🔥', gradient: 'from-red-500 to-orange-400' },
-  { id: 'minimal', name: 'Minimal & Simple', desc: 'Maximum whitespace, essential only', icon: '○', gradient: 'from-gray-400 to-gray-500' },
-  { id: 'playful', name: 'Playful & Fun', desc: 'Bright colors, rounded shapes, friendly', icon: '🎨', gradient: 'from-pink-500 to-purple-400' },
-  { id: 'corporate', name: 'Corporate & Professional', desc: 'Traditional, trustworthy, structured', icon: '🏢', gradient: 'from-slate-600 to-slate-700' },
-  { id: 'dark', name: 'Dark & Premium', desc: 'Dark backgrounds, glowing accents', icon: '🌙', gradient: 'from-violet-600 to-indigo-800' },
+// NEW: Brand voice options
+const brandVoiceOptions = [
+  { 
+    id: 'formal', 
+    name: 'Professional & Formal', 
+    desc: 'Authoritative, precise language',
+    example: '"We deliver exceptional results through proven methodologies."',
+    icon: '👔'
+  },
+  { 
+    id: 'conversational', 
+    name: 'Friendly & Conversational', 
+    desc: 'Warm, approachable tone',
+    example: '"Hey there! Let\'s work together to make something great."',
+    icon: '👋'
+  },
+  { 
+    id: 'playful', 
+    name: 'Playful & Fun', 
+    desc: 'Light-hearted, energetic',
+    example: '"Ready to shake things up? We thought so. 🚀"',
+    icon: '🎉'
+  },
+  { 
+    id: 'authoritative', 
+    name: 'Expert & Authoritative', 
+    desc: 'Confident, knowledge-driven',
+    example: '"With 20+ years of expertise, we set the industry standard."',
+    icon: '🏆'
+  },
+  { 
+    id: 'luxurious', 
+    name: 'Refined & Luxurious', 
+    desc: 'Sophisticated, exclusive',
+    example: '"Experience the art of exceptional service."',
+    icon: '✨'
+  },
 ];
 
-// Color palettes
+// NEW: Hero section preferences
+const heroPreferences = [
+  { 
+    id: 'image-led', 
+    name: 'Image-Led', 
+    desc: 'Large hero image with text overlay',
+    icon: '🖼️'
+  },
+  { 
+    id: 'text-led', 
+    name: 'Text-Led', 
+    desc: 'Bold headline with minimal imagery',
+    icon: '📝'
+  },
+  { 
+    id: 'split', 
+    name: 'Split Layout', 
+    desc: 'Text on one side, image on other',
+    icon: '⚡'
+  },
+  { 
+    id: 'video', 
+    name: 'Video Background', 
+    desc: 'Dynamic video or animation',
+    icon: '🎬'
+  },
+];
+
+// Updated color options (kept from original)
 const colorOptions = [
   { id: 'auto', name: 'AI Picks Best', desc: 'Based on your industry', colors: ['#6366F1', '#8B5CF6', '#A855F7'] },
   { id: 'blue', name: 'Professional Blues', desc: 'Trust & reliability', colors: ['#1E3A5F', '#3B82F6', '#60A5FA'] },
@@ -81,9 +169,9 @@ const colorOptions = [
   { id: 'orange', name: 'Warm Oranges', desc: 'Friendly & energetic', colors: ['#9A3412', '#F97316', '#FDBA74'] },
   { id: 'neutral', name: 'Elegant Neutrals', desc: 'Minimal & timeless', colors: ['#1F2937', '#6B7280', '#D1D5DB'] },
   { id: 'gold', name: 'Luxury Gold', desc: 'Premium & exclusive', colors: ['#78350F', '#D97706', '#FCD34D'] },
+  { id: 'custom', name: 'I Have Brand Colors', desc: 'Enter your colors below', colors: ['#000000', '#FFFFFF', '#888888'] },
 ];
 
-// Mood tags
 const moodTags = [
   'Trustworthy', 'Innovative', 'Friendly', 'Luxurious', 
   'Professional', 'Creative', 'Warm', 'Bold', 'Calm',
@@ -91,7 +179,6 @@ const moodTags = [
   'Traditional', 'Fun', 'Serious', 'Inspiring', 'Edgy'
 ];
 
-// Dynamic features based on industry
 const featuresByIndustry: Record<string, string[]> = {
   'restaurant': ['Online Menu', 'Reservation Form', 'Photo Gallery', 'Customer Reviews', 'Location Map', 'Social Media Feed', 'Special Offers', 'Hours Display'],
   'local-services': ['Quote Request Form', 'Service Area Map', 'Before/After Gallery', 'Testimonials', 'FAQ Section', 'Emergency Contact', 'Trust Badges', 'Pricing Table'],
@@ -136,44 +223,90 @@ const plans = [
   },
 ];
 
+// NEW: Suggested CTAs by goal
+const suggestedCTAs: Record<string, string[]> = {
+  leads: ['Get a Free Quote', 'Contact Us Today', 'Request Information', 'Schedule a Call'],
+  bookings: ['Book Now', 'Schedule Appointment', 'Reserve Your Spot', 'Book Online'],
+  sales: ['Shop Now', 'View Products', 'Start Shopping', 'Browse Collection'],
+  showcase: ['View Portfolio', 'See Our Work', 'Explore Projects', 'View Gallery'],
+  inform: ['Learn More', 'Get Started', 'Discover More', 'Read Our Guide'],
+  brand: ['Get in Touch', 'Learn About Us', 'Join Us', 'Connect'],
+};
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
 export default function NewProjectPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
+    // Step 1
     businessName: '',
     industry: '',
     description: '',
     websiteGoal: '',
     targetCustomer: '',
-    style: '',
+    // Step 2 (NEW)
+    brandVoice: '',
+    existingLogo: false,
+    existingColors: '',
+    primaryServices: [],
+    competitorUrls: '',
+    // Step 3
+    designDirection: '',
     colorPreference: 'auto',
     moodTags: [],
     inspirations: '',
+    heroPreference: '',
+    // Step 4
     plan: 'professional',
+    // Step 5
     features: [],
     contactEmail: '',
     contactPhone: '',
     address: '',
     uniqueValue: '',
+    socialLinks: {
+      instagram: '',
+      facebook: '',
+      linkedin: '',
+      twitter: '',
+      youtube: '',
+      tiktok: '',
+    },
+    businessHours: '',
+    callToAction: '',
   });
+
+  // Track which services input is active
+  const [serviceInput, setServiceInput] = useState('');
 
   useEffect(() => {
     checkUser();
   }, []);
 
-  // Auto-select common features when industry changes
   useEffect(() => {
     if (formData.industry && formData.features.length === 0) {
       const industryFeatures = featuresByIndustry[formData.industry] || featuresByIndustry['other'];
-      // Pre-select first 4 common features
       setFormData(prev => ({
         ...prev,
         features: industryFeatures.slice(0, 4)
       }));
     }
   }, [formData.industry]);
+
+  // Auto-suggest CTA when goal changes
+  useEffect(() => {
+    if (formData.websiteGoal && !formData.callToAction) {
+      const suggestions = suggestedCTAs[formData.websiteGoal];
+      if (suggestions) {
+        setFormData(prev => ({ ...prev, callToAction: suggestions[0] }));
+      }
+    }
+  }, [formData.websiteGoal]);
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -182,16 +315,39 @@ export default function NewProjectPage() {
       return;
     }
     setUser(user);
-    // Pre-fill email if available
     if (user.email) {
       setFormData(prev => ({ ...prev, contactEmail: user.email || '' }));
     }
   };
 
-  const totalSteps = 4;
+  const totalSteps = 5; // Updated from 4 to 5
 
   const updateForm = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updateSocialLink = (platform: keyof FormData['socialLinks'], value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      socialLinks: { ...prev.socialLinks, [platform]: value }
+    }));
+  };
+
+  const addService = () => {
+    if (serviceInput.trim() && formData.primaryServices.length < 5) {
+      setFormData(prev => ({
+        ...prev,
+        primaryServices: [...prev.primaryServices, serviceInput.trim()]
+      }));
+      setServiceInput('');
+    }
+  };
+
+  const removeService = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      primaryServices: prev.primaryServices.filter((_, i) => i !== index)
+    }));
   };
 
   const toggleFeature = (feature: string) => {
@@ -217,9 +373,10 @@ export default function NewProjectPage() {
   const canProceed = () => {
     switch (step) {
       case 1: return formData.businessName.trim() && formData.industry && formData.description.trim();
-      case 2: return formData.style;
-      case 3: return formData.plan;
-      case 4: return true;
+      case 2: return formData.brandVoice; // Brand voice is required
+      case 3: return formData.designDirection;
+      case 4: return formData.plan;
+      case 5: return true;
       default: return false;
     }
   };
@@ -233,46 +390,42 @@ export default function NewProjectPage() {
         customer_id: user.id,
         business_name: formData.businessName.trim(),
         industry: formData.industry,
-        style: formData.style,
+        design_direction: formData.designDirection, // RENAMED from 'style'
         plan: formData.plan,
         status: 'QUEUED',
         paid: false,
       };
 
-      // Add all the enhanced fields
-      if (formData.description.trim()) {
-        projectData.description = formData.description.trim();
-      }
-      if (formData.websiteGoal) {
-        projectData.website_goal = formData.websiteGoal;
-      }
-      if (formData.targetCustomer.trim()) {
-        projectData.target_customer = formData.targetCustomer.trim();
-      }
-      if (formData.colorPreference) {
-        projectData.color_preference = formData.colorPreference;
-      }
-      if (formData.moodTags.length > 0) {
-        projectData.mood_tags = formData.moodTags;
-      }
-      if (formData.inspirations.trim()) {
-        projectData.inspirations = formData.inspirations.trim();
-      }
-      if (formData.features.length > 0) {
-        projectData.features = formData.features;
-      }
-      if (formData.contactEmail.trim()) {
-        projectData.contact_email = formData.contactEmail.trim();
-      }
-      if (formData.contactPhone.trim()) {
-        projectData.contact_phone = formData.contactPhone.trim();
-      }
-      if (formData.address.trim()) {
-        projectData.address = formData.address.trim();
-      }
-      if (formData.uniqueValue.trim()) {
-        projectData.unique_value = formData.uniqueValue.trim();
-      }
+      // Core fields
+      if (formData.description.trim()) projectData.description = formData.description.trim();
+      if (formData.websiteGoal) projectData.website_goal = formData.websiteGoal;
+      if (formData.targetCustomer.trim()) projectData.target_customer = formData.targetCustomer.trim();
+      
+      // NEW: Brand & Voice fields
+      if (formData.brandVoice) projectData.brand_voice = formData.brandVoice;
+      projectData.existing_logo = formData.existingLogo;
+      if (formData.existingColors.trim()) projectData.existing_colors = formData.existingColors.trim();
+      if (formData.primaryServices.length > 0) projectData.primary_services = formData.primaryServices;
+      if (formData.competitorUrls.trim()) projectData.competitor_urls = formData.competitorUrls.trim();
+      
+      // Design fields
+      if (formData.colorPreference) projectData.color_preference = formData.colorPreference;
+      if (formData.moodTags.length > 0) projectData.mood_tags = formData.moodTags;
+      if (formData.inspirations.trim()) projectData.inspirations = formData.inspirations.trim();
+      if (formData.heroPreference) projectData.hero_preference = formData.heroPreference;
+      
+      // Features & Contact
+      if (formData.features.length > 0) projectData.features = formData.features;
+      if (formData.contactEmail.trim()) projectData.contact_email = formData.contactEmail.trim();
+      if (formData.contactPhone.trim()) projectData.contact_phone = formData.contactPhone.trim();
+      if (formData.address.trim()) projectData.address = formData.address.trim();
+      if (formData.uniqueValue.trim()) projectData.unique_value = formData.uniqueValue.trim();
+      
+      // NEW: Additional fields
+      const hasAnySocial = Object.values(formData.socialLinks).some(v => v.trim());
+      if (hasAnySocial) projectData.social_links = formData.socialLinks;
+      if (formData.businessHours.trim()) projectData.business_hours = formData.businessHours.trim();
+      if (formData.callToAction.trim()) projectData.call_to_action = formData.callToAction.trim();
 
       const { data, error } = await supabase
         .from('projects')
@@ -282,7 +435,7 @@ export default function NewProjectPage() {
 
       if (error) {
         console.error('Supabase error:', error);
-        alert(`Error: ${error.message}\n\nHint: You may need to add new columns to your projects table.`);
+        alert(`Error: ${error.message}\n\nHint: You may need to add new columns to your projects table. See the SQL migration below.`);
         return;
       }
 
@@ -295,12 +448,11 @@ export default function NewProjectPage() {
     }
   };
 
-  // Get features for current industry
   const currentFeatures = featuresByIndustry[formData.industry] || featuresByIndustry['other'];
 
   return (
     <div className="min-h-screen bg-[#fafafa] antialiased">
-      {/* CUSTOM STYLES */}
+      {/* STYLES */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
         
@@ -339,26 +491,9 @@ export default function NewProjectPage() {
           transform: translateY(-1px);
           box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
-        
-        .gradient-border {
-          position: relative;
-        }
-        
-        .gradient-border::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          padding: 2px;
-          background: linear-gradient(135deg, var(--tw-gradient-from), var(--tw-gradient-to));
-          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
-        }
       `}</style>
 
-      {/* NOISE OVERLAY */}
+      {/* NOISE */}
       <div className="fixed inset-0 pointer-events-none noise z-50"></div>
 
       {/* HEADER */}
@@ -381,7 +516,7 @@ export default function NewProjectPage() {
         </div>
       </header>
 
-      {/* PROGRESS BAR */}
+      {/* PROGRESS */}
       <div className="bg-white border-b border-neutral-100">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-2">
@@ -394,9 +529,8 @@ export default function NewProjectPage() {
               style={{ width: `${(step / totalSteps) * 100}%` }}
             />
           </div>
-          {/* Step Labels */}
           <div className="flex justify-between mt-3">
-            {['Business', 'Style', 'Plan', 'Details'].map((label, i) => (
+            {['Business', 'Brand', 'Design', 'Plan', 'Details'].map((label, i) => (
               <span 
                 key={label} 
                 className={`font-body text-xs ${step > i ? 'text-black font-medium' : step === i + 1 ? 'text-black' : 'text-neutral-400'}`}
@@ -412,7 +546,7 @@ export default function NewProjectPage() {
       <main className="max-w-4xl mx-auto px-6 py-12">
         
         {/* ============================================ */}
-        {/* STEP 1: BUSINESS INFO */}
+        {/* STEP 1: BUSINESS BASICS (same as before) */}
         {/* ============================================ */}
         {step === 1 && (
           <div className="slide-up">
@@ -426,7 +560,7 @@ export default function NewProjectPage() {
             </div>
 
             <div className="max-w-xl mx-auto space-y-6">
-              {/* BUSINESS NAME */}
+              {/* Business Name */}
               <div>
                 <label className="block font-body text-sm font-medium text-black mb-2">
                   Business Name *
@@ -440,7 +574,7 @@ export default function NewProjectPage() {
                 />
               </div>
 
-              {/* INDUSTRY - Visual Grid */}
+              {/* Industry */}
               <div>
                 <label className="block font-body text-sm font-medium text-black mb-3">
                   What industry are you in? *
@@ -463,7 +597,7 @@ export default function NewProjectPage() {
                 </div>
               </div>
 
-              {/* DESCRIPTION */}
+              {/* Description */}
               <div>
                 <label className="block font-body text-sm font-medium text-black mb-2">
                   What does your business do? *
@@ -477,7 +611,7 @@ export default function NewProjectPage() {
                 />
               </div>
 
-              {/* WEBSITE GOAL */}
+              {/* Website Goal */}
               <div>
                 <label className="block font-body text-sm font-medium text-black mb-3">
                   What's the main goal of your website?
@@ -503,7 +637,7 @@ export default function NewProjectPage() {
                 </div>
               </div>
 
-              {/* TARGET CUSTOMER - THE MAGIC QUESTION */}
+              {/* Target Customer */}
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
                 <label className="block font-body text-sm font-medium text-amber-900 mb-2">
                   ✨ Describe your ideal customer in one sentence
@@ -524,84 +658,248 @@ export default function NewProjectPage() {
         )}
 
         {/* ============================================ */}
-        {/* STEP 2: STYLE & VIBE */}
+        {/* STEP 2: BRAND & VOICE (NEW STEP) */}
         {/* ============================================ */}
         {step === 2 && (
           <div className="slide-up">
             <div className="text-center mb-10">
               <h1 className="font-display text-4xl lg:text-5xl font-medium text-black mb-3">
-                Choose your style
+                Define your brand voice
               </h1>
               <p className="font-body text-lg text-neutral-500">
-                What vibe should your website have?
+                How should your website sound and feel?
               </p>
             </div>
 
-            {/* STYLE SELECTION */}
-            <div className="mb-10">
-              <label className="block font-body text-sm font-medium text-black mb-4 text-center">
-                Website Style *
-              </label>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-4xl mx-auto">
-                {styles.map(style => (
+            <div className="max-w-2xl mx-auto space-y-8">
+              {/* Brand Voice */}
+              <div>
+                <label className="block font-body text-sm font-medium text-black mb-3">
+                  How should your website speak? *
+                </label>
+                <div className="space-y-3">
+                  {brandVoiceOptions.map(voice => (
+                    <button
+                      key={voice.id}
+                      onClick={() => updateForm('brandVoice', voice.id)}
+                      className={`w-full p-4 rounded-2xl font-body text-left transition-all ${
+                        formData.brandVoice === voice.id
+                          ? 'bg-black text-white'
+                          : 'bg-white border border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-xl">{voice.icon}</span>
+                        <div>
+                          <span className="font-medium block">{voice.name}</span>
+                          <span className={`text-xs ${formData.brandVoice === voice.id ? 'text-white/70' : 'text-neutral-500'}`}>
+                            {voice.desc}
+                          </span>
+                        </div>
+                      </div>
+                      <p className={`text-sm italic pl-9 ${formData.brandVoice === voice.id ? 'text-white/60' : 'text-neutral-400'}`}>
+                        {voice.example}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Primary Services/Products */}
+              <div>
+                <label className="block font-body text-sm font-medium text-black mb-2">
+                  What are your main services or products? <span className="text-neutral-400">(up to 5)</span>
+                </label>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={serviceInput}
+                    onChange={(e) => setServiceInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addService())}
+                    placeholder="e.g., Web Design, SEO, Branding"
+                    className="flex-1 px-4 py-3 bg-white border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                    disabled={formData.primaryServices.length >= 5}
+                  />
                   <button
-                    key={style.id}
-                    onClick={() => updateForm('style', style.id)}
-                    className={`card-hover rounded-2xl text-left transition-all overflow-hidden ${
-                      formData.style === style.id
-                        ? 'ring-2 ring-black ring-offset-2'
-                        : 'border border-neutral-200 hover:border-neutral-300'
-                    }`}
+                    onClick={addService}
+                    disabled={!serviceInput.trim() || formData.primaryServices.length >= 5}
+                    className="px-4 py-3 bg-black text-white font-body font-medium rounded-xl hover:bg-black/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {/* Gradient Preview */}
-                    <div className={`h-16 bg-gradient-to-br ${style.gradient}`}></div>
-                    <div className="p-4 bg-white">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">{style.icon}</span>
-                        <h3 className="font-body font-semibold text-sm text-black">{style.name}</h3>
-                      </div>
-                      <p className="font-body text-xs text-neutral-500">{style.desc}</p>
-                    </div>
-                    {formData.style === style.id && (
-                      <div className="absolute top-2 right-2 w-6 h-6 bg-black rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
+                    Add
                   </button>
-                ))}
+                </div>
+                {formData.primaryServices.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.primaryServices.map((service, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-100 rounded-lg font-body text-sm"
+                      >
+                        {service}
+                        <button
+                          onClick={() => removeService(i)}
+                          className="text-neutral-400 hover:text-black transition-colors"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <p className="font-body text-xs text-neutral-500 mt-2">
+                  These will be prominently featured in your navigation and hero section
+                </p>
+              </div>
+
+              {/* Existing Branding */}
+              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-5 space-y-4">
+                <h3 className="font-body font-medium text-black">Existing Brand Assets</h3>
+                
+                {/* Logo */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-body text-sm text-black block">Do you have a logo?</span>
+                    <span className="font-body text-xs text-neutral-500">We'll design the header accordingly</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => updateForm('existingLogo', true)}
+                      className={`px-4 py-2 rounded-lg font-body text-sm transition-colors ${
+                        formData.existingLogo
+                          ? 'bg-black text-white'
+                          : 'bg-white border border-neutral-200 text-neutral-600'
+                      }`}
+                    >
+                      Yes
+                    </button>
+                    <button
+                      onClick={() => updateForm('existingLogo', false)}
+                      className={`px-4 py-2 rounded-lg font-body text-sm transition-colors ${
+                        !formData.existingLogo
+                          ? 'bg-black text-white'
+                          : 'bg-white border border-neutral-200 text-neutral-600'
+                      }`}
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+
+                {/* Existing Colors */}
+                <div>
+                  <label className="block font-body text-sm text-black mb-2">
+                    Brand colors to use? <span className="text-neutral-400">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.existingColors}
+                    onChange={(e) => updateForm('existingColors', e.target.value)}
+                    placeholder="e.g., #1E40AF, #F59E0B (or color names like navy blue)"
+                    className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                  />
+                </div>
+              </div>
+
+              {/* Competitor URLs */}
+              <div>
+                <label className="block font-body text-sm font-medium text-black mb-2">
+                  Any competitors we should know about? <span className="text-neutral-400">(optional)</span>
+                </label>
+                <textarea
+                  value={formData.competitorUrls}
+                  onChange={(e) => updateForm('competitorUrls', e.target.value)}
+                  placeholder="Share links to competitor websites you want to differentiate from..."
+                  rows={2}
+                  className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black resize-none"
+                />
+                <p className="font-body text-xs text-neutral-500 mt-2">
+                  We'll make sure your site stands out from these
+                </p>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* COLOR PREFERENCE */}
-            <div className="max-w-3xl mx-auto mb-10">
-              <label className="block font-body text-sm font-medium text-black mb-4 text-center">
-                Color Palette
+        {/* ============================================ */}
+        {/* STEP 3: DESIGN DIRECTION (UPDATED) */}
+        {/* ============================================ */}
+        {step === 3 && (
+          <div className="slide-up">
+            <div className="text-center mb-10">
+              <h1 className="font-display text-4xl lg:text-5xl font-medium text-black mb-3">
+                Choose your design direction
+              </h1>
+              <p className="font-body text-lg text-neutral-500">
+                Select a visual style that matches your brand
+              </p>
+            </div>
+
+            {/* NEW: StyleSelector Component */}
+            <div className="mb-10">
+              <StyleSelector
+                value={formData.designDirection}
+                onChange={(direction) => updateForm('designDirection', direction)}
+              />
+            </div>
+
+            {/* Color Preference (only show if not using existing colors) */}
+            {!formData.existingColors.trim() && (
+              <div className="max-w-3xl mx-auto mb-10">
+                <label className="block font-body text-sm font-medium text-black mb-4 text-center">
+                  Color Palette
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {colorOptions.filter(c => c.id !== 'custom').map(color => (
+                    <button
+                      key={color.id}
+                      onClick={() => updateForm('colorPreference', color.id)}
+                      className={`p-3 rounded-xl transition-all ${
+                        formData.colorPreference === color.id
+                          ? 'bg-black text-white'
+                          : 'bg-white border border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <div className="flex gap-1 mb-2 justify-center">
+                        {color.colors.map((c, i) => (
+                          <div key={i} className="w-5 h-5 rounded-full border border-white/20" style={{ backgroundColor: c }} />
+                        ))}
+                      </div>
+                      <span className="font-body text-xs font-medium block">{color.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Hero Preference (NEW) */}
+            <div className="max-w-2xl mx-auto mb-10">
+              <label className="block font-body text-sm font-medium text-black mb-3 text-center">
+                Hero Section Style
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {colorOptions.map(color => (
+                {heroPreferences.map(hero => (
                   <button
-                    key={color.id}
-                    onClick={() => updateForm('colorPreference', color.id)}
-                    className={`p-3 rounded-xl transition-all ${
-                      formData.colorPreference === color.id
+                    key={hero.id}
+                    onClick={() => updateForm('heroPreference', hero.id)}
+                    className={`p-4 rounded-xl transition-all ${
+                      formData.heroPreference === hero.id
                         ? 'bg-black text-white'
                         : 'bg-white border border-neutral-200 hover:border-neutral-300'
                     }`}
                   >
-                    <div className="flex gap-1 mb-2 justify-center">
-                      {color.colors.map((c, i) => (
-                        <div key={i} className="w-5 h-5 rounded-full border border-white/20" style={{ backgroundColor: c }} />
-                      ))}
-                    </div>
-                    <span className="font-body text-xs font-medium block">{color.name}</span>
+                    <span className="text-2xl block mb-2">{hero.icon}</span>
+                    <span className="font-body text-sm font-medium block">{hero.name}</span>
+                    <span className={`font-body text-xs block mt-1 ${
+                      formData.heroPreference === hero.id ? 'text-white/70' : 'text-neutral-500'
+                    }`}>
+                      {hero.desc}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* MOOD TAGS */}
+            {/* Mood Tags */}
             <div className="max-w-2xl mx-auto mb-10">
               <label className="block font-body text-sm font-medium text-black mb-2 text-center">
                 How should your website feel? <span className="text-neutral-400 font-normal">(pick up to 3)</span>
@@ -623,7 +921,7 @@ export default function NewProjectPage() {
               </div>
             </div>
 
-            {/* INSPIRATIONS */}
+            {/* Inspirations */}
             <div className="max-w-xl mx-auto">
               <label className="block font-body text-sm font-medium text-black mb-2">
                 Any websites you love? <span className="text-neutral-400 font-normal">(optional)</span>
@@ -640,9 +938,9 @@ export default function NewProjectPage() {
         )}
 
         {/* ============================================ */}
-        {/* STEP 3: PLAN */}
+        {/* STEP 4: PLAN (same as before) */}
         {/* ============================================ */}
-        {step === 3 && (
+        {step === 4 && (
           <div className="slide-up">
             <div className="text-center mb-10">
               <h1 className="font-display text-4xl lg:text-5xl font-medium text-black mb-3">
@@ -700,7 +998,6 @@ export default function NewProjectPage() {
               ))}
             </div>
 
-            {/* GUARANTEE */}
             <div className="max-w-xl mx-auto mt-10 p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center">
               <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -716,9 +1013,9 @@ export default function NewProjectPage() {
         )}
 
         {/* ============================================ */}
-        {/* STEP 4: FEATURES & CONTACT */}
+        {/* STEP 5: FEATURES & CONTACT (ENHANCED) */}
         {/* ============================================ */}
-        {step === 4 && (
+        {step === 5 && (
           <div className="slide-up">
             <div className="text-center mb-10">
               <h1 className="font-display text-4xl lg:text-5xl font-medium text-black mb-3">
@@ -730,7 +1027,7 @@ export default function NewProjectPage() {
             </div>
 
             <div className="max-w-2xl mx-auto space-y-8">
-              {/* FEATURES */}
+              {/* Features */}
               <div>
                 <label className="block font-body text-sm font-medium text-black mb-3">
                   Select features for your website
@@ -746,16 +1043,14 @@ export default function NewProjectPage() {
                           : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
                       }`}
                     >
-                      {formData.features.includes(feature) && (
-                        <span className="mr-1">✓</span>
-                      )}
+                      {formData.features.includes(feature) && <span className="mr-1">✓</span>}
                       {feature}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* UNIQUE VALUE */}
+              {/* Unique Value */}
               <div>
                 <label className="block font-body text-sm font-medium text-black mb-2">
                   What makes you different from competitors?
@@ -769,7 +1064,41 @@ export default function NewProjectPage() {
                 />
               </div>
 
-              {/* CONTACT INFORMATION */}
+              {/* CTA Preference (NEW) */}
+              <div>
+                <label className="block font-body text-sm font-medium text-black mb-2">
+                  Preferred call-to-action text
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={formData.callToAction}
+                    onChange={(e) => updateForm('callToAction', e.target.value)}
+                    placeholder="e.g., Get Started, Book Now"
+                    className="flex-1 px-4 py-3 bg-white border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                  />
+                </div>
+                {formData.websiteGoal && (
+                  <div className="flex flex-wrap gap-2">
+                    <span className="font-body text-xs text-neutral-500">Suggestions:</span>
+                    {suggestedCTAs[formData.websiteGoal]?.map(cta => (
+                      <button
+                        key={cta}
+                        onClick={() => updateForm('callToAction', cta)}
+                        className={`px-2 py-1 rounded text-xs font-body transition-colors ${
+                          formData.callToAction === cta
+                            ? 'bg-black text-white'
+                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                        }`}
+                      >
+                        {cta}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Contact Information */}
               <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6">
                 <h3 className="font-body font-semibold text-black mb-4">Contact Information</h3>
                 <p className="font-body text-sm text-neutral-500 mb-4">This will appear on your website</p>
@@ -807,10 +1136,73 @@ export default function NewProjectPage() {
                       />
                     </div>
                   </div>
+                  
+                  {/* Business Hours (NEW) */}
+                  {['restaurant', 'local-services', 'health-beauty', 'fitness', 'medical', 'automotive'].includes(formData.industry) && (
+                    <div>
+                      <label className="block font-body text-sm text-neutral-600 mb-1">Business Hours</label>
+                      <input
+                        type="text"
+                        value={formData.businessHours}
+                        onChange={(e) => updateForm('businessHours', e.target.value)}
+                        placeholder="e.g., Mon-Fri 9am-6pm, Sat 10am-4pm"
+                        className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* SUMMARY */}
+              {/* Social Media Links (NEW) */}
+              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6">
+                <h3 className="font-body font-semibold text-black mb-4">Social Media Links</h3>
+                <p className="font-body text-sm text-neutral-500 mb-4">Add your profiles (optional)</p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-body text-xs text-neutral-500 mb-1">Instagram</label>
+                    <input
+                      type="text"
+                      value={formData.socialLinks.instagram}
+                      onChange={(e) => updateSocialLink('instagram', e.target.value)}
+                      placeholder="@yourbusiness"
+                      className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg font-body text-sm text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-body text-xs text-neutral-500 mb-1">Facebook</label>
+                    <input
+                      type="text"
+                      value={formData.socialLinks.facebook}
+                      onChange={(e) => updateSocialLink('facebook', e.target.value)}
+                      placeholder="facebook.com/..."
+                      className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg font-body text-sm text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-body text-xs text-neutral-500 mb-1">LinkedIn</label>
+                    <input
+                      type="text"
+                      value={formData.socialLinks.linkedin}
+                      onChange={(e) => updateSocialLink('linkedin', e.target.value)}
+                      placeholder="linkedin.com/..."
+                      className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg font-body text-sm text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-body text-xs text-neutral-500 mb-1">Twitter/X</label>
+                    <input
+                      type="text"
+                      value={formData.socialLinks.twitter}
+                      onChange={(e) => updateSocialLink('twitter', e.target.value)}
+                      placeholder="@yourbusiness"
+                      className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg font-body text-sm text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary */}
               <div className="p-6 bg-white border border-neutral-200 rounded-3xl">
                 <h3 className="font-display text-xl font-medium text-black mb-6">Project Summary</h3>
                 
@@ -826,15 +1218,15 @@ export default function NewProjectPage() {
                     </span>
                   </div>
                   <div className="flex justify-between py-3 border-b border-neutral-100">
-                    <span className="font-body text-neutral-500">Style</span>
+                    <span className="font-body text-neutral-500">Brand Voice</span>
                     <span className="font-body font-medium text-black">
-                      {styles.find(s => s.id === formData.style)?.name || '—'}
+                      {brandVoiceOptions.find(v => v.id === formData.brandVoice)?.name || '—'}
                     </span>
                   </div>
                   <div className="flex justify-between py-3 border-b border-neutral-100">
-                    <span className="font-body text-neutral-500">Colors</span>
-                    <span className="font-body font-medium text-black">
-                      {colorOptions.find(c => c.id === formData.colorPreference)?.name || '—'}
+                    <span className="font-body text-neutral-500">Design Direction</span>
+                    <span className="font-body font-medium text-black capitalize">
+                      {formData.designDirection?.replace('_', ' ') || '—'}
                     </span>
                   </div>
                   <div className="flex justify-between py-3 border-b border-neutral-100">
@@ -843,6 +1235,18 @@ export default function NewProjectPage() {
                       {plans.find(p => p.id === formData.plan)?.name} — ${plans.find(p => p.id === formData.plan)?.price}
                     </span>
                   </div>
+                  {formData.primaryServices.length > 0 && (
+                    <div className="py-3 border-b border-neutral-100">
+                      <span className="font-body text-neutral-500 block mb-2">Key Services</span>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.primaryServices.map(s => (
+                          <span key={s} className="px-3 py-1 bg-violet-100 text-violet-700 rounded-full font-body text-xs">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {formData.features.length > 0 && (
                     <div className="py-3">
                       <span className="font-body text-neutral-500 block mb-2">Features</span>
