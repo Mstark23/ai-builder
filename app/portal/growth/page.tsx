@@ -723,4 +723,4 @@ export default function GrowthQuizPage() {
       </main>
     </div>
   );
-}s
+}
