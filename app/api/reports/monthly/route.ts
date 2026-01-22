@@ -87,8 +87,9 @@ async function getProjectStats(projectId: string, startDate: Date, endDate: Date
     .eq('project_id', projectId);
 
   const totalReviews = allReviews?.length || 0;
+  // FIX: Use nullish coalescing to handle null allReviews
   const averageRating = totalReviews > 0
-    ? parseFloat((allReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1))
+    ? parseFloat(((allReviews ?? []).reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1))
     : 0;
 
   // Simulated traffic (replace with Google Analytics API in production)
@@ -327,8 +328,8 @@ export async function POST(request: NextRequest) {
   for (const project of projects) {
     try {
       const stats = await getProjectStats(project.id, startDate, endDate);
-      if (stats && project.customers?.email) {
-        await sendReportEmail(project.customers.email, stats, monthName, year);
+      if (stats && (project.customers as any)?.email) {
+        await sendReportEmail((project.customers as any).email, stats, monthName, year);
         sentCount++;
       }
     } catch (error) {
