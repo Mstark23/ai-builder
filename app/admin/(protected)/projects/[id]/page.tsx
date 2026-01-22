@@ -140,7 +140,6 @@ function MultiPageManager({
 }) {
   const [selectedPages, setSelectedPages] = useState<string[]>(requestedPages || ['home']);
   const [generating, setGenerating] = useState(false);
-  const [generatingPage, setGeneratingPage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const maxPages = PLAN_PAGE_LIMITS[plan] || 1;
@@ -345,7 +344,6 @@ function SectionEditor({ projectId, html, onUpdate }: { projectId: string; html:
 
   return (
     <div className="space-y-4">
-      {/* Controls */}
       <div className="flex items-center justify-between p-4 bg-neutral-50 border-b border-neutral-200">
         <div className="flex items-center gap-3">
           <h3 className="font-semibold text-black">Website Preview</h3>
@@ -365,7 +363,6 @@ function SectionEditor({ projectId, html, onUpdate }: { projectId: string; html:
         </button>
       </div>
 
-      {/* Preview iframe */}
       <div className={`${editMode ? 'ring-2 ring-violet-500 ring-offset-2' : ''} rounded-xl overflow-hidden mx-4`}>
         <iframe
           srcDoc={html}
@@ -375,7 +372,6 @@ function SectionEditor({ projectId, html, onUpdate }: { projectId: string; html:
         />
       </div>
 
-      {/* Section selector - only shown when edit mode is on */}
       {editMode && (
         <div className="mx-4 p-4 bg-white border border-neutral-200 rounded-xl">
           <h4 className="font-semibold text-black mb-3 flex items-center gap-2">
@@ -413,7 +409,6 @@ function SectionEditor({ projectId, html, onUpdate }: { projectId: string; html:
         </div>
       )}
 
-      {/* Regeneration modal */}
       {selectedSection && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
@@ -514,8 +509,24 @@ function SectionEditor({ projectId, html, onUpdate }: { projectId: string; html:
 // DESIGN REVIEW COMPONENT
 // =============================================================================
 
-type ReviewCategory = { score: number; status: 'pass' | 'warning' | 'fail'; findings?: any[]; issues?: string[]; missingFeatures?: string[]; foundFeatures?: string[] };
-type ReviewData = { overallScore: number; passesQuality: boolean; categories: Record<string, ReviewCategory>; criticalIssues: string[]; warnings: string[]; suggestions: string[]; summary: string };
+type ReviewCategory = { 
+  score: number; 
+  status: 'pass' | 'warning' | 'fail'; 
+  findings?: any[]; 
+  issues?: string[]; 
+  missingFeatures?: string[]; 
+  foundFeatures?: string[] 
+};
+
+type ReviewData = { 
+  overallScore: number; 
+  passesQuality: boolean; 
+  categories: Record<string, ReviewCategory>; 
+  criticalIssues: string[]; 
+  warnings: string[]; 
+  suggestions: string[]; 
+  summary: string 
+};
 
 function DesignReview({ project, onReviewComplete }: { project: Project; onReviewComplete?: (r: ReviewData) => void }) {
   const [review, setReview] = useState<ReviewData | null>(project.review_details || null);
@@ -622,11 +633,11 @@ function DesignReview({ project, onReviewComplete }: { project: Project; onRevie
         </div>
       </div>
 
-      {review.criticalIssues?.length > 0 && (
+      {(review.criticalIssues?.length ?? 0) > 0 && (
         <div className="p-4 bg-red-50 border-b border-red-100">
-          <h4 className="font-medium text-red-800 text-sm mb-2">Critical Issues ({review.criticalIssues.length})</h4>
+          <h4 className="font-medium text-red-800 text-sm mb-2">Critical Issues ({review.criticalIssues?.length ?? 0})</h4>
           <ul className="space-y-1">
-            {review.criticalIssues.map((issue, i) => <li key={i} className="text-sm text-red-700">• {issue}</li>)}
+            {review.criticalIssues?.map((issue, i) => <li key={i} className="text-sm text-red-700">• {issue}</li>)}
           </ul>
         </div>
       )}
@@ -652,17 +663,17 @@ function DesignReview({ project, onReviewComplete }: { project: Project; onRevie
                 </button>
                 {expanded === key && (
                   <div className="p-3 pt-0 border-t border-neutral-100 bg-neutral-50 space-y-2">
-                    {category.issues?.length > 0 && (
+                    {(category.issues?.length ?? 0) > 0 && (
                       <div>
                         <span className="text-xs font-medium text-amber-600">Issues:</span>
-                        <ul className="mt-1">{category.issues.map((issue, i) => <li key={i} className="text-xs text-neutral-600">• {issue}</li>)}</ul>
+                        <ul className="mt-1">{category.issues?.map((issue, i) => <li key={i} className="text-xs text-neutral-600">• {issue}</li>)}</ul>
                       </div>
                     )}
-                    {category.missingFeatures?.length > 0 && (
+                    {(category.missingFeatures?.length ?? 0) > 0 && (
                       <div>
                         <span className="text-xs font-medium text-red-600">Missing:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {category.missingFeatures.map((f, i) => <span key={i} className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">{f}</span>)}
+                          {category.missingFeatures?.map((f, i) => <span key={i} className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">{f}</span>)}
                         </div>
                       </div>
                     )}
@@ -674,11 +685,11 @@ function DesignReview({ project, onReviewComplete }: { project: Project; onRevie
         </div>
       </div>
 
-      {review.suggestions?.length > 0 && (
+      {(review.suggestions?.length ?? 0) > 0 && (
         <div className="p-4 bg-neutral-50">
           <h4 className="font-medium text-blue-700 text-sm mb-2">💡 Suggestions</h4>
           <ul className="space-y-1">
-            {review.suggestions.slice(0, 3).map((s, i) => <li key={i} className="text-sm text-neutral-600">{s}</li>)}
+            {review.suggestions?.slice(0, 3).map((s, i) => <li key={i} className="text-sm text-neutral-600">{s}</li>)}
           </ul>
         </div>
       )}
@@ -977,7 +988,7 @@ export default function ProjectDetailPage() {
                 {project.call_to_action && (
                   <div className="p-4 bg-neutral-50 rounded-xl">
                     <p className="text-xs text-neutral-500 mb-1">Preferred CTA</p>
-                    <p className="text-sm font-medium text-black">"{project.call_to_action}"</p>
+                    <p className="text-sm font-medium text-black">&quot;{project.call_to_action}&quot;</p>
                   </div>
                 )}
               </div>
