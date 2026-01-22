@@ -44,22 +44,119 @@ const supabase = createClient(
 );
 
 // =============================================================================
+// INDUSTRY ID MAPPING (for legacy/simplified IDs)
+// =============================================================================
+
+/**
+ * Maps common/simplified industry names to valid industry IDs
+ * This handles cases where projects use simplified names like "ecommerce" 
+ * instead of specific IDs like "fashion-clothing"
+ */
+const INDUSTRY_ID_ALIASES: Record<string, string> = {
+  // E-commerce aliases
+  'ecommerce': 'fashion-clothing',
+  'e-commerce': 'fashion-clothing',
+  'retail': 'fashion-clothing',
+  'shop': 'fashion-clothing',
+  'store': 'fashion-clothing',
+  'online-store': 'fashion-clothing',
+  
+  // Restaurant aliases
+  'food': 'restaurant',
+  'dining': 'restaurant',
+  'cafe': 'cafe-coffee-shop',
+  'coffee': 'cafe-coffee-shop',
+  
+  // Professional aliases
+  'lawyer': 'law-firm',
+  'legal': 'law-firm',
+  'attorney': 'law-firm',
+  'accountant': 'accounting-cpa',
+  'accounting': 'accounting-cpa',
+  'finance': 'financial-advisor',
+  'financial': 'financial-advisor',
+  'realestate': 'real-estate-residential',
+  'real-estate': 'real-estate-residential',
+  'realtor': 'real-estate-residential',
+  
+  // Healthcare aliases
+  'dental': 'dental-clinic',
+  'dentist': 'dental-clinic',
+  'medical': 'dental-clinic',
+  'healthcare': 'dental-clinic',
+  'health': 'dental-clinic',
+  
+  // Tech aliases
+  'saas': 'saas-startup',
+  'software': 'saas-startup',
+  'tech': 'saas-startup',
+  'startup': 'saas-startup',
+  'app': 'mobile-app',
+  
+  // Creative aliases
+  'photography': 'photography-wedding',
+  'photographer': 'photography-wedding',
+  'design': 'portfolio-designer',
+  'designer': 'portfolio-designer',
+  'agency': 'marketing-agency',
+  'marketing': 'marketing-agency',
+  
+  // Local services aliases
+  'salon': 'salon-hair',
+  'hair': 'salon-hair',
+  'barbershop': 'salon-hair',
+  'spa': 'med-spa',
+  'beauty': 'med-spa',
+  'gym': 'gym-boutique',
+  'fitness': 'fitness-gym',
+  'yoga': 'yoga-pilates',
+  
+  // Other aliases
+  'hotel': 'hotel-hospitality',
+  'hospitality': 'hotel-hospitality',
+  'nonprofit': 'nonprofit-charity',
+  'charity': 'nonprofit-charity',
+  'wedding': 'wedding-planner',
+  'events': 'wedding-planner',
+  'coaching': 'coach-life',
+  'coach': 'coach-life',
+  'course': 'course-creator',
+  'education': 'course-creator',
+};
+
+/**
+ * Normalize industry ID - maps aliases to valid IDs
+ */
+function normalizeIndustryId(id: string): string {
+  const normalized = id.toLowerCase().trim();
+  return INDUSTRY_ID_ALIASES[normalized] || normalized;
+}
+
+// =============================================================================
 // INDUSTRY INTELLIGENCE FETCHING
 // =============================================================================
 
 interface IntelligenceResult {
   intelligence: IndustryIntelligence;
   source: 'database' | 'static' | 'fallback';
+  originalId?: string;
+  mappedFrom?: string;
 }
 
 /**
  * Fetch industry intelligence with cascading fallback:
- * 1. Try Supabase database
- * 2. Fall back to static data
- * 3. Fall back to generic template
+ * 1. Try exact match in Supabase database
+ * 2. Try normalized/aliased ID in database
+ * 3. Fall back to static data (exact match)
+ * 4. Fall back to static data (normalized)
+ * 5. Fall back to generic template
  */
 async function getIndustryIntelligence(industryId: string): Promise<IntelligenceResult> {
-  // Try database first
+  const originalId = industryId;
+  const normalizedId = normalizeIndustryId(industryId);
+  const wasNormalized = normalizedId !== industryId.toLowerCase().trim();
+
+  // Try database first with original ID
   try {
     const { data, error } = await supabase
       .from('industries')
@@ -72,27 +169,67 @@ async function getIndustryIntelligence(industryId: string): Promise<Intelligence
       return {
         intelligence: data.intelligence as IndustryIntelligence,
         source: 'database',
+        originalId,
       };
     }
   } catch (err) {
-    console.warn(`⚠️ Database lookup failed for "${industryId}":`, err);
+    // Continue to next fallback
   }
 
-  // Try static data
+  // Try database with normalized ID if different
+  if (wasNormalized) {
+    try {
+      const { data, error } = await supabase
+        .from('industries')
+        .select('intelligence')
+        .eq('id', normalizedId)
+        .single();
+
+      if (!error && data?.intelligence) {
+        console.log(`✅ Loaded "${normalizedId}" from database (mapped from "${industryId}")`);
+        return {
+          intelligence: data.intelligence as IndustryIntelligence,
+          source: 'database',
+          originalId,
+          mappedFrom: industryId,
+        };
+      }
+    } catch (err) {
+      // Continue to next fallback
+    }
+  }
+
+  // Try static data with original ID
   const staticIndustry = getIndustry(industryId);
   if (staticIndustry) {
     console.log(`📦 Loaded "${industryId}" from static data`);
     return {
       intelligence: staticIndustry,
       source: 'static',
+      originalId,
     };
+  }
+
+  // Try static data with normalized ID
+  if (wasNormalized) {
+    const normalizedStaticIndustry = getIndustry(normalizedId);
+    if (normalizedStaticIndustry) {
+      console.log(`📦 Loaded "${normalizedId}" from static data (mapped from "${industryId}")`);
+      return {
+        intelligence: normalizedStaticIndustry,
+        source: 'static',
+        originalId,
+        mappedFrom: industryId,
+      };
+    }
   }
 
   // Use fallback
   console.warn(`⚠️ Industry "${industryId}" not found, using fallback`);
   return {
-    intelligence: { ...fallbackIntelligence, id: industryId },
+    intelligence: { ...fallbackIntelligence, id: industryId, name: `${industryId} Business` },
     source: 'fallback',
+    originalId,
   };
 }
 
@@ -318,6 +455,18 @@ export async function POST(request: NextRequest) {
 
     // Extract project data
     const { project, pageType = 'landing', customInstructions, customizations } = body;
+    
+    // Safely destructure project with defaults
+    if (!project || typeof project !== 'object') {
+      return NextResponse.json(
+        {
+          error: 'Invalid request: project object is required',
+          required: ['project.id', 'project.industry', 'project.businessName'],
+        },
+        { status: 400 }
+      );
+    }
+
     const {
       id: projectId,
       industry: industryId,
@@ -335,18 +484,20 @@ export async function POST(request: NextRequest) {
         {
           error: 'Missing required fields',
           required: ['project.id', 'project.industry', 'project.businessName'],
+          received: { projectId: !!projectId, industryId: !!industryId, businessName: !!businessName },
         },
         { status: 400 }
       );
     }
 
-    // Fetch industry intelligence
-    const { intelligence, source } = await getIndustryIntelligence(industryId);
+    // Fetch industry intelligence (with alias mapping)
+    const { intelligence, source, mappedFrom } = await getIndustryIntelligence(industryId);
 
     console.log('═══════════════════════════════════════════════════════════════');
     console.log(`🚀 GENERATING WEBSITE`);
     console.log(`   Business: ${businessName}`);
     console.log(`   Industry: ${intelligence.name} (${intelligence.id})`);
+    console.log(`   Original ID: ${industryId}${mappedFrom ? ` (mapped to ${intelligence.id})` : ''}`);
     console.log(`   Source: ${source}`);
     console.log(`   Page Type: ${pageType}`);
     console.log('═══════════════════════════════════════════════════════════════');
@@ -459,6 +610,7 @@ ${customInstructions}`;
       intelligenceSource: source,
       generationTimeMs: generationTime,
       inspirationBrands: intelligence.topBrands.slice(0, 4),
+      mappedFrom: mappedFrom || null,
     });
   } catch (error) {
     console.error('❌ Generation error:', error);
@@ -512,13 +664,14 @@ export async function GET() {
   return NextResponse.json({
     status: 'healthy',
     service: 'VERKTORLABS Website Generation API',
-    version: '2.1.0',
+    version: '2.2.0',
     database: dbStatus,
     statistics: {
       totalIndustries: INDUSTRY_STATS.total,
       bySource: INDUSTRY_STATS.bySource,
       categories: INDUSTRY_STATS.categories,
     },
+    industryAliases: Object.keys(INDUSTRY_ID_ALIASES),
     industriesByCategory: byCategory,
     endpoints: {
       'POST /api/generate': {
@@ -526,7 +679,7 @@ export async function GET() {
         body: {
           project: {
             id: 'string (required)',
-            industry: 'string (required) - industry ID',
+            industry: 'string (required) - industry ID or alias',
             businessName: 'string (required)',
             businessDescription: 'string (optional)',
             targetAudience: 'string (optional)',
