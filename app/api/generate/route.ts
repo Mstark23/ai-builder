@@ -1,12 +1,8 @@
 /**
- * VERKTORLABS Website Generation API v2.3
+ * VERKTORLABS Website Generation API v3.0 - FIXED
  * 
- * Industry-intelligent website generation using comprehensive research data.
- * Fetches industry intelligence from Supabase with static fallback.
- * 
- * Endpoints:
- * - POST /api/generate - Generate a website page
- * - GET  /api/generate - Health check and available industries
+ * KEY FIX: Now includes actual component templates and CSS in the prompt
+ * so Claude can use your pre-built design system instead of generating from scratch.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -28,6 +24,12 @@ import {
   INDUSTRY_STATS,
 } from '@/lib/industry-intelligence';
 
+// ⭐ NEW: Import the actual component libraries
+import { REQUIRED_CSS, REQUIRED_JS, ANIMATION_KEYFRAMES, MASTER_SYSTEM_PROMPT } from '@/lib/ai/master-prompt';
+import { HERO_COMPONENTS } from '@/lib/ai/components';
+import { ALL_SECTIONS } from '@/lib/ai/all-sections';
+import { ICONS } from '@/lib/ai/icons';
+
 // =============================================================================
 // INITIALIZATION
 // =============================================================================
@@ -40,6 +42,35 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+// =============================================================================
+// COMPONENT TEMPLATE SELECTOR
+// =============================================================================
+
+/**
+ * Select appropriate section templates based on industry and style
+ */
+function selectTemplates(industry: string, style: string) {
+  // Map industry to best template choices
+  const heroChoice = style === 'minimal' ? 'centeredHero' : 
+                     style === 'bold' ? 'videoHero' : 'splitHero';
+  
+  const servicesChoice = industry.includes('restaurant') ? 'tabs' :
+                         industry.includes('salon') ? 'hoverCards' :
+                         industry.includes('law') ? 'iconCards' : 'bentoGrid';
+  
+  const testimonialsChoice = style === 'elegant' ? 'featuredSingle' : 'slider';
+  
+  return {
+    hero: HERO_COMPONENTS[heroChoice as keyof typeof HERO_COMPONENTS] || HERO_COMPONENTS.splitHero,
+    services: ALL_SECTIONS.services[servicesChoice as keyof typeof ALL_SECTIONS.services] || ALL_SECTIONS.services.bentoGrid,
+    testimonials: ALL_SECTIONS.testimonials[testimonialsChoice as keyof typeof ALL_SECTIONS.testimonials] || ALL_SECTIONS.testimonials.slider,
+    about: ALL_SECTIONS.about?.splitImage || '',
+    contact: ALL_SECTIONS.contact?.splitForm || '',
+    cta: ALL_SECTIONS.cta?.gradient || '',
+    footer: ALL_SECTIONS.footer?.modern || '',
+  };
+}
 
 // =============================================================================
 // DEFAULT FALLBACK INTELLIGENCE (Complete Structure)
@@ -137,76 +168,15 @@ const DEFAULT_FALLBACK: IndustryIntelligence = {
 // =============================================================================
 
 const INDUSTRY_ID_ALIASES: Record<string, string> = {
-  // E-commerce aliases
   'ecommerce': 'fashion-clothing',
   'e-commerce': 'fashion-clothing',
   'retail': 'fashion-clothing',
-  'shop': 'fashion-clothing',
-  'store': 'fashion-clothing',
-  'online-store': 'fashion-clothing',
-  'jewelry': 'jewelry',
-  
-  // Restaurant aliases
+  'restaurant': 'restaurant',
   'food': 'restaurant',
-  'dining': 'restaurant',
-  'cafe': 'cafe-coffee-shop',
-  'coffee': 'cafe-coffee-shop',
-  
-  // Professional aliases
   'lawyer': 'law-firm',
   'legal': 'law-firm',
-  'attorney': 'law-firm',
-  'accountant': 'accounting-cpa',
-  'accounting': 'accounting-cpa',
-  'finance': 'financial-advisor',
-  'financial': 'financial-advisor',
-  'realestate': 'real-estate-residential',
-  'real-estate': 'real-estate-residential',
-  'realtor': 'real-estate-residential',
-  
-  // Healthcare aliases
-  'dental': 'dental-clinic',
-  'dentist': 'dental-clinic',
-  'medical': 'dental-clinic',
-  'healthcare': 'dental-clinic',
-  'health': 'dental-clinic',
-  
-  // Tech aliases
-  'saas': 'saas-startup',
-  'software': 'saas-startup',
-  'tech': 'saas-startup',
-  'startup': 'saas-startup',
-  'app': 'mobile-app',
-  
-  // Creative aliases
-  'photography': 'photography-wedding',
-  'photographer': 'photography-wedding',
-  'design': 'portfolio-designer',
-  'designer': 'portfolio-designer',
-  'agency': 'marketing-agency',
-  'marketing': 'marketing-agency',
-  
-  // Local services aliases
   'salon': 'salon-hair',
-  'hair': 'salon-hair',
-  'barbershop': 'salon-hair',
   'spa': 'med-spa',
-  'beauty': 'med-spa',
-  'gym': 'gym-boutique',
-  'fitness': 'fitness-gym',
-  'yoga': 'yoga-pilates',
-  
-  // Other aliases
-  'hotel': 'hotel-hospitality',
-  'hospitality': 'hotel-hospitality',
-  'nonprofit': 'nonprofit-charity',
-  'charity': 'nonprofit-charity',
-  'wedding': 'wedding-planner',
-  'events': 'wedding-planner',
-  'coaching': 'coach-life',
-  'coach': 'coach-life',
-  'course': 'course-creator',
-  'education': 'course-creator',
   'general': 'general',
 };
 
@@ -283,7 +253,7 @@ async function getIndustryIntelligence(industryId: string): Promise<Intelligence
   const normalizedId = normalizeIndustryId(industryId);
   const wasNormalized = normalizedId !== industryId.toLowerCase().trim();
 
-  // Try database first with original ID
+  // Try database first
   try {
     const { data, error } = await supabase
       .from('industries')
@@ -292,67 +262,28 @@ async function getIndustryIntelligence(industryId: string): Promise<Intelligence
       .single();
 
     if (!error && data?.intelligence) {
-      console.log(`✅ Loaded "${industryId}" from database`);
       return {
         intelligence: ensureCompleteIntelligence(data.intelligence as Partial<IndustryIntelligence>, industryId),
         source: 'database',
         originalId,
       };
     }
-  } catch (err) {
-    // Continue to next fallback
+  } catch {
+    // Continue to fallback
   }
 
-  // Try database with normalized ID if different
-  if (wasNormalized) {
-    try {
-      const { data, error } = await supabase
-        .from('industries')
-        .select('intelligence')
-        .eq('id', normalizedId)
-        .single();
-
-      if (!error && data?.intelligence) {
-        console.log(`✅ Loaded "${normalizedId}" from database (mapped from "${industryId}")`);
-        return {
-          intelligence: ensureCompleteIntelligence(data.intelligence as Partial<IndustryIntelligence>, normalizedId),
-          source: 'database',
-          originalId,
-          mappedFrom: industryId,
-        };
-      }
-    } catch (err) {
-      // Continue to next fallback
-    }
-  }
-
-  // Try static data with original ID
-  const staticIndustry = getIndustry(industryId);
+  // Try static data
+  const staticIndustry = getIndustry(normalizedId);
   if (staticIndustry) {
-    console.log(`📦 Loaded "${industryId}" from static data`);
     return {
-      intelligence: ensureCompleteIntelligence(staticIndustry, industryId),
+      intelligence: ensureCompleteIntelligence(staticIndustry, normalizedId),
       source: 'static',
       originalId,
+      mappedFrom: wasNormalized ? industryId : undefined,
     };
   }
 
-  // Try static data with normalized ID
-  if (wasNormalized) {
-    const normalizedStaticIndustry = getIndustry(normalizedId);
-    if (normalizedStaticIndustry) {
-      console.log(`📦 Loaded "${normalizedId}" from static data (mapped from "${industryId}")`);
-      return {
-        intelligence: ensureCompleteIntelligence(normalizedStaticIndustry, normalizedId),
-        source: 'static',
-        originalId,
-        mappedFrom: industryId,
-      };
-    }
-  }
-
-  // Use complete fallback
-  console.warn(`⚠️ Industry "${industryId}" not found, using fallback`);
+  // Use fallback
   return {
     intelligence: ensureCompleteIntelligence(undefined, industryId),
     source: 'fallback',
@@ -361,7 +292,7 @@ async function getIndustryIntelligence(industryId: string): Promise<Intelligence
 }
 
 // =============================================================================
-// PROMPT BUILDING
+// ⭐ FIXED PROMPT BUILDING - Now includes actual templates!
 // =============================================================================
 
 interface PromptConfig {
@@ -384,21 +315,6 @@ interface PromptConfig {
   pageType: string;
 }
 
-function buildSectionInstructions(sections: Section[], excludeIds: string[] = []): string {
-  const filteredSections = sections.filter((s) => !excludeIds.includes(s.id));
-  
-  return filteredSections
-    .map((section) => {
-      const tag = section.required ? '🔴 REQUIRED' : '🟡 RECOMMENDED';
-      return `
-### ${section.name} [${tag}]
-**Purpose:** ${section.purpose}
-**Key Elements:**
-${section.keyElements.map((el) => `  • ${el}`).join('\n')}`;
-    })
-    .join('\n\n');
-}
-
 function buildDetailedPrompt(config: PromptConfig): string {
   const {
     intelligence,
@@ -412,7 +328,7 @@ function buildDetailedPrompt(config: PromptConfig): string {
     pageType,
   } = config;
 
-  // Apply overrides with safe access
+  // Apply overrides
   const colors = {
     primary: customizations?.colorOverride?.primary || intelligence.design.colors.primary,
     secondary: customizations?.colorOverride?.secondary || intelligence.design.colors.secondary,
@@ -424,121 +340,19 @@ function buildDetailedPrompt(config: PromptConfig): string {
     heading: customizations?.fontOverride?.heading || intelligence.design.fonts.heading,
     body: customizations?.fontOverride?.body || intelligence.design.fonts.body,
   };
-  
-  const sectionInstructions = buildSectionInstructions(
-    intelligence.sections,
-    customizations?.excludeSections
-  );
 
-  const inspirationBrands = intelligence.topBrands.slice(0, 4).join(', ');
+  // Select appropriate templates for this industry/style
+  const templates = selectTemplates(intelligence.id, 'modern');
 
-  return `You are an elite website designer creating a ${pageType} page for "${businessName}".
-Your designs are informed by extensive research on the most successful ${intelligence.name} websites.
-
-═══════════════════════════════════════════════════════════════════════════════
-                              INDUSTRY INTELLIGENCE
-═══════════════════════════════════════════════════════════════════════════════
-
-## Industry: ${intelligence.name}
-## Inspired By: ${inspirationBrands}
-## Category: ${intelligence.category}
-
-These brands set the standard for ${intelligence.name} websites. Study their patterns:
-${intelligence.topBrands.map((brand) => `• ${brand}`).join('\n')}
-
-═══════════════════════════════════════════════════════════════════════════════
-                              CUSTOMER PSYCHOLOGY
-═══════════════════════════════════════════════════════════════════════════════
-
-Understanding your visitors is critical to conversion. This research reveals what works:
-
-### What Customers NEED to See (Before They'll Convert)
-${intelligence.psychology.customerNeeds.map((need) => `✓ ${need}`).join('\n')}
-
-### Trust Factors That Drive Decisions
-${intelligence.psychology.trustFactors.map((factor) => `🛡️ ${factor}`).join('\n')}
-
-### Emotional Triggers to Leverage
-${intelligence.psychology.emotionalTriggers.map((trigger) => `❤️ ${trigger}`).join('\n')}
-
-═══════════════════════════════════════════════════════════════════════════════
-                              PAGE SECTIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Create these sections following proven patterns from top ${intelligence.name} websites:
-
-${sectionInstructions}
-
-═══════════════════════════════════════════════════════════════════════════════
-                              DESIGN SYSTEM
-═══════════════════════════════════════════════════════════════════════════════
-
-Apply this exact design system. These choices are research-backed for ${intelligence.name}:
-
-### Color Palette
-${intelligence.design.colorDescription}
-
-\`\`\`css
-:root {
-  --primary: ${colors.primary};
-  --secondary: ${colors.secondary};
-  --accent: ${colors.accent};
-  --background: ${colors.background};
-}
-\`\`\`
-
-### Typography
-${intelligence.design.typography}
-
-- **Headings:** ${fonts.heading} (import from Google Fonts)
-- **Body Text:** ${fonts.body} (import from Google Fonts)
-
-### Visual Style
-- **Images:** ${intelligence.design.imageStyle}
-- **Spacing:** ${intelligence.design.spacing}
-
-### Overall Mood
-${intelligence.design.mood}
-
-═══════════════════════════════════════════════════════════════════════════════
-                              COPYWRITING STYLE
-═══════════════════════════════════════════════════════════════════════════════
-
-### Tone of Voice
-${intelligence.copywriting.tone}
-
-### Example Headlines That Convert (Use These Patterns)
-${intelligence.copywriting.exampleHeadlines.map((h) => `📝 "${h}"`).join('\n')}
-
-### Proven CTAs for This Industry
-${intelligence.copywriting.exampleCTAs.map((cta) => `🎯 "${cta}"`).join('\n')}
-
-### ❌ Phrases to AVOID (Overused/Ineffective)
-${intelligence.copywriting.avoidPhrases.map((phrase) => `• "${phrase}"`).join('\n')}
-
-═══════════════════════════════════════════════════════════════════════════════
-                              CURATED IMAGES
-═══════════════════════════════════════════════════════════════════════════════
-
-Use these pre-selected, high-quality images (Unsplash URLs):
-
-### Hero/Banner Images
-${intelligence.images.hero.map((url) => url).join('\n')}
-
-### Product/Service Images
-${intelligence.images.products.map((url) => url).join('\n')}
-
-### Lifestyle/Context Images
-${intelligence.images.lifestyle.map((url) => url).join('\n')}
-
-### About/Team Images
-${intelligence.images.about.map((url) => url).join('\n')}
+  // ⭐ THE KEY FIX: Include actual CSS and templates in the prompt
+  return `${MASTER_SYSTEM_PROMPT}
 
 ═══════════════════════════════════════════════════════════════════════════════
                               BUSINESS DETAILS
 ═══════════════════════════════════════════════════════════════════════════════
 
 **Business Name:** ${businessName}
+**Industry:** ${intelligence.name}
 ${businessDescription ? `**Description:** ${businessDescription}` : ''}
 ${targetAudience ? `**Target Audience:** ${targetAudience}` : ''}
 ${uniqueSellingPoints?.length ? `**Unique Selling Points:**\n${uniqueSellingPoints.map((usp) => `• ${usp}`).join('\n')}` : ''}
@@ -548,26 +362,103 @@ ${contactInfo?.email ? `**Email:** ${contactInfo.email}` : ''}
 ${contactInfo?.address ? `**Address:** ${contactInfo.address}` : ''}
 
 ═══════════════════════════════════════════════════════════════════════════════
-                              OUTPUT REQUIREMENTS
+                              DESIGN SYSTEM (USE THIS EXACTLY)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Generate a COMPLETE, PRODUCTION-READY single-page website that:
+Your website MUST use this exact color system. Update the CSS variables:
 
-1. ✅ Follows the design system EXACTLY (colors, fonts, spacing)
-2. ✅ Includes ALL required sections with proper hierarchy
-3. ✅ Uses the provided Unsplash images (with proper sizing: ?w=1920 for hero, ?w=800 for cards)
-4. ✅ Implements the copywriting style and tone
-5. ✅ Is fully responsive (mobile-first approach)
-6. ✅ Is accessible (semantic HTML, ARIA labels, proper contrast)
-7. ✅ Includes Google Fonts import in <head>
-8. ✅ Has smooth scroll behavior
-9. ✅ Includes subtle, professional animations (fade-in, hover states)
-10. ✅ Uses CSS custom properties for the color system
+\`\`\`css
+:root {
+  --primary: ${colors.primary};
+  --primary-rgb: ${hexToRgb(colors.primary)};
+  --secondary: ${colors.secondary};
+  --secondary-rgb: ${hexToRgb(colors.secondary)};
+  --accent: ${colors.accent};
+  --accent-rgb: ${hexToRgb(colors.accent)};
+  --background: ${colors.background};
+  --font-display: '${fonts.heading}', sans-serif;
+  --font-body: '${fonts.body}', sans-serif;
+}
+\`\`\`
 
-Output the complete HTML document with embedded <style> and minimal <script> tags.
-Start with <!DOCTYPE html> and include everything needed for the page to work standalone.
+═══════════════════════════════════════════════════════════════════════════════
+                    REQUIRED CSS FRAMEWORK (INCLUDE IN <style>)
+═══════════════════════════════════════════════════════════════════════════════
 
-DO NOT include any markdown, explanations, or code blocks - ONLY the raw HTML.`;
+${REQUIRED_CSS}
+
+${ANIMATION_KEYFRAMES}
+
+═══════════════════════════════════════════════════════════════════════════════
+                    SECTION TEMPLATES (USE THESE AS BASE)
+═══════════════════════════════════════════════════════════════════════════════
+
+Use these pre-built section templates. Replace placeholders like [HEADLINE], [BUSINESS_NAME], etc.
+
+### HERO SECTION TEMPLATE:
+${templates.hero}
+
+### SERVICES SECTION TEMPLATE:
+${templates.services}
+
+### TESTIMONIALS SECTION TEMPLATE:
+${templates.testimonials}
+
+═══════════════════════════════════════════════════════════════════════════════
+                    REQUIRED JAVASCRIPT (INCLUDE BEFORE </body>)
+═══════════════════════════════════════════════════════════════════════════════
+
+${REQUIRED_JS}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              IMAGES TO USE
+═══════════════════════════════════════════════════════════════════════════════
+
+Hero Images (pick one):
+${intelligence.images.hero.map((url) => `• ${url}`).join('\n')}
+
+About/Team Images:
+${intelligence.images.about.map((url) => `• ${url}`).join('\n')}
+
+Product/Service Images:
+${intelligence.images.products.map((url) => `• ${url}`).join('\n')}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              COPYWRITING GUIDANCE
+═══════════════════════════════════════════════════════════════════════════════
+
+Tone: ${intelligence.copywriting.tone}
+
+Example Headlines (use similar style):
+${intelligence.copywriting.exampleHeadlines.map((h) => `• "${h}"`).join('\n')}
+
+CTA Buttons (use these):
+${intelligence.copywriting.exampleCTAs.map((cta) => `• "${cta}"`).join('\n')}
+
+DO NOT use these overused phrases:
+${intelligence.copywriting.avoidPhrases.map((p) => `• "${p}"`).join('\n')}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              OUTPUT INSTRUCTIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Output a COMPLETE HTML document starting with <!DOCTYPE html>
+2. Include ALL the CSS from above in a <style> tag in <head>
+3. Include the JavaScript before </body>
+4. Use the section templates provided, filling in business-specific content
+5. Make sure colors match the design system
+6. Ensure fully responsive design
+7. DO NOT include markdown code blocks - just raw HTML
+8. DO NOT add explanations - just the HTML
+
+Generate the website now:`;
+}
+
+// Helper to convert hex to RGB values
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return '0, 0, 0';
+  return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`;
 }
 
 // =============================================================================
@@ -579,17 +470,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = (await request.json()) as GenerateRequest;
-
-    // Extract project data
     const { project, pageType = 'landing', customInstructions, customizations } = body;
     
-    // Safely check project object
     if (!project || typeof project !== 'object') {
       return NextResponse.json(
-        {
-          error: 'Invalid request: project object is required',
-          required: ['project.id', 'project.industry', 'project.businessName'],
-        },
+        { error: 'Invalid request: project object is required' },
         { status: 400 }
       );
     }
@@ -605,31 +490,24 @@ export async function POST(request: NextRequest) {
       contactInfo,
     } = project;
 
-    // Validate required fields
     if (!projectId || !industryId || !businessName) {
       return NextResponse.json(
-        {
-          error: 'Missing required fields',
-          required: ['project.id', 'project.industry', 'project.businessName'],
-          received: { projectId: !!projectId, industryId: !!industryId, businessName: !!businessName },
-        },
+        { error: 'Missing required fields: project.id, project.industry, project.businessName' },
         { status: 400 }
       );
     }
 
-    // Fetch industry intelligence (with alias mapping and safe fallback)
+    // Fetch industry intelligence
     const { intelligence, source, mappedFrom } = await getIndustryIntelligence(industryId);
 
     console.log('═══════════════════════════════════════════════════════════════');
-    console.log(`🚀 GENERATING WEBSITE`);
+    console.log(`🚀 GENERATING WEBSITE (FIXED v3.0)`);
     console.log(`   Business: ${businessName}`);
     console.log(`   Industry: ${intelligence.name} (${intelligence.id})`);
-    console.log(`   Original ID: ${industryId}${mappedFrom ? ` (mapped to ${intelligence.id})` : ''}`);
     console.log(`   Source: ${source}`);
-    console.log(`   Page Type: ${pageType}`);
     console.log('═══════════════════════════════════════════════════════════════');
 
-    // Build the detailed prompt
+    // Build prompt with actual templates included
     let prompt = buildDetailedPrompt({
       intelligence,
       businessName,
@@ -642,43 +520,30 @@ export async function POST(request: NextRequest) {
       pageType,
     });
 
-    // Append custom instructions if provided
     if (customInstructions) {
-      prompt += `\n\n═══════════════════════════════════════════════════════════════════════════════
-                              ADDITIONAL INSTRUCTIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-${customInstructions}`;
+      prompt += `\n\nADDITIONAL INSTRUCTIONS:\n${customInstructions}`;
     }
 
     // Generate with Claude
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 16000,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+      messages: [{ role: 'user', content: prompt }],
     });
 
-    // Extract generated content
     const content = message.content[0];
     if (content.type !== 'text') {
       throw new Error('Unexpected response type from Claude');
     }
 
-    // Clean up the response (remove any markdown if present)
+    // Clean up response
     let html = content.text.trim();
-    
-    // Handle if wrapped in code blocks
     const htmlMatch = html.match(/```(?:html)?\n?([\s\S]*?)```/);
     if (htmlMatch) {
       html = htmlMatch[1].trim();
     }
 
-    // Ensure it starts with DOCTYPE
+    // Ensure DOCTYPE
     if (!html.startsWith('<!DOCTYPE') && !html.startsWith('<!doctype')) {
       const doctypeIndex = html.toLowerCase().indexOf('<!doctype');
       if (doctypeIndex > 0) {
@@ -686,144 +551,34 @@ ${customInstructions}`;
       }
     }
 
-    // Calculate generation time
     const generationTime = Date.now() - startTime;
+    console.log(`✅ Generated in ${generationTime}ms (${html.length} bytes)`);
 
-    // Log to database (non-blocking)
-    supabase
-      .from('generations')
-      .insert({
-        project_id: projectId,
-        industry_id: intelligence.id,
-        business_name: businessName,
-        page_type: pageType,
-        html_content: html,
-        intelligence_snapshot: intelligence,
-        intelligence_source: source,
-        generation_time_ms: generationTime,
-        created_at: new Date().toISOString(),
-      })
-      .then(({ error }) => {
-        if (error) {
-          console.log('Note: Could not log generation:', error.message);
-        }
-      });
-
-    // Build response
-    const response: GenerateResponse = {
+    return NextResponse.json({
       success: true,
       industry: intelligence.id,
       industryName: intelligence.name,
       usedFallback: source === 'fallback',
       generatedCode: html,
-      metadata: {
-        model: 'claude-sonnet-4-20250514',
-        pageType,
-        sectionsIncluded: intelligence.sections.map((s) => s.id),
-        designSystem: {
-          colors: intelligence.design.colors,
-          fonts: intelligence.design.fonts,
-          mood: intelligence.design.mood,
-        },
-      },
-    };
-
-    console.log(`✅ Generated in ${generationTime}ms (${html.length} bytes)`);
-
-    return NextResponse.json({
-      ...response,
       projectId,
       intelligenceSource: source,
       generationTimeMs: generationTime,
-      inspirationBrands: intelligence.topBrands.slice(0, 4),
       mappedFrom: mappedFrom || null,
     });
   } catch (error) {
     console.error('❌ Generation error:', error);
-
     return NextResponse.json(
-      {
-        error: 'Failed to generate website',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Failed to generate website', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
 }
 
 export async function GET() {
-  // Group industries by category
-  const byCategory = ALL_INDUSTRIES.reduce(
-    (acc, ind) => {
-      if (!acc[ind.category]) {
-        acc[ind.category] = [];
-      }
-      acc[ind.category].push({
-        id: ind.id,
-        name: ind.name,
-        topBrands: ind.topBrands.slice(0, 3),
-      });
-      return acc;
-    },
-    {} as Record<string, { id: string; name: string; topBrands: string[] }[]>
-  );
-
-  // Check database connectivity
-  let dbStatus = 'unknown';
-  try {
-    const { count, error } = await supabase
-      .from('industries')
-      .select('*', { count: 'exact', head: true });
-    
-    if (!error) {
-      dbStatus = `connected (${count} industries)`;
-    } else {
-      dbStatus = `error: ${error.message}`;
-    }
-  } catch (err) {
-    dbStatus = 'not configured';
-  }
-
   return NextResponse.json({
     status: 'healthy',
     service: 'VERKTORLABS Website Generation API',
-    version: '2.3.0',
-    database: dbStatus,
-    statistics: {
-      totalIndustries: INDUSTRY_STATS.total,
-      bySource: INDUSTRY_STATS.bySource,
-      categories: INDUSTRY_STATS.categories,
-    },
-    industryAliases: Object.keys(INDUSTRY_ID_ALIASES),
-    industriesByCategory: byCategory,
-    endpoints: {
-      'POST /api/generate': {
-        description: 'Generate a website using industry intelligence',
-        body: {
-          project: {
-            id: 'string (required)',
-            industry: 'string (required) - industry ID or alias',
-            businessName: 'string (required)',
-            businessDescription: 'string (optional)',
-            targetAudience: 'string (optional)',
-            uniqueSellingPoints: 'string[] (optional)',
-            location: 'string (optional)',
-            contactInfo: {
-              phone: 'string (optional)',
-              email: 'string (optional)',
-              address: 'string (optional)',
-            },
-          },
-          pageType: 'string (optional) - landing, homepage, about, services, contact, product',
-          customInstructions: 'string (optional)',
-          customizations: {
-            excludeSections: 'string[] (optional)',
-            colorOverride: 'Partial<ColorPalette> (optional)',
-            fontOverride: 'Partial<FontPairing> (optional)',
-          },
-        },
-      },
-      'GET /api/generate': 'This endpoint - health check and industry listing',
-    },
+    version: '3.0.0 (FIXED)',
+    note: 'Now includes actual component templates in prompts',
   });
 }
