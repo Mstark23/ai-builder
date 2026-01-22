@@ -763,28 +763,68 @@ export default function ProjectDetailPage() {
     }
   };
 
+  // ==========================================================================
+  // FIXED: generateWebsite function - sends correct request format
+  // ==========================================================================
   const generateWebsite = async () => {
     if (!project) return;
     setGenerating(true);
+    
     try {
+      // Update status to GENERATING
       await supabase.from('projects').update({ status: 'GENERATING' }).eq('id', projectId);
       setFormData(prev => ({ ...prev, status: 'GENERATING' }));
 
+      // Build the project object expected by the API
+      const projectData = {
+        id: project.id,
+        industry: project.industry || 'general',
+        businessName: project.business_name,
+        businessDescription: project.description || '',
+        targetAudience: project.target_customer || '',
+        uniqueSellingPoints: project.primary_services || [],
+        location: project.address || '',
+        contactInfo: {
+          phone: project.contact_phone || '',
+          email: project.contact_email || '',
+          address: project.address || '',
+        },
+      };
+
+      // Call the API with correct format
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId })
+        body: JSON.stringify({
+          project: projectData,
+          pageType: 'landing',
+          customizations: {},
+        }),
       });
+
       const data = await response.json();
 
       if (response.ok && data.success) {
+        // Save the generated HTML to the project
+        await supabase
+          .from('projects')
+          .update({
+            generated_html: data.generatedCode,
+            status: 'PREVIEW_READY',
+          })
+          .eq('id', projectId);
+
         await loadProject();
         setActiveTab('preview');
       } else {
+        // Revert status on failure
+        await supabase.from('projects').update({ status: formData.status || 'QUEUED' }).eq('id', projectId);
         alert('Generation failed: ' + (data.details || data.error || 'Unknown error'));
       }
     } catch (err) {
       console.error('Error generating website:', err);
+      // Revert status on error
+      await supabase.from('projects').update({ status: formData.status || 'QUEUED' }).eq('id', projectId);
       alert('Error generating website.');
     } finally {
       setGenerating(false);
