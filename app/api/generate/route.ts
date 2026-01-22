@@ -24,11 +24,10 @@ import {
   INDUSTRY_STATS,
 } from '@/lib/industry-intelligence';
 
-// ⭐ NEW: Import the actual component libraries
+// Import the actual component libraries
 import { REQUIRED_CSS, REQUIRED_JS, ANIMATION_KEYFRAMES, MASTER_SYSTEM_PROMPT } from '@/lib/ai/master-prompt';
 import { HERO_COMPONENTS } from '@/lib/ai/components';
 import { ALL_SECTIONS } from '@/lib/ai/all-sections';
-import { ICONS } from '@/lib/ai/icons';
 
 // =============================================================================
 // INITIALIZATION
@@ -292,7 +291,7 @@ async function getIndustryIntelligence(industryId: string): Promise<Intelligence
 }
 
 // =============================================================================
-// ⭐ FIXED PROMPT BUILDING - Now includes actual templates!
+// PROMPT BUILDING - Now includes actual templates!
 // =============================================================================
 
 interface PromptConfig {
@@ -344,7 +343,7 @@ function buildDetailedPrompt(config: PromptConfig): string {
   // Select appropriate templates for this industry/style
   const templates = selectTemplates(intelligence.id, 'modern');
 
-  // ⭐ THE KEY FIX: Include actual CSS and templates in the prompt
+  // THE KEY FIX: Include actual CSS and templates in the prompt
   return `${MASTER_SYSTEM_PROMPT}
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -501,7 +500,7 @@ export async function POST(request: NextRequest) {
     const { intelligence, source, mappedFrom } = await getIndustryIntelligence(industryId);
 
     console.log('═══════════════════════════════════════════════════════════════');
-    console.log(`🚀 GENERATING WEBSITE (FIXED v3.0)`);
+    console.log(`🚀 GENERATING WEBSITE (v3.0)`);
     console.log(`   Business: ${businessName}`);
     console.log(`   Industry: ${intelligence.name} (${intelligence.id})`);
     console.log(`   Source: ${source}`);
@@ -578,7 +577,7 @@ export async function GET() {
   return NextResponse.json({
     status: 'healthy',
     service: 'VERKTORLABS Website Generation API',
-    version: '3.0.0 (FIXED)',
+    version: '3.0.0',
     note: 'Now includes actual component templates in prompts',
   });
 }
