@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
@@ -120,7 +120,20 @@ const starterBundle = {
   color: 'emerald'
 };
 
-export default function PostPurchaseUpsell() {
+// Loading component
+function LoadingSpinner() {
+  return (
+    <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="font-body text-neutral-500">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main content component that uses useSearchParams
+function PostPurchaseUpsellContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const projectId = searchParams.get('project');
@@ -232,14 +245,7 @@ export default function PostPurchaseUpsell() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="font-body text-neutral-500">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   const totals = calculateTotal();
@@ -597,5 +603,14 @@ export default function PostPurchaseUpsell() {
         </div>
       </main>
     </div>
+  );
+}
+
+// Main export with Suspense boundary
+export default function PostPurchaseUpsell() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <PostPurchaseUpsellContent />
+    </Suspense>
   );
 }
