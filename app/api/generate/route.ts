@@ -1,8 +1,11 @@
 /**
- * VERKTORLABS Website Generation API v3.0 - FIXED
+ * VERKTORLABS Website Generation API v3.1 - IMPROVED
  * 
- * KEY FIX: Now includes actual component templates and CSS in the prompt
- * so Claude can use your pre-built design system instead of generating from scratch.
+ * KEY FIXES:
+ * 1. Fixed template selection (removed non-existent 'videoHero')
+ * 2. Includes MORE templates in the prompt for Claude to choose from
+ * 3. Better structured prompt with clearer instructions
+ * 4. Includes Contact and Footer sections
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -43,28 +46,68 @@ const supabase = createClient(
 );
 
 // =============================================================================
-// COMPONENT TEMPLATE SELECTOR
+// COMPONENT TEMPLATE SELECTOR - FIXED VERSION
 // =============================================================================
 
 /**
  * Select appropriate section templates based on industry and style
+ * Returns multiple options for Claude to choose from
  */
 function selectTemplates(industry: string, style: string) {
-  // Map industry to best template choices
-  const heroChoice = style === 'minimal' ? 'centeredHero' : 
-                     style === 'bold' ? 'videoHero' : 'splitHero';
+  const industryLower = industry.toLowerCase();
   
-  const servicesChoice = industry.includes('restaurant') ? 'tabs' :
-                         industry.includes('salon') ? 'hoverCards' :
-                         industry.includes('law') ? 'iconCards' : 'bentoGrid';
+  // Hero selection - use actual keys that exist
+  let heroChoice: keyof typeof HERO_COMPONENTS = 'splitHero';
+  if (style === 'minimal') heroChoice = 'centeredHero';
+  else if (style === 'bold' || style === 'dramatic') heroChoice = 'fullImageHero';
   
-  const testimonialsChoice = style === 'elegant' ? 'featuredSingle' : 'slider';
+  // Services selection
+  type ServicesKey = keyof typeof ALL_SECTIONS.services;
+  let servicesChoice: ServicesKey = 'bentoGrid';
+  if (industryLower.includes('restaurant') || industryLower.includes('food')) servicesChoice = 'tabs';
+  else if (industryLower.includes('salon') || industryLower.includes('spa')) servicesChoice = 'hoverCards';
+  else if (industryLower.includes('law') || industryLower.includes('legal')) servicesChoice = 'iconCards';
+  else if (industryLower.includes('contractor') || industryLower.includes('construction')) servicesChoice = 'processSteps';
   
+  // Testimonials selection
+  type TestimonialsKey = keyof typeof ALL_SECTIONS.testimonials;
+  let testimonialsChoice: TestimonialsKey = 'slider';
+  if (style === 'elegant' || style === 'luxury') testimonialsChoice = 'featuredSingle';
+  else if (style === 'modern') testimonialsChoice = 'grid';
+  
+  // About selection
+  type AboutKey = keyof typeof ALL_SECTIONS.about;
+  let aboutChoice: AboutKey = 'split';
+  if (style === 'minimal') aboutChoice = 'story';
+  else if (industryLower.includes('agency') || industryLower.includes('startup')) aboutChoice = 'missionVision';
+  
+  // CTA selection
+  type CtaKey = keyof typeof ALL_SECTIONS.cta;
+  let ctaChoice: CtaKey = 'gradient';
+  if (style === 'minimal') ctaChoice = 'minimal';
+  else if (style === 'bold') ctaChoice = 'fullImage';
+  
+  // Footer selection
+  type FooterKey = keyof typeof ALL_SECTIONS.footer;
+  let footerChoice: FooterKey = 'full';
+  
+  // Contact selection - handle potentially missing contact section
+  const contactSection = (ALL_SECTIONS as any).contact;
+  let contactTemplate = '';
+  if (contactSection && contactSection.splitForm) {
+    contactTemplate = contactSection.splitForm;
+  }
+
   return {
-    hero: HERO_COMPONENTS[heroChoice as keyof typeof HERO_COMPONENTS] || HERO_COMPONENTS.splitHero,
-    services: ALL_SECTIONS.services[servicesChoice as keyof typeof ALL_SECTIONS.services] || ALL_SECTIONS.services.bentoGrid,
-    testimonials: ALL_SECTIONS.testimonials[testimonialsChoice as keyof typeof ALL_SECTIONS.testimonials] || ALL_SECTIONS.testimonials.slider,
-    about: ALL_SECTIONS.about?.split || '',
+    hero: HERO_COMPONENTS[heroChoice] || HERO_COMPONENTS.splitHero,
+    heroAlt: HERO_COMPONENTS.centeredHero, // Alternative option
+    services: ALL_SECTIONS.services[servicesChoice] || ALL_SECTIONS.services.bentoGrid,
+    servicesAlt: ALL_SECTIONS.services.iconCards, // Alternative option
+    testimonials: ALL_SECTIONS.testimonials[testimonialsChoice] || ALL_SECTIONS.testimonials.slider,
+    about: ALL_SECTIONS.about[aboutChoice] || ALL_SECTIONS.about.split,
+    cta: ALL_SECTIONS.cta[ctaChoice] || ALL_SECTIONS.cta.gradient,
+    footer: ALL_SECTIONS.footer[footerChoice] || ALL_SECTIONS.footer.full,
+    contact: contactTemplate,
     nav: ALL_SECTIONS.nav?.standard || '',
   };
 }
@@ -289,7 +332,7 @@ async function getIndustryIntelligence(industryId: string): Promise<Intelligence
 }
 
 // =============================================================================
-// PROMPT BUILDING - Now includes actual templates!
+// PROMPT BUILDING - IMPROVED VERSION
 // =============================================================================
 
 interface PromptConfig {
@@ -341,8 +384,19 @@ function buildDetailedPrompt(config: PromptConfig): string {
   // Select appropriate templates for this industry/style
   const templates = selectTemplates(intelligence.id, 'modern');
 
-  // THE KEY FIX: Include actual CSS and templates in the prompt
+  // Build the comprehensive prompt
   return `${MASTER_SYSTEM_PROMPT}
+
+═══════════════════════════════════════════════════════════════════════════════
+                         🎯 CRITICAL INSTRUCTION 🎯
+═══════════════════════════════════════════════════════════════════════════════
+
+You MUST use the section templates provided below as the foundation for the website.
+DO NOT create sections from scratch. Instead:
+1. Take the HTML template provided for each section
+2. Replace the [PLACEHOLDER] values with actual content for this business
+3. Keep all CSS classes exactly as shown in templates
+4. Include the full CSS framework provided
 
 ═══════════════════════════════════════════════════════════════════════════════
                               BUSINESS DETAILS
@@ -359,12 +413,11 @@ ${contactInfo?.email ? `**Email:** ${contactInfo.email}` : ''}
 ${contactInfo?.address ? `**Address:** ${contactInfo.address}` : ''}
 
 ═══════════════════════════════════════════════════════════════════════════════
-                              DESIGN SYSTEM (USE THIS EXACTLY)
+                    CSS VARIABLES (UPDATE THESE VALUES)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Your website MUST use this exact color system. Update the CSS variables:
+Your website MUST use this exact color system in the :root CSS:
 
-\`\`\`css
 :root {
   --primary: ${colors.primary};
   --primary-rgb: ${hexToRgb(colors.primary)};
@@ -376,10 +429,9 @@ Your website MUST use this exact color system. Update the CSS variables:
   --font-display: '${fonts.heading}', sans-serif;
   --font-body: '${fonts.body}', sans-serif;
 }
-\`\`\`
 
 ═══════════════════════════════════════════════════════════════════════════════
-                    REQUIRED CSS FRAMEWORK (INCLUDE IN <style>)
+                    REQUIRED CSS FRAMEWORK (COPY INTO <style>)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${REQUIRED_CSS}
@@ -387,28 +439,82 @@ ${REQUIRED_CSS}
 ${ANIMATION_KEYFRAMES}
 
 ═══════════════════════════════════════════════════════════════════════════════
-                    SECTION TEMPLATES (USE THESE AS BASE)
+                    SECTION TEMPLATES - USE THESE EXACTLY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Use these pre-built section templates. Replace placeholders like [HEADLINE], [BUSINESS_NAME], etc.
+Copy these templates and replace [PLACEHOLDERS] with business-specific content.
 
-### NAVIGATION TEMPLATE:
+### 1. NAVIGATION:
 ${templates.nav}
 
-### HERO SECTION TEMPLATE:
+### 2. HERO SECTION (choose one):
+Option A - Split Layout:
 ${templates.hero}
 
-### SERVICES SECTION TEMPLATE:
+Option B - Centered:
+${templates.heroAlt}
+
+### 3. SERVICES SECTION (choose one):
+Option A:
 ${templates.services}
 
-### ABOUT SECTION TEMPLATE:
+Option B:
+${templates.servicesAlt}
+
+### 4. ABOUT SECTION:
 ${templates.about}
 
-### TESTIMONIALS SECTION TEMPLATE:
+### 5. TESTIMONIALS SECTION:
 ${templates.testimonials}
 
+### 6. CTA SECTION:
+${templates.cta}
+
+### 7. CONTACT SECTION:
+${templates.contact || `<section class="section contact" id="contact">
+  <div class="container">
+    <div class="contact-grid">
+      <div class="contact-info reveal">
+        <h2>Get in Touch</h2>
+        <p>Ready to get started? Contact us today.</p>
+        <div class="contact-details">
+          <div class="contact-item">
+            <span class="contact-icon">📍</span>
+            <span>[ADDRESS]</span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon">📞</span>
+            <span>[PHONE]</span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon">✉️</span>
+            <span>[EMAIL]</span>
+          </div>
+        </div>
+      </div>
+      <div class="contact-form reveal">
+        <form data-form>
+          <div class="form-group">
+            <input type="text" name="name" placeholder="Your Name" required>
+          </div>
+          <div class="form-group">
+            <input type="email" name="email" placeholder="Your Email" required>
+          </div>
+          <div class="form-group">
+            <textarea name="message" placeholder="Your Message" rows="4" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg btn-block">Send Message</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>`}
+
+### 8. FOOTER:
+${templates.footer}
+
 ═══════════════════════════════════════════════════════════════════════════════
-                    REQUIRED JAVASCRIPT (INCLUDE BEFORE </body>)
+                    REQUIRED JAVASCRIPT (BEFORE </body>)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${REQUIRED_JS}
@@ -417,7 +523,9 @@ ${REQUIRED_JS}
                               IMAGES TO USE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Hero Images (pick one):
+Use these real Unsplash images (they work immediately):
+
+Hero Images:
 ${intelligence.images.hero.map((url) => `• ${url}`).join('\n')}
 
 About/Team Images:
@@ -435,27 +543,27 @@ Tone: ${intelligence.copywriting.tone}
 Example Headlines (use similar style):
 ${intelligence.copywriting.exampleHeadlines.map((h) => `• "${h}"`).join('\n')}
 
-CTA Buttons (use these):
+CTA Buttons:
 ${intelligence.copywriting.exampleCTAs.map((cta) => `• "${cta}"`).join('\n')}
 
 DO NOT use these overused phrases:
 ${intelligence.copywriting.avoidPhrases.map((p) => `• "${p}"`).join('\n')}
 
 ═══════════════════════════════════════════════════════════════════════════════
-                              OUTPUT INSTRUCTIONS
+                         📋 OUTPUT CHECKLIST 📋
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Output a COMPLETE HTML document starting with <!DOCTYPE html>
-2. Include ALL the CSS from above in a <style> tag in <head>
-3. Include the JavaScript before </body>
-4. Use the section templates provided, filling in business-specific content
-5. Make sure colors match the design system
-6. Ensure fully responsive design
-7. DO NOT include markdown code blocks - just raw HTML
-8. DO NOT add explanations - just the HTML
-9. Also include a Contact section and Footer section
+Your output MUST:
+✅ Start with <!DOCTYPE html> (no markdown, no explanation)
+✅ Include ALL CSS from the framework above in a single <style> tag
+✅ Include ALL JavaScript before </body> in a single <script> tag
+✅ Use the section templates provided (with placeholders replaced)
+✅ Be fully responsive (mobile-first)
+✅ Use the exact colors from the design system
+✅ Include these sections: Nav, Hero, Services, About, Testimonials, Contact, Footer
+✅ End with </html> (no explanation after)
 
-Generate the website now:`;
+Generate the complete HTML website now:`;
 }
 
 // Helper to convert hex to RGB values
@@ -505,10 +613,11 @@ export async function POST(request: NextRequest) {
     const { intelligence, source, mappedFrom } = await getIndustryIntelligence(industryId);
 
     console.log('═══════════════════════════════════════════════════════════════');
-    console.log(`🚀 GENERATING WEBSITE (v3.0)`);
+    console.log(`🚀 GENERATING WEBSITE (v3.1 - IMPROVED)`);
     console.log(`   Business: ${businessName}`);
     console.log(`   Industry: ${intelligence.name} (${intelligence.id})`);
     console.log(`   Source: ${source}`);
+    console.log(`   Templates: Using pre-built components`);
     console.log('═══════════════════════════════════════════════════════════════');
 
     // Build prompt with actual templates included
@@ -528,6 +637,9 @@ export async function POST(request: NextRequest) {
       prompt += `\n\nADDITIONAL INSTRUCTIONS:\n${customInstructions}`;
     }
 
+    // Log prompt size for debugging
+    console.log(`   Prompt size: ${(prompt.length / 1024).toFixed(1)}KB`);
+
     // Generate with Claude
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -542,6 +654,8 @@ export async function POST(request: NextRequest) {
 
     // Clean up response
     let html = content.text.trim();
+    
+    // Remove markdown code blocks if present
     const htmlMatch = html.match(/```(?:html)?\n?([\s\S]*?)```/);
     if (htmlMatch) {
       html = htmlMatch[1].trim();
@@ -556,7 +670,7 @@ export async function POST(request: NextRequest) {
     }
 
     const generationTime = Date.now() - startTime;
-    console.log(`✅ Generated in ${generationTime}ms (${html.length} bytes)`);
+    console.log(`✅ Generated in ${generationTime}ms (${(html.length / 1024).toFixed(1)}KB output)`);
 
     return NextResponse.json({
       success: true,
@@ -582,7 +696,7 @@ export async function GET() {
   return NextResponse.json({
     status: 'healthy',
     service: 'VERKTORLABS Website Generation API',
-    version: '3.0.0',
-    note: 'Now includes actual component templates in prompts',
+    version: '3.1.0',
+    note: 'Improved template selection and prompt structure',
   });
 }
