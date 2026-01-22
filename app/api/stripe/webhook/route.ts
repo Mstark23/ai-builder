@@ -37,7 +37,7 @@ async function sendPaymentEmails(project: any) {
 
   const amount = planPrices[project.plan] || 299;
 
-  // Email to Customer
+  // Email to Customer - Updated to mention upsell page
   const customerEmail = `
 <!DOCTYPE html>
 <html>
@@ -53,14 +53,17 @@ async function sendPaymentEmails(project: any) {
         Hi ${project.customers?.name || 'there'},
       </p>
       <p style="color: #444; font-size: 16px; line-height: 1.6;">
-        Thank you for your payment! Your website for <strong>${project.business_name}</strong> is now ready.
+        Thank you for your payment! Your website for <strong>${project.business_name}</strong> is now being built.
       </p>
       <div style="background: #d4edda; border-radius: 12px; padding: 25px; text-align: center; margin: 25px 0;">
         <p style="color: #155724; font-size: 14px; margin: 0 0 5px;">Amount Paid</p>
         <p style="color: #155724; font-size: 36px; font-weight: 700; margin: 0;">$${amount}</p>
       </div>
+      <p style="color: #444; font-size: 16px; line-height: 1.6;">
+        <strong>What's next?</strong> You'll receive a preview of your website within 72 hours. In the meantime, check out our Growth tools to maximize your website's impact!
+      </p>
       <div style="text-align: center;">
-        <a href="${APP_URL}/portal/project/${project.id}" style="display: inline-block; background: #000; color: #fff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600;">View Your Website</a>
+        <a href="${APP_URL}/portal/project/${project.id}" style="display: inline-block; background: #000; color: #fff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600;">View Your Project</a>
       </div>
     </div>
   </div>
@@ -231,3 +234,32 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ received: true });
 }
+
+/*
+ * ============================================
+ * IMPORTANT: UPDATE YOUR STRIPE CHECKOUT CREATION
+ * ============================================
+ * 
+ * The redirect to the upsell page happens when you CREATE the Stripe checkout session,
+ * NOT in this webhook. Find your checkout creation code (likely in /app/api/stripe/checkout/route.ts
+ * or /app/api/create-checkout-session/route.ts) and update the success_url:
+ * 
+ * BEFORE:
+ * const session = await stripe.checkout.sessions.create({
+ *   ...
+ *   success_url: `${APP_URL}/portal`,
+ *   // or
+ *   success_url: `${APP_URL}/portal/project/${projectId}`,
+ *   ...
+ * });
+ * 
+ * AFTER:
+ * const session = await stripe.checkout.sessions.create({
+ *   ...
+ *   success_url: `${APP_URL}/portal/payment-success?project=${projectId}`,
+ *   cancel_url: `${APP_URL}/portal/project/${projectId}/checkout`,
+ *   ...
+ * });
+ * 
+ * This will redirect users to the upsell page after successful payment!
+ */
