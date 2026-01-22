@@ -208,7 +208,8 @@ export default function DynamicProjectPage() {
         .eq('project_id', projectId)
         .limit(1);
       
-      setHasGrowthPackages(growthData && growthData.length > 0);
+      // FIX: Ensure boolean value (not null)
+      setHasGrowthPackages(!!(growthData && growthData.length > 0));
 
       const { data: messagesData } = await supabase
         .from('messages')
