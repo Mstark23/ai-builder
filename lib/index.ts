@@ -7,9 +7,9 @@
 // Industry Intelligence
 export * from './industry-intelligence';
 
-// Industry Options (for UI components) - explicit exports to avoid duplicate IndustryCategory
+// Industry Options (for UI components)
+export { default as INDUSTRY_GROUPS } from './industry-options';
 export {
-  INDUSTRY_GROUPS,
   ALL_INDUSTRY_OPTIONS,
   getIndustryLabel,
   getIndustryCategory,
