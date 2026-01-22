@@ -1,7 +1,7 @@
 // /app/portal/payment-success/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
@@ -121,7 +121,20 @@ const starterBundle = {
   color: 'emerald'
 };
 
-export default function PaymentSuccess() {
+// Loading component
+function LoadingState() {
+  return (
+    <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="font-body text-neutral-500">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main content component that uses useSearchParams
+function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const projectId = searchParams.get('project');
@@ -233,14 +246,7 @@ export default function PaymentSuccess() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="font-body text-neutral-500">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   const totals = calculateTotal();
@@ -598,5 +604,14 @@ export default function PaymentSuccess() {
         </div>
       </main>
     </div>
+  );
+}
+
+// Main export with Suspense boundary
+export default function PaymentSuccess() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }
