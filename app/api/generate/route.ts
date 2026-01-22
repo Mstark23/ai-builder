@@ -64,10 +64,8 @@ function selectTemplates(industry: string, style: string) {
     hero: HERO_COMPONENTS[heroChoice as keyof typeof HERO_COMPONENTS] || HERO_COMPONENTS.splitHero,
     services: ALL_SECTIONS.services[servicesChoice as keyof typeof ALL_SECTIONS.services] || ALL_SECTIONS.services.bentoGrid,
     testimonials: ALL_SECTIONS.testimonials[testimonialsChoice as keyof typeof ALL_SECTIONS.testimonials] || ALL_SECTIONS.testimonials.slider,
-    about: ALL_SECTIONS.about?.splitImage || '',
-    contact: ALL_SECTIONS.contact?.splitForm || '',
-    cta: ALL_SECTIONS.cta?.gradient || '',
-    footer: ALL_SECTIONS.footer?.modern || '',
+    about: ALL_SECTIONS.about?.split || '',
+    nav: ALL_SECTIONS.nav?.standard || '',
   };
 }
 
@@ -394,11 +392,17 @@ ${ANIMATION_KEYFRAMES}
 
 Use these pre-built section templates. Replace placeholders like [HEADLINE], [BUSINESS_NAME], etc.
 
+### NAVIGATION TEMPLATE:
+${templates.nav}
+
 ### HERO SECTION TEMPLATE:
 ${templates.hero}
 
 ### SERVICES SECTION TEMPLATE:
 ${templates.services}
+
+### ABOUT SECTION TEMPLATE:
+${templates.about}
 
 ### TESTIMONIALS SECTION TEMPLATE:
 ${templates.testimonials}
@@ -449,6 +453,7 @@ ${intelligence.copywriting.avoidPhrases.map((p) => `• "${p}"`).join('\n')}
 6. Ensure fully responsive design
 7. DO NOT include markdown code blocks - just raw HTML
 8. DO NOT add explanations - just the HTML
+9. Also include a Contact section and Footer section
 
 Generate the website now:`;
 }
