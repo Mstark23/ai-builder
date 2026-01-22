@@ -1,3 +1,4 @@
+// /app/portal/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -47,6 +48,10 @@ export default function PortalDashboard() {
 
   // Check if user has any paid/delivered project (unlocks Growth)
   const hasGrowthAccess = projects.some(p => p.paid || p.status === 'DELIVERED');
+  
+  // Check if user has delivered projects but no growth packages
+  const hasDeliveredProject = projects.some(p => p.status === 'DELIVERED' || p.paid);
+  const [hasGrowthPackages, setHasGrowthPackages] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -113,6 +118,16 @@ export default function PortalDashboard() {
           project_name: p.business_name,
         }));
         setActivities(generatedActivities);
+
+        // Check if user has growth packages
+        // TODO: Replace with actual database check when growth_packages table exists
+        const { data: growthData } = await supabase
+          .from('growth_packages')
+          .select('id')
+          .eq('customer_id', userId)
+          .limit(1);
+        
+        setHasGrowthPackages(growthData && growthData.length > 0);
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -402,6 +417,33 @@ export default function PortalDashboard() {
           </div>
         </div>
 
+        {/* ============================================ */}
+        {/* GROWTH BANNER - ACTION NEEDED */}
+        {/* Shows for users with delivered/paid projects who don't have growth packages */}
+        {/* ============================================ */}
+        {hasDeliveredProject && !hasGrowthPackages && (
+          <Link href="/portal/growth" className="block mb-8">
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative overflow-hidden group hover:shadow-lg transition-all">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+              <div className="relative z-10 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xl">⚠️</span>
+                    <span className="font-body text-sm font-semibold uppercase tracking-wide text-white/90">Action Needed</span>
+                  </div>
+                  <h3 className="font-display text-xl font-medium mb-1">Your website needs customers</h3>
+                  <p className="font-body text-sm text-white/80">Find out what's blocking your growth →</p>
+                </div>
+                <div className="bg-white/20 rounded-full p-3 group-hover:bg-white/30 transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </Link>
+        )}
+
         <div className="grid lg:grid-cols-3 gap-8">
           {/* LEFT - PROJECTS */}
           <div className="lg:col-span-2 space-y-6">
@@ -424,7 +466,7 @@ export default function PortalDashboard() {
             </div>
 
             {/* GROWTH UPSELL BANNER - Shows when user has paid projects */}
-            {hasGrowthAccess && (
+            {hasGrowthAccess && !hasGrowthPackages && (
               <Link href="/portal/growth" className="block">
                 <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 text-white relative overflow-hidden group hover:shadow-lg transition-all">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
