@@ -1,7 +1,7 @@
 // /app/portal/leads/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
@@ -45,7 +45,7 @@ const sourceConfig = {
   manual: { label: 'Manual Entry', icon: '✏️', color: 'text-neutral-600' },
 };
 
-export default function LeadInboxPage() {
+function LeadInboxContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const projectFilter = searchParams.get('project');
@@ -706,5 +706,21 @@ export default function LeadInboxPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Wrap with Suspense for useSearchParams
+export default function LeadInboxPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-neutral-600 font-body">Loading leads...</p>
+        </div>
+      </div>
+    }>
+      <LeadInboxContent />
+    </Suspense>
   );
 }
