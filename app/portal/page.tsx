@@ -127,7 +127,8 @@ export default function PortalDashboard() {
           .eq('customer_id', userId)
           .limit(1);
         
-        setHasGrowthPackages(growthData && growthData.length > 0);
+        // FIX: Ensure boolean value (not null)
+        setHasGrowthPackages(!!(growthData && growthData.length > 0));
       }
     } catch (err) {
       console.error('Error loading data:', err);
