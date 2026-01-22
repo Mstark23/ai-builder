@@ -10,7 +10,7 @@ export * from './industry-intelligence';
 // Industry Options (for UI components)
 export { default as INDUSTRY_GROUPS } from './industry-options';
 export {
-  ALL_INDUSTRY_OPTIONS,
+  FLAT_INDUSTRY_OPTIONS,
   getIndustryLabel,
   getIndustryCategory,
   searchIndustryOptions,
