@@ -1,1202 +1,829 @@
-'use client';
+/**
+ * VERKTORLABS Website Generation API v2.3
+ * 
+ * Industry-intelligent website generation using comprehensive research data.
+ * Fetches industry intelligence from Supabase with static fallback.
+ * 
+ * Endpoints:
+ * - POST /api/generate - Generate a website page
+ * - GET  /api/generate - Health check and available industries
+ */
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
+import { createClient } from '@supabase/supabase-js';
+import type {
+  IndustryIntelligence,
+  GenerateRequest,
+  GenerateResponse,
+  Section,
+  ColorPalette,
+  FontPairing,
+} from '@/types/industry';
+
+// Import static data as fallback
+import {
+  ALL_INDUSTRIES,
+  getIndustry,
+  INDUSTRY_STATS,
+} from '@/lib/industry-intelligence';
 
 // =============================================================================
-// TYPES
+// INITIALIZATION
 // =============================================================================
 
-type Project = {
-  id: string;
-  business_name: string;
-  industry: string | null;
-  style: string | null;
-  design_direction: string | null;
-  brand_voice: string | null;
-  status: string;
-  plan: string | null;
-  paid: boolean;
-  notes: string | null;
-  generated_html: string | null;
-  generated_pages: Record<string, string> | null;
-  requested_pages: string[] | null;
-  created_at: string;
-  customer_id: string | null;
-  description: string | null;
-  website_goal: string | null;
-  target_customer: string | null;
-  primary_services: string[] | null;
-  hero_preference: string | null;
-  color_preference: string | null;
-  mood_tags: string[] | null;
-  unique_value: string | null;
-  contact_email: string | null;
-  contact_phone: string | null;
-  address: string | null;
-  call_to_action: string | null;
-  review_score: number | null;
-  review_details: any | null;
-  reviewed_at: string | null;
-  customers?: { id: string; name: string; email: string; phone: string | null } | null;
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+});
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// =============================================================================
+// DEFAULT FALLBACK INTELLIGENCE (Complete Structure)
+// =============================================================================
+
+const DEFAULT_FALLBACK: IndustryIntelligence = {
+  id: 'general',
+  name: 'General Business',
+  category: 'general',
+  topBrands: ['Apple', 'Airbnb', 'Stripe', 'Notion'],
+  psychology: {
+    customerNeeds: [
+      'Clear understanding of services/products',
+      'Easy way to contact or purchase',
+      'Trust and credibility signals',
+      'Professional appearance',
+    ],
+    trustFactors: [
+      'Professional design',
+      'Clear contact information',
+      'Customer testimonials',
+      'About us section',
+    ],
+    emotionalTriggers: [
+      'Confidence in quality',
+      'Ease of doing business',
+      'Professional reliability',
+      'Modern and current',
+    ],
+  },
+  sections: [
+    { id: 'hero', name: 'Hero', purpose: 'Capture attention and communicate value proposition', keyElements: ['Headline', 'Subheadline', 'CTA Button', 'Hero Image'], required: true },
+    { id: 'services', name: 'Services', purpose: 'Showcase what you offer', keyElements: ['Service cards', 'Icons', 'Brief descriptions'], required: true },
+    { id: 'about', name: 'About', purpose: 'Build trust and connection', keyElements: ['Company story', 'Mission', 'Team photo'], required: true },
+    { id: 'testimonials', name: 'Testimonials', purpose: 'Social proof', keyElements: ['Customer quotes', 'Names', 'Photos'], required: false },
+    { id: 'contact', name: 'Contact', purpose: 'Enable customer connection', keyElements: ['Contact form', 'Phone', 'Email', 'Address'], required: true },
+    { id: 'footer', name: 'Footer', purpose: 'Navigation and legal', keyElements: ['Links', 'Social media', 'Copyright'], required: true },
+  ],
+  design: {
+    colors: {
+      primary: '#000000',
+      secondary: '#4F46E5',
+      accent: '#10B981',
+      background: '#FFFFFF',
+    },
+    colorDescription: 'Clean, professional palette with black primary and indigo accent',
+    fonts: {
+      heading: 'Inter',
+      body: 'Inter',
+    },
+    typography: 'Modern sans-serif typography for clean readability',
+    imageStyle: 'Professional, high-quality photography with clean compositions',
+    spacing: 'Generous whitespace for premium feel',
+    mood: 'Professional, trustworthy, modern',
+  },
+  copywriting: {
+    tone: 'Professional yet approachable, clear and concise',
+    exampleHeadlines: [
+      'Solutions That Drive Results',
+      'Your Success, Our Mission',
+      'Excellence in Every Detail',
+    ],
+    exampleCTAs: [
+      'Get Started',
+      'Learn More',
+      'Contact Us',
+      'Request a Quote',
+    ],
+    avoidPhrases: [
+      'We are the best',
+      'Synergy',
+      'Revolutionary',
+      'Game-changing',
+    ],
+  },
+  images: {
+    hero: [
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920',
+      'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1920',
+    ],
+    products: [
+      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
+    ],
+    lifestyle: [
+      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800',
+    ],
+    about: [
+      'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=800',
+    ],
+  },
 };
 
-type Message = { id: string; content: string; sender_type: 'admin' | 'customer'; created_at: string };
-
 // =============================================================================
-// CONSTANTS
+// INDUSTRY ID MAPPING (for legacy/simplified IDs)
 // =============================================================================
 
-const STATUS_OPTIONS = [
-  { value: 'QUEUED', label: 'Queued', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  { value: 'GENERATING', label: 'Generating', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
-  { value: 'PREVIEW_READY', label: 'Preview Ready', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-  { value: 'NEEDS_REVISION', label: 'Needs Revision', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-  { value: 'PAID', label: 'Paid', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  { value: 'DELIVERED', label: 'Delivered', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-];
-
-const PLAN_OPTIONS = [
-  { value: 'starter', label: 'Starter', price: 299 },
-  { value: 'professional', label: 'Professional', price: 599 },
-  { value: 'enterprise', label: 'Enterprise', price: 999 },
-];
-
-const DESIGN_DIRECTIONS: Record<string, { name: string; color: string }> = {
-  luxury_minimal: { name: 'Luxury Minimal', color: 'bg-amber-100 text-amber-800' },
-  bold_modern: { name: 'Bold Modern', color: 'bg-pink-100 text-pink-800' },
-  warm_organic: { name: 'Warm Organic', color: 'bg-orange-100 text-orange-800' },
-  dark_premium: { name: 'Dark Premium', color: 'bg-violet-100 text-violet-800' },
-  editorial_classic: { name: 'Editorial Classic', color: 'bg-blue-100 text-blue-800' },
-  vibrant_energy: { name: 'Vibrant Energy', color: 'bg-teal-100 text-teal-800' },
+const INDUSTRY_ID_ALIASES: Record<string, string> = {
+  // E-commerce aliases
+  'ecommerce': 'fashion-clothing',
+  'e-commerce': 'fashion-clothing',
+  'retail': 'fashion-clothing',
+  'shop': 'fashion-clothing',
+  'store': 'fashion-clothing',
+  'online-store': 'fashion-clothing',
+  'jewelry': 'jewelry',
+  
+  // Restaurant aliases
+  'food': 'restaurant',
+  'dining': 'restaurant',
+  'cafe': 'cafe-coffee-shop',
+  'coffee': 'cafe-coffee-shop',
+  
+  // Professional aliases
+  'lawyer': 'law-firm',
+  'legal': 'law-firm',
+  'attorney': 'law-firm',
+  'accountant': 'accounting-cpa',
+  'accounting': 'accounting-cpa',
+  'finance': 'financial-advisor',
+  'financial': 'financial-advisor',
+  'realestate': 'real-estate-residential',
+  'real-estate': 'real-estate-residential',
+  'realtor': 'real-estate-residential',
+  
+  // Healthcare aliases
+  'dental': 'dental-clinic',
+  'dentist': 'dental-clinic',
+  'medical': 'dental-clinic',
+  'healthcare': 'dental-clinic',
+  'health': 'dental-clinic',
+  
+  // Tech aliases
+  'saas': 'saas-startup',
+  'software': 'saas-startup',
+  'tech': 'saas-startup',
+  'startup': 'saas-startup',
+  'app': 'mobile-app',
+  
+  // Creative aliases
+  'photography': 'photography-wedding',
+  'photographer': 'photography-wedding',
+  'design': 'portfolio-designer',
+  'designer': 'portfolio-designer',
+  'agency': 'marketing-agency',
+  'marketing': 'marketing-agency',
+  
+  // Local services aliases
+  'salon': 'salon-hair',
+  'hair': 'salon-hair',
+  'barbershop': 'salon-hair',
+  'spa': 'med-spa',
+  'beauty': 'med-spa',
+  'gym': 'gym-boutique',
+  'fitness': 'fitness-gym',
+  'yoga': 'yoga-pilates',
+  
+  // Other aliases
+  'hotel': 'hotel-hospitality',
+  'hospitality': 'hotel-hospitality',
+  'nonprofit': 'nonprofit-charity',
+  'charity': 'nonprofit-charity',
+  'wedding': 'wedding-planner',
+  'events': 'wedding-planner',
+  'coaching': 'coach-life',
+  'coach': 'coach-life',
+  'course': 'course-creator',
+  'education': 'course-creator',
+  'general': 'general',
 };
 
-const BRAND_VOICES: Record<string, string> = {
-  formal: 'Professional & Formal',
-  conversational: 'Friendly & Conversational',
-  playful: 'Playful & Fun',
-  authoritative: 'Expert & Authoritative',
-  luxurious: 'Refined & Luxurious',
-};
-
-const SECTIONS = [
-  { id: 'nav', name: 'Navigation', description: 'Top navigation bar', icon: '🧭' },
-  { id: 'hero', name: 'Hero', description: 'Main banner section', icon: '🦸' },
-  { id: 'services', name: 'Services', description: 'Services/features grid', icon: '⚡' },
-  { id: 'about', name: 'About', description: 'About us section', icon: '📖' },
-  { id: 'stats', name: 'Stats', description: 'Statistics section', icon: '📊' },
-  { id: 'testimonials', name: 'Testimonials', description: 'Customer reviews', icon: '💬' },
-  { id: 'cta', name: 'CTA', description: 'Call-to-action banner', icon: '📢' },
-  { id: 'contact', name: 'Contact', description: 'Contact form', icon: '✉️' },
-  { id: 'footer', name: 'Footer', description: 'Page footer', icon: '📄' },
-];
-
-const FEEDBACK_PRESETS: Record<string, string[]> = {
-  hero: ['Make it more bold and impactful', 'Use warmer, friendlier tone', 'More professional', 'Add more urgency', 'Simplify - less text'],
-  services: ['Make cards more visual', 'Add specific benefits', 'Different icons', 'More scannable', 'Add pricing'],
-  about: ['More personal and authentic', 'Focus on unique story', 'Add team info', 'More professional', 'Shorter and concise'],
-  testimonials: ['More specific results', 'Different layout', 'Add company logos', 'More diverse', 'Shorter quotes'],
-  cta: ['More urgency', 'Softer, less pushy', 'Add guarantee', 'Different colors', 'Add social proof'],
-  contact: ['Simpler form', 'More contact options', 'Include map', 'Add business hours', 'Prominent phone'],
-  default: ['More modern', 'More minimalist', 'Bolder colors', 'More whitespace', 'Different layout'],
-};
-
-const PAGE_CONFIGS = [
-  { id: 'home', name: 'Home', icon: '🏠', description: 'Main landing page' },
-  { id: 'about', name: 'About', icon: '📖', description: 'Company story & team' },
-  { id: 'services', name: 'Services', icon: '⚡', description: 'Service details' },
-  { id: 'contact', name: 'Contact', icon: '✉️', description: 'Contact form & info' },
-  { id: 'pricing', name: 'Pricing', icon: '💰', description: 'Pricing plans' },
-  { id: 'portfolio', name: 'Portfolio', icon: '🎨', description: 'Work showcase' },
-  { id: 'blog', name: 'Blog', icon: '📝', description: 'Blog template' },
-  { id: 'faq', name: 'FAQ', icon: '❓', description: 'FAQ page' },
-];
-
-const PLAN_PAGE_LIMITS: Record<string, number> = {
-  starter: 1,
-  professional: 5,
-  enterprise: 10,
-};
-
-// =============================================================================
-// MULTI-PAGE MANAGER COMPONENT
-// =============================================================================
-
-function MultiPageManager({
-  projectId,
-  plan,
-  generatedPages,
-  requestedPages,
-  onUpdate,
-}: {
-  projectId: string;
-  plan: string;
-  generatedPages: Record<string, string> | null;
-  requestedPages: string[] | null;
-  onUpdate: () => void;
-}) {
-  const [selectedPages, setSelectedPages] = useState<string[]>(requestedPages || ['home']);
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const maxPages = PLAN_PAGE_LIMITS[plan] || 1;
-  const currentPages = generatedPages ? Object.keys(generatedPages) : [];
-  const isStarterPlan = plan === 'starter';
-
-  const togglePage = (pageId: string) => {
-    if (pageId === 'home') return;
-    if (selectedPages.includes(pageId)) {
-      setSelectedPages(selectedPages.filter(p => p !== pageId));
-    } else if (selectedPages.length < maxPages) {
-      setSelectedPages([...selectedPages, pageId]);
-    }
-  };
-
-  const generatePages = async () => {
-    setGenerating(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/generate-multipage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, pages: selectedPages }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Generation failed');
-      onUpdate();
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate pages');
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  return (
-    <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden">
-      <div className="p-6 border-b border-neutral-100">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-black text-lg">Multi-Page Website</h3>
-            <p className="text-sm text-neutral-500">
-              {isStarterPlan ? 'Upgrade to Professional for multi-page websites' : `${selectedPages.length} of ${maxPages} pages`}
-            </p>
-          </div>
-          {!isStarterPlan && (
-            <button
-              onClick={generatePages}
-              disabled={generating || selectedPages.length === 0}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium text-sm hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
-            >
-              {generating ? (
-                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating...</>
-              ) : (
-                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>Generate {selectedPages.length} Pages</>
-              )}
-            </button>
-          )}
-        </div>
-        {!isStarterPlan && (
-          <div className="mt-4 h-2 bg-neutral-100 rounded-full overflow-hidden">
-            <div className="h-full bg-purple-600 transition-all duration-300" style={{ width: `${(selectedPages.length / maxPages) * 100}%` }} />
-          </div>
-        )}
-      </div>
-
-      {isStarterPlan ? (
-        <div className="p-6 bg-gradient-to-r from-purple-50 to-violet-50">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">✨</span>
-            <div>
-              <p className="font-medium text-purple-900">Upgrade for More Pages</p>
-              <p className="text-sm text-purple-700 mb-3">
-                Professional plan includes up to 5 pages: Home, About, Services, Contact, and more.
-              </p>
-              <div className="flex gap-2">
-                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">📖 About</span>
-                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">⚡ Services</span>
-                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">✉️ Contact</span>
-                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">+2 more</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="p-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {PAGE_CONFIGS.map((page) => {
-              const isSelected = selectedPages.includes(page.id);
-              const isGenerated = currentPages.includes(page.id);
-              const isHome = page.id === 'home';
-              const atLimit = selectedPages.length >= maxPages && !isSelected;
-
-              return (
-                <div
-                  key={page.id}
-                  onClick={() => !isHome && !atLimit && togglePage(page.id)}
-                  className={`relative p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                    isSelected
-                      ? 'border-purple-500 bg-purple-50'
-                      : atLimit
-                        ? 'border-neutral-200 bg-neutral-50 opacity-50 cursor-not-allowed'
-                        : 'border-neutral-200 hover:border-purple-300 bg-white'
-                  }`}
-                >
-                  {isGenerated && (
-                    <span className="absolute top-2 left-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">✓</span>
-                  )}
-                  {isSelected && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-purple-600 rounded border-2 border-purple-600 flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                  <span className="text-2xl block mb-2 mt-2">{page.icon}</span>
-                  <span className="font-medium text-black block text-sm">{page.name}</span>
-                  <span className="text-xs text-neutral-500">{page.description}</span>
-                </div>
-              );
-            })}
-          </div>
-          {error && <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>}
-        </div>
-      )}
-
-      {currentPages.length > 0 && (
-        <div className="p-4 border-t border-neutral-100 bg-neutral-50">
-          <p className="text-xs font-medium text-neutral-500 mb-2">Generated Pages:</p>
-          <div className="flex flex-wrap gap-2">
-            {currentPages.map((pageId) => {
-              const page = PAGE_CONFIGS.find(p => p.id === pageId);
-              return (
-                <span key={pageId} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-200 rounded-full text-sm">
-                  {page?.icon} {page?.name || pageId}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+function normalizeIndustryId(id: string): string {
+  const normalized = id.toLowerCase().trim();
+  return INDUSTRY_ID_ALIASES[normalized] || normalized;
 }
 
 // =============================================================================
-// SECTION EDITOR COMPONENT
+// SAFE PROPERTY ACCESS HELPERS
 // =============================================================================
 
-function SectionEditor({ projectId, html, onUpdate }: { projectId: string; html: string; onUpdate: () => void }) {
-  const [editMode, setEditMode] = useState(false);
-  const [selectedSection, setSelectedSection] = useState<typeof SECTIONS[0] | null>(null);
-  const [feedback, setFeedback] = useState('');
-  const [regenerating, setRegenerating] = useState(false);
-  const [detectedSections, setDetectedSections] = useState<Record<string, boolean>>({});
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!html) return;
-    const detected: Record<string, boolean> = {};
-    const patterns: Record<string, RegExp> = {
-      nav: /<nav[\s\S]*?<\/nav>/i,
-      hero: /(?:id=["']hero["']|class=["'][^"']*hero)/i,
-      services: /(?:id=["'](?:services|features)["']|class=["'][^"']*(?:services|features))/i,
-      about: /(?:id=["']about["']|class=["'][^"']*about)/i,
-      stats: /(?:id=["']stats["']|class=["'][^"']*stats)/i,
-      testimonials: /(?:id=["']testimonials["']|class=["'][^"']*testimonial)/i,
-      cta: /(?:id=["']cta["']|class=["'][^"']*cta[^"']*["'])/i,
-      contact: /(?:id=["']contact["']|class=["'][^"']*contact)/i,
-      footer: /<footer[\s\S]*?<\/footer>/i,
-    };
-    for (const [key, pattern] of Object.entries(patterns)) {
-      detected[key] = pattern.test(html);
-    }
-    setDetectedSections(detected);
-  }, [html]);
-
-  const regenerateSection = async () => {
-    if (!selectedSection) return;
-    setRegenerating(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/regenerate-section', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, section: selectedSection.id, feedback: feedback.trim() }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Regeneration failed');
-      setShowSuccess(true);
-      setFeedback('');
-      onUpdate();
-      setTimeout(() => { setShowSuccess(false); setSelectedSection(null); }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to regenerate section');
-    } finally {
-      setRegenerating(false);
-    }
-  };
-
-  const getPresets = () => selectedSection ? (FEEDBACK_PRESETS[selectedSection.id] || FEEDBACK_PRESETS.default) : FEEDBACK_PRESETS.default;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between p-4 bg-neutral-50 border-b border-neutral-200">
-        <div className="flex items-center gap-3">
-          <h3 className="font-semibold text-black">Website Preview</h3>
-          {editMode && <span className="px-2 py-1 bg-violet-100 text-violet-700 text-xs font-medium rounded-full">Edit Mode</span>}
-        </div>
-        <button
-          onClick={() => setEditMode(!editMode)}
-          className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all ${
-            editMode ? 'bg-violet-600 text-white' : 'bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-50'
-          }`}
-        >
-          {editMode ? (
-            <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>Exit Edit Mode</>
-          ) : (
-            <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>Edit Sections</>
-          )}
-        </button>
-      </div>
-
-      <div className={`${editMode ? 'ring-2 ring-violet-500 ring-offset-2' : ''} rounded-xl overflow-hidden mx-4`}>
-        <iframe
-          srcDoc={html}
-          className="w-full bg-white border border-neutral-200 rounded-xl"
-          style={{ height: '500px' }}
-          title="Website Preview"
-        />
-      </div>
-
-      {editMode && (
-        <div className="mx-4 p-4 bg-white border border-neutral-200 rounded-xl">
-          <h4 className="font-semibold text-black mb-3 flex items-center gap-2">
-            <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-            </svg>
-            Select Section to Regenerate
-          </h4>
-          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
-            {SECTIONS.map((section) => {
-              const isDetected = detectedSections[section.id];
-              const isSelected = selectedSection?.id === section.id;
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => isDetected && setSelectedSection(section)}
-                  disabled={!isDetected}
-                  className={`p-3 rounded-xl text-center transition-all ${
-                    isSelected
-                      ? 'bg-violet-600 text-white ring-2 ring-violet-600 ring-offset-2'
-                      : isDetected
-                        ? 'bg-neutral-50 hover:bg-violet-50 border border-neutral-200 hover:border-violet-300'
-                        : 'bg-neutral-100 text-neutral-400 cursor-not-allowed opacity-50'
-                  }`}
-                >
-                  <span className="text-xl block mb-1">{section.icon}</span>
-                  <span className="text-xs font-medium block">{section.name}</span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-neutral-500 mt-3">
-            <span className="text-amber-500">💡</span> Click a section above, then customize what you want changed
-          </p>
-        </div>
-      )}
-
-      {selectedSection && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
-            <div className="p-6 border-b border-neutral-100">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">{selectedSection.icon}</span>
-                  <div>
-                    <h2 className="font-semibold text-black text-lg">Regenerate {selectedSection.name}</h2>
-                    <p className="text-sm text-neutral-500">{selectedSection.description}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => { setSelectedSection(null); setFeedback(''); setError(null); }}
-                  className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
-                >
-                  <svg className="w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {showSuccess ? (
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="font-semibold text-black text-lg mb-2">Section Updated!</h3>
-                <p className="text-neutral-500">The {selectedSection.name} has been regenerated.</p>
-              </div>
-            ) : (
-              <>
-                <div className="p-6 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Quick suggestions</label>
-                    <div className="flex flex-wrap gap-2">
-                      {getPresets().map((preset, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setFeedback(preset)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                            feedback === preset ? 'bg-violet-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-violet-100'
-                          }`}
-                        >
-                          {preset}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Your feedback <span className="text-neutral-400">(optional)</span>
-                    </label>
-                    <textarea
-                      value={feedback}
-                      onChange={(e) => setFeedback(e.target.value)}
-                      placeholder="Tell us what you'd like to change..."
-                      rows={3}
-                      className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
-                    />
-                  </div>
-                  {error && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
-                  )}
-                </div>
-                <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex justify-end gap-3">
-                  <button
-                    onClick={() => { setSelectedSection(null); setFeedback(''); setError(null); }}
-                    className="px-5 py-2.5 text-neutral-700 font-medium rounded-lg hover:bg-neutral-100 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={regenerateSection}
-                    disabled={regenerating}
-                    className="px-5 py-2.5 bg-violet-600 text-white font-medium rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {regenerating ? (
-                      <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Regenerating...</>
-                    ) : (
-                      <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>Regenerate</>
-                    )}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// =============================================================================
-// DESIGN REVIEW COMPONENT
-// =============================================================================
-
-type ReviewCategory = { 
-  score: number; 
-  status: 'pass' | 'warning' | 'fail'; 
-  findings?: any[]; 
-  issues?: string[]; 
-  missingFeatures?: string[]; 
-  foundFeatures?: string[] 
-};
-
-type ReviewData = { 
-  overallScore: number; 
-  passesQuality: boolean; 
-  categories: Record<string, ReviewCategory>; 
-  criticalIssues: string[]; 
-  warnings: string[]; 
-  suggestions: string[]; 
-  summary: string 
-};
-
-function DesignReview({ project, onReviewComplete }: { project: Project; onReviewComplete?: (r: ReviewData) => void }) {
-  const [review, setReview] = useState<ReviewData | null>(project.review_details || null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
-
-  const runReview = async () => {
-    if (!project.generated_html) { setError('No HTML to review'); return; }
-    setLoading(true); setError(null);
-    try {
-      const response = await fetch('/api/review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: project.id, generatedHtml: project.generated_html })
-      });
-      if (!response.ok) throw new Error('Review failed');
-      const data = await response.json();
-      setReview(data.review);
-      onReviewComplete?.(data.review);
-    } catch (err: any) {
-      setError(err.message || 'Review failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getScoreColor = (score: number) => score >= 80 ? 'text-emerald-600' : score >= 60 ? 'text-amber-600' : 'text-red-600';
-  const getScoreBg = (score: number) => score >= 80 ? 'bg-emerald-500' : score >= 60 ? 'bg-amber-500' : 'bg-red-500';
-  const getStatusIcon = (status: string) => {
-    if (status === 'pass') return <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg></div>;
-    if (status === 'warning') return <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center"><svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01" /></svg></div>;
-    return <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center"><svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></div>;
-  };
-
-  const categoryLabels: Record<string, string> = {
-    designDirection: 'Design Direction',
-    brandVoice: 'Brand Voice',
-    colorPalette: 'Color Palette',
-    features: 'Features',
-    heroSection: 'Hero Section',
-    contentQuality: 'Content Quality',
-    technicalQuality: 'Technical Quality'
-  };
-
-  if (!review) {
-    return (
-      <div className="bg-white border border-neutral-200 rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-semibold text-black text-lg">AI Design Review</h3>
-            <p className="text-sm text-neutral-500">Check if design matches requirements</p>
-          </div>
-          <button
-            onClick={runReview}
-            disabled={loading || !project.generated_html}
-            className="px-4 py-2 bg-violet-600 text-white rounded-lg font-medium text-sm hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            {loading ? (
-              <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Reviewing...</>
-            ) : (
-              <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Run AI Review</>
-            )}
-          </button>
-        </div>
-        {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>}
-        {!project.generated_html && <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">Generate a design first to run the quality review.</div>}
-      </div>
-    );
+function ensureCompleteIntelligence(partial: Partial<IndustryIntelligence> | undefined, id: string): IndustryIntelligence {
+  if (!partial) {
+    return { ...DEFAULT_FALLBACK, id, name: `${id} Business` };
   }
 
-  return (
-    <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden">
-      <div className={`p-6 ${review.passesQuality ? 'bg-emerald-50' : 'bg-amber-50'}`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-black text-lg">AI Design Review</h3>
-            <p className="text-sm text-neutral-600 mt-1 max-w-md">{review.summary}</p>
-          </div>
-          <div className="text-center">
-            <div className={`text-4xl font-bold ${getScoreColor(review.overallScore)}`}>{review.overallScore}</div>
-            <div className="text-xs text-neutral-500 mt-1">/ 100</div>
-          </div>
-        </div>
-        <div className="mt-4 h-2 bg-white/50 rounded-full overflow-hidden">
-          <div className={`h-full ${getScoreBg(review.overallScore)} transition-all duration-500`} style={{ width: `${review.overallScore}%` }} />
-        </div>
-        <div className="mt-3 flex items-center justify-between">
-          {review.passesQuality ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500 text-white rounded-full text-sm font-medium">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-              Ready for Client
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500 text-white rounded-full text-sm font-medium">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" /></svg>
-              Needs Revisions
-            </span>
-          )}
-          <button onClick={runReview} disabled={loading} className="text-sm text-neutral-600 hover:text-black flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-            Re-run
-          </button>
-        </div>
-      </div>
-
-      {(review.criticalIssues?.length ?? 0) > 0 && (
-        <div className="p-4 bg-red-50 border-b border-red-100">
-          <h4 className="font-medium text-red-800 text-sm mb-2">Critical Issues ({review.criticalIssues?.length ?? 0})</h4>
-          <ul className="space-y-1">
-            {review.criticalIssues?.map((issue, i) => <li key={i} className="text-sm text-red-700">• {issue}</li>)}
-          </ul>
-        </div>
-      )}
-
-      <div className="p-4 border-b border-neutral-100">
-        <h4 className="font-medium text-black text-sm mb-3">Category Breakdown</h4>
-        <div className="space-y-2">
-          {Object.entries(review.categories || {}).map(([key, category]) => {
-            if (!category) return null;
-            return (
-              <div key={key} className="border border-neutral-100 rounded-lg overflow-hidden">
-                <button onClick={() => setExpanded(expanded === key ? null : key)} className="w-full p-3 flex items-center justify-between hover:bg-neutral-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    {getStatusIcon(category.status)}
-                    <span className="font-medium text-sm text-black">{categoryLabels[key] || key}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`font-semibold text-sm ${getScoreColor(category.score)}`}>{category.score}%</span>
-                    <svg className={`w-4 h-4 text-neutral-400 transition-transform ${expanded === key ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </button>
-                {expanded === key && (
-                  <div className="p-3 pt-0 border-t border-neutral-100 bg-neutral-50 space-y-2">
-                    {(category.issues?.length ?? 0) > 0 && (
-                      <div>
-                        <span className="text-xs font-medium text-amber-600">Issues:</span>
-                        <ul className="mt-1">{category.issues?.map((issue, i) => <li key={i} className="text-xs text-neutral-600">• {issue}</li>)}</ul>
-                      </div>
-                    )}
-                    {(category.missingFeatures?.length ?? 0) > 0 && (
-                      <div>
-                        <span className="text-xs font-medium text-red-600">Missing:</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {category.missingFeatures?.map((f, i) => <span key={i} className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">{f}</span>)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {(review.suggestions?.length ?? 0) > 0 && (
-        <div className="p-4 bg-neutral-50">
-          <h4 className="font-medium text-blue-700 text-sm mb-2">💡 Suggestions</h4>
-          <ul className="space-y-1">
-            {review.suggestions?.slice(0, 3).map((s, i) => <li key={i} className="text-sm text-neutral-600">{s}</li>)}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
+  return {
+    id: partial.id || id,
+    name: partial.name || `${id} Business`,
+    category: partial.category || 'general',
+    topBrands: partial.topBrands?.length ? partial.topBrands : DEFAULT_FALLBACK.topBrands,
+    psychology: {
+      customerNeeds: partial.psychology?.customerNeeds?.length ? partial.psychology.customerNeeds : DEFAULT_FALLBACK.psychology.customerNeeds,
+      trustFactors: partial.psychology?.trustFactors?.length ? partial.psychology.trustFactors : DEFAULT_FALLBACK.psychology.trustFactors,
+      emotionalTriggers: partial.psychology?.emotionalTriggers?.length ? partial.psychology.emotionalTriggers : DEFAULT_FALLBACK.psychology.emotionalTriggers,
+    },
+    sections: partial.sections?.length ? partial.sections : DEFAULT_FALLBACK.sections,
+    design: {
+      colors: {
+        primary: partial.design?.colors?.primary || DEFAULT_FALLBACK.design.colors.primary,
+        secondary: partial.design?.colors?.secondary || DEFAULT_FALLBACK.design.colors.secondary,
+        accent: partial.design?.colors?.accent || DEFAULT_FALLBACK.design.colors.accent,
+        background: partial.design?.colors?.background || DEFAULT_FALLBACK.design.colors.background,
+      },
+      colorDescription: partial.design?.colorDescription || DEFAULT_FALLBACK.design.colorDescription,
+      fonts: {
+        heading: partial.design?.fonts?.heading || DEFAULT_FALLBACK.design.fonts.heading,
+        body: partial.design?.fonts?.body || DEFAULT_FALLBACK.design.fonts.body,
+      },
+      typography: partial.design?.typography || DEFAULT_FALLBACK.design.typography,
+      imageStyle: partial.design?.imageStyle || DEFAULT_FALLBACK.design.imageStyle,
+      spacing: partial.design?.spacing || DEFAULT_FALLBACK.design.spacing,
+      mood: partial.design?.mood || DEFAULT_FALLBACK.design.mood,
+    },
+    copywriting: {
+      tone: partial.copywriting?.tone || DEFAULT_FALLBACK.copywriting.tone,
+      exampleHeadlines: partial.copywriting?.exampleHeadlines?.length ? partial.copywriting.exampleHeadlines : DEFAULT_FALLBACK.copywriting.exampleHeadlines,
+      exampleCTAs: partial.copywriting?.exampleCTAs?.length ? partial.copywriting.exampleCTAs : DEFAULT_FALLBACK.copywriting.exampleCTAs,
+      avoidPhrases: partial.copywriting?.avoidPhrases?.length ? partial.copywriting.avoidPhrases : DEFAULT_FALLBACK.copywriting.avoidPhrases,
+    },
+    images: {
+      hero: partial.images?.hero?.length ? partial.images.hero : DEFAULT_FALLBACK.images.hero,
+      products: partial.images?.products?.length ? partial.images.products : DEFAULT_FALLBACK.images.products,
+      lifestyle: partial.images?.lifestyle?.length ? partial.images.lifestyle : DEFAULT_FALLBACK.images.lifestyle,
+      about: partial.images?.about?.length ? partial.images.about : DEFAULT_FALLBACK.images.about,
+    },
+  };
 }
 
 // =============================================================================
-// MAIN COMPONENT
+// INDUSTRY INTELLIGENCE FETCHING
 // =============================================================================
 
-export default function ProjectDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const projectId = params.id as string;
+interface IntelligenceResult {
+  intelligence: IndustryIntelligence;
+  source: 'database' | 'static' | 'fallback';
+  originalId?: string;
+  mappedFrom?: string;
+}
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'preview' | 'review' | 'messages'>('details');
-  const [newMessage, setNewMessage] = useState('');
-  const [formData, setFormData] = useState({ status: '', plan: '', notes: '', paid: false });
+async function getIndustryIntelligence(industryId: string): Promise<IntelligenceResult> {
+  const originalId = industryId;
+  const normalizedId = normalizeIndustryId(industryId);
+  const wasNormalized = normalizedId !== industryId.toLowerCase().trim();
 
-  useEffect(() => {
-    if (projectId) {
-      loadProject();
-      loadMessages();
-    }
-  }, [projectId]);
+  // Try database first with original ID
+  try {
+    const { data, error } = await supabase
+      .from('industries')
+      .select('intelligence')
+      .eq('id', industryId)
+      .single();
 
-  const loadProject = async () => {
-    try {
-      const { data, error } = await supabase.from('projects').select('*, customers(*)').eq('id', projectId).single();
-      if (!error && data) {
-        setProject(data);
-        setFormData({ status: data.status || '', plan: data.plan || '', notes: data.notes || '', paid: data.paid || false });
-      }
-    } catch (err) {
-      console.error('Error loading project:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadMessages = async () => {
-    try {
-      const { data } = await supabase.from('messages').select('*').eq('project_id', projectId).order('created_at', { ascending: true });
-      if (data) setMessages(data);
-    } catch (err) {
-      console.error('Error loading messages:', err);
-    }
-  };
-
-  const saveProject = async () => {
-    if (!project) return;
-    setSaving(true);
-    try {
-      await supabase.from('projects').update({
-        status: formData.status,
-        plan: formData.plan,
-        notes: formData.notes,
-        paid: formData.paid
-      }).eq('id', projectId);
-      loadProject();
-    } catch (err) {
-      console.error('Error saving project:', err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ==========================================================================
-  // FIXED: generateWebsite function - sends correct request format
-  // ==========================================================================
-  const generateWebsite = async () => {
-    if (!project) return;
-    setGenerating(true);
-    
-    try {
-      // Update status to GENERATING
-      await supabase.from('projects').update({ status: 'GENERATING' }).eq('id', projectId);
-      setFormData(prev => ({ ...prev, status: 'GENERATING' }));
-
-      // Build the project object expected by the API
-      const projectData = {
-        id: project.id,
-        industry: project.industry || 'general',
-        businessName: project.business_name,
-        businessDescription: project.description || '',
-        targetAudience: project.target_customer || '',
-        uniqueSellingPoints: project.primary_services || [],
-        location: project.address || '',
-        contactInfo: {
-          phone: project.contact_phone || '',
-          email: project.contact_email || '',
-          address: project.address || '',
-        },
+    if (!error && data?.intelligence) {
+      console.log(`✅ Loaded "${industryId}" from database`);
+      return {
+        intelligence: ensureCompleteIntelligence(data.intelligence as Partial<IndustryIntelligence>, industryId),
+        source: 'database',
+        originalId,
       };
+    }
+  } catch (err) {
+    // Continue to next fallback
+  }
 
-      // Call the API with correct format
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          project: projectData,
-          pageType: 'landing',
-          customizations: {},
-        }),
-      });
+  // Try database with normalized ID if different
+  if (wasNormalized) {
+    try {
+      const { data, error } = await supabase
+        .from('industries')
+        .select('intelligence')
+        .eq('id', normalizedId)
+        .single();
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Save the generated HTML to the project
-        await supabase
-          .from('projects')
-          .update({
-            generated_html: data.generatedCode,
-            status: 'PREVIEW_READY',
-          })
-          .eq('id', projectId);
-
-        await loadProject();
-        setActiveTab('preview');
-      } else {
-        // Revert status on failure
-        await supabase.from('projects').update({ status: formData.status || 'QUEUED' }).eq('id', projectId);
-        alert('Generation failed: ' + (data.details || data.error || 'Unknown error'));
+      if (!error && data?.intelligence) {
+        console.log(`✅ Loaded "${normalizedId}" from database (mapped from "${industryId}")`);
+        return {
+          intelligence: ensureCompleteIntelligence(data.intelligence as Partial<IndustryIntelligence>, normalizedId),
+          source: 'database',
+          originalId,
+          mappedFrom: industryId,
+        };
       }
     } catch (err) {
-      console.error('Error generating website:', err);
-      // Revert status on error
-      await supabase.from('projects').update({ status: formData.status || 'QUEUED' }).eq('id', projectId);
-      alert('Error generating website.');
-    } finally {
-      setGenerating(false);
+      // Continue to next fallback
     }
-  };
-
-  const sendMessage = async () => {
-    if (!newMessage.trim()) return;
-    try {
-      await supabase.from('messages').insert({
-        project_id: projectId,
-        content: newMessage.trim(),
-        sender_type: 'admin',
-        read: false
-      });
-      setNewMessage('');
-      loadMessages();
-    } catch (err) {
-      console.error('Error sending message:', err);
-    }
-  };
-
-  const getStatusConfig = (status: string) => STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0];
-  const getPlanConfig = (plan: string) => PLAN_OPTIONS.find(p => p.value === plan) || PLAN_OPTIONS[0];
-  const formatDate = (date: string) => new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-neutral-200 border-t-black rounded-full animate-spin" />
-      </div>
-    );
   }
 
-  if (!project) {
-    return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-medium text-black mb-2">Project Not Found</h2>
-        <Link href="/admin/projects" className="text-black hover:underline">Back to Projects</Link>
-      </div>
-    );
+  // Try static data with original ID
+  const staticIndustry = getIndustry(industryId);
+  if (staticIndustry) {
+    console.log(`📦 Loaded "${industryId}" from static data`);
+    return {
+      intelligence: ensureCompleteIntelligence(staticIndustry, industryId),
+      source: 'static',
+      originalId,
+    };
   }
 
-  const statusConfig = getStatusConfig(project.status);
-  const planConfig = getPlanConfig(project.plan || '');
-  const designDirection = DESIGN_DIRECTIONS[project.design_direction || ''];
-  const brandVoice = BRAND_VOICES[project.brand_voice || ''];
+  // Try static data with normalized ID
+  if (wasNormalized) {
+    const normalizedStaticIndustry = getIndustry(normalizedId);
+    if (normalizedStaticIndustry) {
+      console.log(`📦 Loaded "${normalizedId}" from static data (mapped from "${industryId}")`);
+      return {
+        intelligence: ensureCompleteIntelligence(normalizedStaticIndustry, normalizedId),
+        source: 'static',
+        originalId,
+        mappedFrom: industryId,
+      };
+    }
+  }
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <Link href="/admin/projects" className="text-sm text-neutral-500 hover:text-black mb-2 inline-flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </Link>
-          <h1 className="text-3xl font-medium text-black">{project.business_name}</h1>
-          <div className="flex items-center gap-2 mt-2">
-            {designDirection && <span className={`px-2 py-1 rounded-full text-xs font-medium ${designDirection.color}`}>{designDirection.name}</span>}
-            {brandVoice && <span className="px-2 py-1 rounded-full text-xs font-medium bg-neutral-100 text-neutral-700">{brandVoice}</span>}
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          {project.review_score !== null && (
-            <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${project.review_score >= 75 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-              Score: {project.review_score}
-            </div>
-          )}
-          <span className={'px-3 py-1.5 rounded-full text-sm font-medium border ' + statusConfig.color}>
-            {statusConfig.label}
-          </span>
-          <button onClick={saveProject} disabled={saving} className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-full hover:bg-black/80 transition-colors disabled:opacity-50">
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
+  // Use complete fallback
+  console.warn(`⚠️ Industry "${industryId}" not found, using fallback`);
+  return {
+    intelligence: ensureCompleteIntelligence(undefined, industryId),
+    source: 'fallback',
+    originalId,
+  };
+}
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-neutral-100 rounded-xl w-fit">
-        {(['details', 'preview', 'review', 'messages'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={'px-5 py-2.5 rounded-lg text-sm font-medium transition-all ' + (activeTab === tab ? 'bg-white text-black shadow-sm' : 'text-neutral-500 hover:text-black')}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            {tab === 'messages' && messages.length > 0 && <span className="ml-2 px-2 py-0.5 bg-black text-white text-xs rounded-full">{messages.length}</span>}
-            {tab === 'review' && project.review_score !== null && (
-              <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${project.review_score >= 75 ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
-                {project.review_score}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+// =============================================================================
+// PROMPT BUILDING
+// =============================================================================
 
-      {/* DETAILS TAB */}
-      {activeTab === 'details' && (
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            {/* Status and Plan */}
-            <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-              <h2 className="font-semibold text-black mb-6">Status and Plan</h2>
-              <div className="grid sm:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm text-neutral-500 mb-2">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                  >
-                    {STATUS_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-neutral-500 mb-2">Plan</label>
-                  <select
-                    value={formData.plan}
-                    onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                  >
-                    {PLAN_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label} (${opt.price})</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="mt-6">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.paid}
-                    onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
-                    className="w-5 h-5 rounded border-neutral-300 text-black focus:ring-black"
-                  />
-                  <span className="text-sm text-black">Mark as Paid</span>
-                </label>
-              </div>
-            </div>
+interface PromptConfig {
+  intelligence: IndustryIntelligence;
+  businessName: string;
+  businessDescription?: string;
+  targetAudience?: string;
+  uniqueSellingPoints?: string[];
+  location?: string;
+  contactInfo?: {
+    phone?: string;
+    email?: string;
+    address?: string;
+  };
+  customizations?: {
+    excludeSections?: string[];
+    colorOverride?: Partial<ColorPalette>;
+    fontOverride?: Partial<FontPairing>;
+  };
+  pageType: string;
+}
 
-            {/* Multi-Page Manager */}
-            <MultiPageManager
-              projectId={project.id}
-              plan={formData.plan || project.plan || 'starter'}
-              generatedPages={project.generated_pages}
-              requestedPages={project.requested_pages}
-              onUpdate={loadProject}
-            />
+function buildSectionInstructions(sections: Section[], excludeIds: string[] = []): string {
+  const filteredSections = sections.filter((s) => !excludeIds.includes(s.id));
+  
+  return filteredSections
+    .map((section) => {
+      const tag = section.required ? '🔴 REQUIRED' : '🟡 RECOMMENDED';
+      return `
+### ${section.name} [${tag}]
+**Purpose:** ${section.purpose}
+**Key Elements:**
+${section.keyElements.map((el) => `  • ${el}`).join('\n')}`;
+    })
+    .join('\n\n');
+}
 
-            {/* Project Requirements */}
-            <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-              <h2 className="font-semibold text-black mb-6">Project Requirements</h2>
-              <div className="space-y-4">
-                {project.description && (
-                  <div className="p-4 bg-neutral-50 rounded-xl">
-                    <p className="text-xs text-neutral-500 mb-1">Business Description</p>
-                    <p className="text-sm text-black">{project.description}</p>
-                  </div>
-                )}
-                {project.target_customer && (
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                    <p className="text-xs text-amber-700 mb-1">Target Customer</p>
-                    <p className="text-sm text-amber-900">{project.target_customer}</p>
-                  </div>
-                )}
-                {project.unique_value && (
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                    <p className="text-xs text-emerald-700 mb-1">Unique Value</p>
-                    <p className="text-sm text-emerald-900">{project.unique_value}</p>
-                  </div>
-                )}
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="p-4 bg-neutral-50 rounded-xl">
-                    <p className="text-xs text-neutral-500 mb-1">Industry</p>
-                    <p className="text-sm font-medium text-black">{project.industry || 'Not specified'}</p>
-                  </div>
-                  <div className="p-4 bg-neutral-50 rounded-xl">
-                    <p className="text-xs text-neutral-500 mb-1">Website Goal</p>
-                    <p className="text-sm font-medium text-black capitalize">{project.website_goal?.replace('-', ' ') || 'Not specified'}</p>
-                  </div>
-                  <div className="p-4 bg-neutral-50 rounded-xl">
-                    <p className="text-xs text-neutral-500 mb-1">Design Direction</p>
-                    <p className="text-sm font-medium text-black">{designDirection?.name || project.style || 'Not specified'}</p>
-                  </div>
-                  <div className="p-4 bg-neutral-50 rounded-xl">
-                    <p className="text-xs text-neutral-500 mb-1">Hero Style</p>
-                    <p className="text-sm font-medium text-black capitalize">{project.hero_preference?.replace('-', ' ') || 'Auto'}</p>
-                  </div>
-                </div>
-                {project.primary_services && project.primary_services.length > 0 && (
-                  <div className="p-4 bg-neutral-50 rounded-xl">
-                    <p className="text-xs text-neutral-500 mb-2">Primary Services</p>
-                    <div className="flex flex-wrap gap-2">
-                      {project.primary_services.map((s, i) => (
-                        <span key={i} className="px-3 py-1 bg-violet-100 text-violet-700 rounded-full text-xs font-medium">{s}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {project.call_to_action && (
-                  <div className="p-4 bg-neutral-50 rounded-xl">
-                    <p className="text-xs text-neutral-500 mb-1">Preferred CTA</p>
-                    <p className="text-sm font-medium text-black">&quot;{project.call_to_action}&quot;</p>
-                  </div>
-                )}
-              </div>
-            </div>
+function buildDetailedPrompt(config: PromptConfig): string {
+  const {
+    intelligence,
+    businessName,
+    businessDescription,
+    targetAudience,
+    uniqueSellingPoints,
+    location,
+    contactInfo,
+    customizations,
+    pageType,
+  } = config;
 
-            {/* Internal Notes */}
-            <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-              <h2 className="font-semibold text-black mb-4">Internal Notes</h2>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Add internal notes..."
-                rows={4}
-                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black resize-none"
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-              <h2 className="font-semibold text-black mb-4">Actions</h2>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={generateWebsite}
-                  disabled={generating}
-                  className="px-5 py-2.5 bg-purple-600 text-white text-sm font-medium rounded-full hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {generating ? (
-                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating...</>
-                  ) : (
-                    <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>{project.generated_html ? 'Regenerate' : 'Generate'}</>
-                  )}
-                </button>
-                {project.generated_html && (
-                  <>
-                    <a
-                      href={'/preview/' + project.id}
-                      target="_blank"
-                      className="px-5 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-full hover:bg-emerald-700 transition-colors flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      Live Preview
-                    </a>
-                    <button
-                      onClick={() => setActiveTab('preview')}
-                      className="px-5 py-2.5 bg-violet-600 text-white text-sm font-medium rounded-full hover:bg-violet-700 transition-colors flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit Sections
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right sidebar */}
-          <div className="space-y-6">
-            {/* Customer */}
-            <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-              <h2 className="font-semibold text-black mb-4">Customer</h2>
-              {project.customers ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-neutral-600 to-neutral-800 rounded-xl flex items-center justify-center text-white font-bold">
-                    {project.customers.name?.charAt(0)?.toUpperCase() || '?'}
-                  </div>
-                  <div>
-                    <p className="font-medium text-black">{project.customers.name}</p>
-                    <p className="text-sm text-neutral-500">{project.customers.email}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-neutral-500">No customer assigned</p>
-              )}
-            </div>
-
-            {/* Project Value */}
-            <div className="bg-gradient-to-br from-black to-neutral-800 rounded-2xl p-6 text-white">
-              <h2 className="font-semibold mb-4">Project Value</h2>
-              <div className="text-4xl font-semibold mb-2">${planConfig.price}</div>
-              <p className="text-sm text-white/60">{planConfig.label} Plan</p>
-              <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-                <span className="text-sm text-white/60">Payment</span>
-                <span className={'text-sm font-medium ' + (project.paid ? 'text-emerald-400' : 'text-amber-400')}>
-                  {project.paid ? 'Paid' : 'Pending'}
-                </span>
-              </div>
-              <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between">
-                <span className="text-sm text-white/60">Created</span>
-                <span className="text-sm text-white/80">{formatDate(project.created_at)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* PREVIEW TAB */}
-      {activeTab === 'preview' && (
-        <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
-          {project.generated_html ? (
-            <SectionEditor projectId={project.id} html={project.generated_html} onUpdate={loadProject} />
-          ) : (
-            <div className="p-12 text-center">
-              <div className="w-20 h-20 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-10 h-10 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-medium text-black mb-2">No Preview Available</h3>
-              <p className="text-neutral-500 mb-6">Generate a website to see the preview</p>
-              <button
-                onClick={generateWebsite}
-                disabled={generating}
-                className="px-5 py-2.5 bg-purple-600 text-white text-sm font-medium rounded-full hover:bg-purple-700 transition-colors disabled:opacity-50"
-              >
-                {generating ? 'Generating...' : 'Generate Website'}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* REVIEW TAB */}
-      {activeTab === 'review' && <DesignReview project={project} onReviewComplete={() => loadProject()} />}
-
-      {/* MESSAGES TAB */}
-      {activeTab === 'messages' && (
-        <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
-          <div className="h-96 overflow-y-auto p-4 space-y-4">
-            {messages.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-neutral-500">No messages yet</p>
-              </div>
-            ) : (
-              messages.map((msg) => (
-                <div key={msg.id} className={'flex ' + (msg.sender_type === 'admin' ? 'justify-end' : 'justify-start')}>
-                  <div className={'max-w-md px-4 py-3 rounded-2xl ' + (msg.sender_type === 'admin' ? 'bg-black text-white rounded-br-sm' : 'bg-neutral-100 text-black rounded-bl-sm')}>
-                    <p className="text-sm">{msg.content}</p>
-                    <p className={'text-xs mt-1 ' + (msg.sender_type === 'admin' ? 'text-white/60' : 'text-neutral-400')}>
-                      {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="p-4 border-t border-neutral-200 flex gap-3">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              placeholder="Type a message..."
-              className="flex-1 px-4 py-3 bg-neutral-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black"
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!newMessage.trim()}
-              className="px-5 py-3 bg-black text-white text-sm font-medium rounded-xl hover:bg-black/80 disabled:opacity-50 transition-colors"
-            >
-              Send
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+  // Apply overrides with safe access
+  const colors = {
+    primary: customizations?.colorOverride?.primary || intelligence.design.colors.primary,
+    secondary: customizations?.colorOverride?.secondary || intelligence.design.colors.secondary,
+    accent: customizations?.colorOverride?.accent || intelligence.design.colors.accent,
+    background: customizations?.colorOverride?.background || intelligence.design.colors.background,
+  };
+  
+  const fonts = {
+    heading: customizations?.fontOverride?.heading || intelligence.design.fonts.heading,
+    body: customizations?.fontOverride?.body || intelligence.design.fonts.body,
+  };
+  
+  const sectionInstructions = buildSectionInstructions(
+    intelligence.sections,
+    customizations?.excludeSections
   );
+
+  const inspirationBrands = intelligence.topBrands.slice(0, 4).join(', ');
+
+  return `You are an elite website designer creating a ${pageType} page for "${businessName}".
+Your designs are informed by extensive research on the most successful ${intelligence.name} websites.
+
+═══════════════════════════════════════════════════════════════════════════════
+                              INDUSTRY INTELLIGENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+## Industry: ${intelligence.name}
+## Inspired By: ${inspirationBrands}
+## Category: ${intelligence.category}
+
+These brands set the standard for ${intelligence.name} websites. Study their patterns:
+${intelligence.topBrands.map((brand) => `• ${brand}`).join('\n')}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              CUSTOMER PSYCHOLOGY
+═══════════════════════════════════════════════════════════════════════════════
+
+Understanding your visitors is critical to conversion. This research reveals what works:
+
+### What Customers NEED to See (Before They'll Convert)
+${intelligence.psychology.customerNeeds.map((need) => `✓ ${need}`).join('\n')}
+
+### Trust Factors That Drive Decisions
+${intelligence.psychology.trustFactors.map((factor) => `🛡️ ${factor}`).join('\n')}
+
+### Emotional Triggers to Leverage
+${intelligence.psychology.emotionalTriggers.map((trigger) => `❤️ ${trigger}`).join('\n')}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              PAGE SECTIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+Create these sections following proven patterns from top ${intelligence.name} websites:
+
+${sectionInstructions}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              DESIGN SYSTEM
+═══════════════════════════════════════════════════════════════════════════════
+
+Apply this exact design system. These choices are research-backed for ${intelligence.name}:
+
+### Color Palette
+${intelligence.design.colorDescription}
+
+\`\`\`css
+:root {
+  --primary: ${colors.primary};
+  --secondary: ${colors.secondary};
+  --accent: ${colors.accent};
+  --background: ${colors.background};
+}
+\`\`\`
+
+### Typography
+${intelligence.design.typography}
+
+- **Headings:** ${fonts.heading} (import from Google Fonts)
+- **Body Text:** ${fonts.body} (import from Google Fonts)
+
+### Visual Style
+- **Images:** ${intelligence.design.imageStyle}
+- **Spacing:** ${intelligence.design.spacing}
+
+### Overall Mood
+${intelligence.design.mood}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              COPYWRITING STYLE
+═══════════════════════════════════════════════════════════════════════════════
+
+### Tone of Voice
+${intelligence.copywriting.tone}
+
+### Example Headlines That Convert (Use These Patterns)
+${intelligence.copywriting.exampleHeadlines.map((h) => `📝 "${h}"`).join('\n')}
+
+### Proven CTAs for This Industry
+${intelligence.copywriting.exampleCTAs.map((cta) => `🎯 "${cta}"`).join('\n')}
+
+### ❌ Phrases to AVOID (Overused/Ineffective)
+${intelligence.copywriting.avoidPhrases.map((phrase) => `• "${phrase}"`).join('\n')}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              CURATED IMAGES
+═══════════════════════════════════════════════════════════════════════════════
+
+Use these pre-selected, high-quality images (Unsplash URLs):
+
+### Hero/Banner Images
+${intelligence.images.hero.map((url) => url).join('\n')}
+
+### Product/Service Images
+${intelligence.images.products.map((url) => url).join('\n')}
+
+### Lifestyle/Context Images
+${intelligence.images.lifestyle.map((url) => url).join('\n')}
+
+### About/Team Images
+${intelligence.images.about.map((url) => url).join('\n')}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              BUSINESS DETAILS
+═══════════════════════════════════════════════════════════════════════════════
+
+**Business Name:** ${businessName}
+${businessDescription ? `**Description:** ${businessDescription}` : ''}
+${targetAudience ? `**Target Audience:** ${targetAudience}` : ''}
+${uniqueSellingPoints?.length ? `**Unique Selling Points:**\n${uniqueSellingPoints.map((usp) => `• ${usp}`).join('\n')}` : ''}
+${location ? `**Location:** ${location}` : ''}
+${contactInfo?.phone ? `**Phone:** ${contactInfo.phone}` : ''}
+${contactInfo?.email ? `**Email:** ${contactInfo.email}` : ''}
+${contactInfo?.address ? `**Address:** ${contactInfo.address}` : ''}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              OUTPUT REQUIREMENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+Generate a COMPLETE, PRODUCTION-READY single-page website that:
+
+1. ✅ Follows the design system EXACTLY (colors, fonts, spacing)
+2. ✅ Includes ALL required sections with proper hierarchy
+3. ✅ Uses the provided Unsplash images (with proper sizing: ?w=1920 for hero, ?w=800 for cards)
+4. ✅ Implements the copywriting style and tone
+5. ✅ Is fully responsive (mobile-first approach)
+6. ✅ Is accessible (semantic HTML, ARIA labels, proper contrast)
+7. ✅ Includes Google Fonts import in <head>
+8. ✅ Has smooth scroll behavior
+9. ✅ Includes subtle, professional animations (fade-in, hover states)
+10. ✅ Uses CSS custom properties for the color system
+
+Output the complete HTML document with embedded <style> and minimal <script> tags.
+Start with <!DOCTYPE html> and include everything needed for the page to work standalone.
+
+DO NOT include any markdown, explanations, or code blocks - ONLY the raw HTML.`;
+}
+
+// =============================================================================
+// API HANDLERS
+// =============================================================================
+
+export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+
+  try {
+    const body = (await request.json()) as GenerateRequest;
+
+    // Extract project data
+    const { project, pageType = 'landing', customInstructions, customizations } = body;
+    
+    // Safely check project object
+    if (!project || typeof project !== 'object') {
+      return NextResponse.json(
+        {
+          error: 'Invalid request: project object is required',
+          required: ['project.id', 'project.industry', 'project.businessName'],
+        },
+        { status: 400 }
+      );
+    }
+
+    const {
+      id: projectId,
+      industry: industryId,
+      businessName,
+      businessDescription,
+      targetAudience,
+      uniqueSellingPoints,
+      location,
+      contactInfo,
+    } = project;
+
+    // Validate required fields
+    if (!projectId || !industryId || !businessName) {
+      return NextResponse.json(
+        {
+          error: 'Missing required fields',
+          required: ['project.id', 'project.industry', 'project.businessName'],
+          received: { projectId: !!projectId, industryId: !!industryId, businessName: !!businessName },
+        },
+        { status: 400 }
+      );
+    }
+
+    // Fetch industry intelligence (with alias mapping and safe fallback)
+    const { intelligence, source, mappedFrom } = await getIndustryIntelligence(industryId);
+
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log(`🚀 GENERATING WEBSITE`);
+    console.log(`   Business: ${businessName}`);
+    console.log(`   Industry: ${intelligence.name} (${intelligence.id})`);
+    console.log(`   Original ID: ${industryId}${mappedFrom ? ` (mapped to ${intelligence.id})` : ''}`);
+    console.log(`   Source: ${source}`);
+    console.log(`   Page Type: ${pageType}`);
+    console.log('═══════════════════════════════════════════════════════════════');
+
+    // Build the detailed prompt
+    let prompt = buildDetailedPrompt({
+      intelligence,
+      businessName,
+      businessDescription,
+      targetAudience,
+      uniqueSellingPoints,
+      location,
+      contactInfo,
+      customizations,
+      pageType,
+    });
+
+    // Append custom instructions if provided
+    if (customInstructions) {
+      prompt += `\n\n═══════════════════════════════════════════════════════════════════════════════
+                              ADDITIONAL INSTRUCTIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+${customInstructions}`;
+    }
+
+    // Generate with Claude
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 16000,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    // Extract generated content
+    const content = message.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Unexpected response type from Claude');
+    }
+
+    // Clean up the response (remove any markdown if present)
+    let html = content.text.trim();
+    
+    // Handle if wrapped in code blocks
+    const htmlMatch = html.match(/```(?:html)?\n?([\s\S]*?)```/);
+    if (htmlMatch) {
+      html = htmlMatch[1].trim();
+    }
+
+    // Ensure it starts with DOCTYPE
+    if (!html.startsWith('<!DOCTYPE') && !html.startsWith('<!doctype')) {
+      const doctypeIndex = html.toLowerCase().indexOf('<!doctype');
+      if (doctypeIndex > 0) {
+        html = html.substring(doctypeIndex);
+      }
+    }
+
+    // Calculate generation time
+    const generationTime = Date.now() - startTime;
+
+    // Log to database (non-blocking)
+    supabase
+      .from('generations')
+      .insert({
+        project_id: projectId,
+        industry_id: intelligence.id,
+        business_name: businessName,
+        page_type: pageType,
+        html_content: html,
+        intelligence_snapshot: intelligence,
+        intelligence_source: source,
+        generation_time_ms: generationTime,
+        created_at: new Date().toISOString(),
+      })
+      .then(({ error }) => {
+        if (error) {
+          console.log('Note: Could not log generation:', error.message);
+        }
+      });
+
+    // Build response
+    const response: GenerateResponse = {
+      success: true,
+      industry: intelligence.id,
+      industryName: intelligence.name,
+      usedFallback: source === 'fallback',
+      generatedCode: html,
+      metadata: {
+        model: 'claude-sonnet-4-20250514',
+        pageType,
+        sectionsIncluded: intelligence.sections.map((s) => s.id),
+        designSystem: {
+          colors: intelligence.design.colors,
+          fonts: intelligence.design.fonts,
+          mood: intelligence.design.mood,
+        },
+      },
+    };
+
+    console.log(`✅ Generated in ${generationTime}ms (${html.length} bytes)`);
+
+    return NextResponse.json({
+      ...response,
+      projectId,
+      intelligenceSource: source,
+      generationTimeMs: generationTime,
+      inspirationBrands: intelligence.topBrands.slice(0, 4),
+      mappedFrom: mappedFrom || null,
+    });
+  } catch (error) {
+    console.error('❌ Generation error:', error);
+
+    return NextResponse.json(
+      {
+        error: 'Failed to generate website',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET() {
+  // Group industries by category
+  const byCategory = ALL_INDUSTRIES.reduce(
+    (acc, ind) => {
+      if (!acc[ind.category]) {
+        acc[ind.category] = [];
+      }
+      acc[ind.category].push({
+        id: ind.id,
+        name: ind.name,
+        topBrands: ind.topBrands.slice(0, 3),
+      });
+      return acc;
+    },
+    {} as Record<string, { id: string; name: string; topBrands: string[] }[]>
+  );
+
+  // Check database connectivity
+  let dbStatus = 'unknown';
+  try {
+    const { count, error } = await supabase
+      .from('industries')
+      .select('*', { count: 'exact', head: true });
+    
+    if (!error) {
+      dbStatus = `connected (${count} industries)`;
+    } else {
+      dbStatus = `error: ${error.message}`;
+    }
+  } catch (err) {
+    dbStatus = 'not configured';
+  }
+
+  return NextResponse.json({
+    status: 'healthy',
+    service: 'VERKTORLABS Website Generation API',
+    version: '2.3.0',
+    database: dbStatus,
+    statistics: {
+      totalIndustries: INDUSTRY_STATS.total,
+      bySource: INDUSTRY_STATS.bySource,
+      categories: INDUSTRY_STATS.categories,
+    },
+    industryAliases: Object.keys(INDUSTRY_ID_ALIASES),
+    industriesByCategory: byCategory,
+    endpoints: {
+      'POST /api/generate': {
+        description: 'Generate a website using industry intelligence',
+        body: {
+          project: {
+            id: 'string (required)',
+            industry: 'string (required) - industry ID or alias',
+            businessName: 'string (required)',
+            businessDescription: 'string (optional)',
+            targetAudience: 'string (optional)',
+            uniqueSellingPoints: 'string[] (optional)',
+            location: 'string (optional)',
+            contactInfo: {
+              phone: 'string (optional)',
+              email: 'string (optional)',
+              address: 'string (optional)',
+            },
+          },
+          pageType: 'string (optional) - landing, homepage, about, services, contact, product',
+          customInstructions: 'string (optional)',
+          customizations: {
+            excludeSections: 'string[] (optional)',
+            colorOverride: 'Partial<ColorPalette> (optional)',
+            fontOverride: 'Partial<FontPairing> (optional)',
+          },
+        },
+      },
+      'GET /api/generate': 'This endpoint - health check and industry listing',
+    },
+  });
 }
