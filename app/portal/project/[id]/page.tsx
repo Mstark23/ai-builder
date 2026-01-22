@@ -1,9 +1,11 @@
+// /app/portal/project/[id]/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import GrowthUpsell from '@/components/GrowthUpsell';
 
 // ============================================
 // ICON COMPONENTS
@@ -34,6 +36,7 @@ const Icons = {
   Download: () => <Icon><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></Icon>,
   Share: () => <Icon><path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" /></Icon>,
   ArrowLeft: () => <Icon><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></Icon>,
+  TrendingUp: () => <Icon><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></Icon>,
 };
 
 // ============================================
@@ -149,6 +152,10 @@ export default function DynamicProjectPage() {
   const [submitting, setSubmitting] = useState(false);
   const [newMessage, setNewMessage] = useState('');
 
+  // Growth Upsell state
+  const [showUpsell, setShowUpsell] = useState(true);
+  const [hasGrowthPackages, setHasGrowthPackages] = useState(false);
+
   // Theme
   const theme = {
     bg: darkMode ? 'bg-gray-900' : 'bg-gray-50',
@@ -192,6 +199,16 @@ export default function DynamicProjectPage() {
       }
 
       setProject(projectData);
+
+      // Check if project has growth packages
+      // TODO: Replace with actual database check
+      const { data: growthData } = await supabase
+        .from('growth_packages')
+        .select('id')
+        .eq('project_id', projectId)
+        .limit(1);
+      
+      setHasGrowthPackages(growthData && growthData.length > 0);
 
       const { data: messagesData } = await supabase
         .from('messages')
@@ -285,6 +302,23 @@ export default function DynamicProjectPage() {
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     setAnnotations([...annotations, { id: Date.now(), x, y }]);
+  };
+
+  const handleGrowthUpsell = async (packages: string[]) => {
+    // Redirect to Stripe checkout with selected packages
+    try {
+      const response = await fetch('/api/checkout/growth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id, packages })
+      });
+      const { url } = await response.json();
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+    }
   };
 
   const getStatus = () => statusConfig[project?.status as keyof typeof statusConfig] || statusConfig.QUEUED;
@@ -648,6 +682,21 @@ export default function DynamicProjectPage() {
                   )}
                 </div>
 
+                {/* ============================================ */}
+                {/* GROWTH UPSELL - POST DELIVERY */}
+                {/* ============================================ */}
+                {!hasGrowthPackages && showUpsell && (
+                  <div className="mt-8">
+                    <GrowthUpsell 
+                      businessName={project.business_name}
+                      projectId={project.id}
+                      context="post-delivery"
+                      onAddToOrder={handleGrowthUpsell}
+                      onSkip={() => setShowUpsell(false)}
+                    />
+                  </div>
+                )}
+
                 {/* Analytics */}
                 <div className={`${theme.card} rounded-2xl border p-6`}>
                   <h3 className={`font-bold ${theme.text} mb-4`}>Analytics (Last 7 days)</h3>
@@ -814,6 +863,30 @@ export default function DynamicProjectPage() {
                 ))}
               </div>
             </div>
+
+            {/* Growth Tools Quick Access - Show for delivered projects */}
+            {project?.status === 'DELIVERED' && (
+              <Link 
+                href="/portal/growth"
+                className={`${theme.card} rounded-2xl border p-5 block hover:shadow-md transition`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                    <Icons.TrendingUp />
+                  </div>
+                  <div>
+                    <h3 className={`font-bold ${theme.text}`}>Growth Tools</h3>
+                    <p className={`text-xs ${theme.muted}`}>SEO, Reviews & More</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm ${theme.muted}`}>Maximize your website's impact</span>
+                  <svg className={`w-4 h-4 ${theme.muted}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </Link>
+            )}
 
             {/* Recent Messages */}
             {messages.length > 0 && !showChat && (
