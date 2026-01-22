@@ -1,7 +1,8 @@
+// /app/portal/payment-success/page.tsx
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -120,22 +121,9 @@ const starterBundle = {
   color: 'emerald'
 };
 
-// Loading component
-function LoadingSpinner() {
-  return (
-    <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="font-body text-neutral-500">Loading...</p>
-      </div>
-    </div>
-  );
-}
-
-// Main content component that uses useSearchParams
-function PostPurchaseUpsellContent() {
-  const router = useRouter();
+export default function PaymentSuccess() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const projectId = searchParams.get('project');
   
   const [project, setProject] = useState<Project | null>(null);
@@ -245,7 +233,14 @@ function PostPurchaseUpsellContent() {
   };
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="font-body text-neutral-500">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   const totals = calculateTotal();
@@ -603,14 +598,5 @@ function PostPurchaseUpsellContent() {
         </div>
       </main>
     </div>
-  );
-}
-
-// Main export with Suspense boundary
-export default function PostPurchaseUpsell() {
-  return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <PostPurchaseUpsellContent />
-    </Suspense>
   );
 }
