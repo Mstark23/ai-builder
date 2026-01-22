@@ -42,8 +42,8 @@ export async function generateImage(request: ImageGenerationRequest): Promise<Ge
     });
 
     return {
-      url: response.data[0].url || '',
-      revisedPrompt: response.data[0].revised_prompt || request.prompt,
+      url: response.data?.[0]?.url || '',
+      revisedPrompt: response.data?.[0]?.revised_prompt || request.prompt,
     };
   } catch (error) {
     console.error('DALL-E API Error:', error);
