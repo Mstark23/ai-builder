@@ -45,6 +45,9 @@ export default function PortalDashboard() {
     totalSpent: 0,
   });
 
+  // Check if user has any paid/delivered project (unlocks Growth)
+  const hasGrowthAccess = projects.some(p => p.paid || p.status === 'DELIVERED');
+
   useEffect(() => {
     checkAuth();
   }, []);
@@ -240,7 +243,7 @@ export default function PortalDashboard() {
               <span className="font-body text-black font-semibold tracking-wide hidden sm:block">VERKTORLABS</span>
             </Link>
 
-            {/* NAV */}
+            {/* NAV - DESKTOP */}
             <nav className="hidden md:flex items-center gap-1">
               <Link href="/portal" className="px-4 py-2 bg-black text-white rounded-full font-body text-sm font-medium">
                 Dashboard
@@ -250,6 +253,25 @@ export default function PortalDashboard() {
               </Link>
               <Link href="/portal/billing" className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-full font-body text-sm font-medium transition-colors">
                 Billing
+              </Link>
+              {/* GROWTH NAV LINK */}
+              <Link 
+                href="/portal/growth" 
+                className={`px-4 py-2 rounded-full font-body text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  hasGrowthAccess 
+                    ? 'text-neutral-600 hover:bg-neutral-100' 
+                    : 'text-neutral-400 hover:bg-neutral-100'
+                }`}
+              >
+                {!hasGrowthAccess && (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                )}
+                <span>Growth</span>
+                {hasGrowthAccess && (
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                )}
               </Link>
               <Link href="/portal/settings" className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-full font-body text-sm font-medium transition-colors">
                 Settings
@@ -302,6 +324,22 @@ export default function PortalDashboard() {
           </Link>
           <Link href="/portal/billing" className="px-4 py-2 bg-neutral-100 text-neutral-600 rounded-full font-body text-sm font-medium whitespace-nowrap">
             Billing
+          </Link>
+          {/* GROWTH NAV LINK - MOBILE */}
+          <Link 
+            href="/portal/growth" 
+            className={`px-4 py-2 rounded-full font-body text-sm font-medium whitespace-nowrap flex items-center gap-1.5 ${
+              hasGrowthAccess 
+                ? 'bg-neutral-100 text-neutral-600' 
+                : 'bg-neutral-100 text-neutral-400'
+            }`}
+          >
+            {!hasGrowthAccess && (
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            )}
+            <span>Growth</span>
           </Link>
           <Link href="/portal/settings" className="px-4 py-2 bg-neutral-100 text-neutral-600 rounded-full font-body text-sm font-medium whitespace-nowrap">
             Settings
@@ -384,6 +422,32 @@ export default function PortalDashboard() {
                 </Link>
               </div>
             </div>
+
+            {/* GROWTH UPSELL BANNER - Shows when user has paid projects */}
+            {hasGrowthAccess && (
+              <Link href="/portal/growth" className="block">
+                <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 text-white relative overflow-hidden group hover:shadow-lg transition-all">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        <span className="font-body text-sm font-semibold uppercase tracking-wide text-white/90">New</span>
+                      </div>
+                      <h3 className="font-display text-xl font-medium mb-1">Grow Your Business</h3>
+                      <p className="font-body text-sm text-white/80">SEO, Reviews, Ads & more — all in one place</p>
+                    </div>
+                    <div className="bg-white/20 rounded-full p-3 group-hover:bg-white/30 transition-colors">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            )}
 
             {/* PROJECTS */}
             <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
@@ -531,6 +595,22 @@ export default function PortalDashboard() {
                     </svg>
                   </div>
                   <span className="font-body text-sm font-medium text-black">Messages</span>
+                </Link>
+                {/* GROWTH QUICK LINK */}
+                <Link href="/portal/growth" className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl hover:bg-neutral-100 transition-colors">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasGrowthAccess ? 'bg-emerald-500' : 'bg-neutral-300'}`}>
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-body text-sm font-medium text-black">Growth Tools</span>
+                    {!hasGrowthAccess && (
+                      <svg className="w-3.5 h-3.5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    )}
+                  </div>
                 </Link>
                 <Link href="/portal/settings" className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl hover:bg-neutral-100 transition-colors">
                   <div className="w-8 h-8 bg-neutral-500 rounded-lg flex items-center justify-center">
