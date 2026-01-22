@@ -228,7 +228,7 @@ export default function GrowthQuizPage() {
     setLoading(false);
   };
 
-  const handleAnswer = (questionId: string, optionId: string, optionScore: Record<string, number>) => {
+  const handleAnswer = (questionId: string, optionId: string, optionScore: Partial<Record<string, number>>) => {
     // Save answer
     setAnswers(prev => ({ ...prev, [questionId]: optionId }));
     
@@ -236,7 +236,9 @@ export default function GrowthQuizPage() {
     setScores(prev => {
       const newScores = { ...prev };
       Object.entries(optionScore).forEach(([key, value]) => {
-        newScores[key] = (newScores[key] || 0) + value;
+        if (value !== undefined) {
+          newScores[key] = (newScores[key] || 0) + value;
+        }
       });
       return newScores;
     });
@@ -721,4 +723,4 @@ export default function GrowthQuizPage() {
       </main>
     </div>
   );
-}
+}s
