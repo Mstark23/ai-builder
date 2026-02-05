@@ -1,587 +1,702 @@
-// /lib/ai/king-generator.ts
-// VERKTORLABS - King DNA Website Generator
-//
-// This is the generation engine. It takes the forensic profile extracted
-// from a King's website and the customer's questionnaire, then generates
-// a website that uses the EXACT design patterns from the King but with
-// the customer's content.
-//
-// The key insight: we don't say "make it premium". We say "use exactly
-// this border-radius, this shadow, this font-size, this color, this layout."
+/**
+ * VERKTORLABS Website Generation API v3.1 - IMPROVED
+ * 
+ * KEY FIXES:
+ * 1. Fixed template selection (removed non-existent 'videoHero')
+ * 2. Includes MORE templates in the prompt for Claude to choose from
+ * 3. Better structured prompt with clearer instructions
+ * 4. Includes Contact and Footer sections
+ */
 
-import type { KingForensicProfile, CustomerQuestionnaire } from './king-forensic-profile';
+import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
+import { createClient } from '@supabase/supabase-js';
+import type {
+  IndustryIntelligence,
+  GenerateRequest,
+  GenerateResponse,
+  Section,
+  ColorPalette,
+  FontPairing,
+} from '@/types/industry';
+
+// Import static data as fallback
+import {
+  ALL_INDUSTRIES,
+  getIndustry,
+  INDUSTRY_STATS,
+} from '@/lib/industry-intelligence';
+
+// Import the actual component libraries
+import { REQUIRED_CSS, REQUIRED_JS, ANIMATION_KEYFRAMES, MASTER_SYSTEM_PROMPT } from '@/lib/ai/master-prompt';
+import { HERO_COMPONENTS } from '@/lib/ai/components';
+import { ALL_SECTIONS } from '@/lib/ai/all-sections';
 
 // =============================================================================
-// GENERATION SYSTEM PROMPT
+// INITIALIZATION
 // =============================================================================
 
-function buildSystemPrompt(profile: KingForensicProfile): string {
-  return `You are a precision website builder. You have received the exact design DNA extracted from ${profile.meta.kingName}'s website. Your job is to BUILD a website using these EXACT specifications — do NOT deviate, do NOT assume, do NOT add your own creative interpretation.
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+});
 
-## YOUR ROLE
-You are a machine that translates design specifications into code. Every value below was forensically extracted from a successful website. Use them EXACTLY as provided.
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-## CRITICAL RULES
-1. Use the EXACT color hex codes provided — not "similar" colors
-2. Use the EXACT font families and sizes — not "close enough" alternatives
-3. Replicate the EXACT layout patterns described — same grid columns, same gaps
-4. Apply the EXACT border-radius values — not rounded alternatives
-5. Use the EXACT shadow values — copy them character for character
-6. Apply the EXACT animation and transition values
-7. Follow the EXACT section order provided
-8. Match the EXACT button styles (padding, radius, shadow, hover effect)
-9. Match the EXACT card styles (padding, border, shadow, hover)
-10. Match the EXACT spacing (section padding, container width, element gaps)
+// =============================================================================
+// COMPONENT TEMPLATE SELECTOR - FIXED VERSION
+// =============================================================================
 
-## WHAT YOU CUSTOMIZE (from the customer questionnaire):
-- Business name and branding text
-- Copy/headlines (follow the King's copywriting FORMULA but with customer's content)
-- Contact information
-- Services/products (using the King's card/layout pattern)
-- Testimonials (using the King's testimonial layout)
-- Images (use relevant Unsplash images for the customer's industry)
+/**
+ * Select appropriate section templates based on industry and style
+ * Returns multiple options for Claude to choose from
+ */
+function selectTemplates(industry: string, style: string) {
+  const industryLower = industry.toLowerCase();
+  
+  // Hero selection - use actual keys that exist
+  let heroChoice: keyof typeof HERO_COMPONENTS = 'splitHero';
+  if (style === 'minimal') heroChoice = 'centeredHero';
+  else if (style === 'bold' || style === 'dramatic') heroChoice = 'fullImageHero';
+  
+  // Services selection
+  type ServicesKey = keyof typeof ALL_SECTIONS.services;
+  let servicesChoice: ServicesKey = 'bentoGrid';
+  if (industryLower.includes('restaurant') || industryLower.includes('food')) servicesChoice = 'tabs';
+  else if (industryLower.includes('salon') || industryLower.includes('spa')) servicesChoice = 'hoverCards';
+  else if (industryLower.includes('law') || industryLower.includes('legal')) servicesChoice = 'iconCards';
+  else if (industryLower.includes('contractor') || industryLower.includes('construction')) servicesChoice = 'processSteps';
+  
+  // Testimonials selection
+  type TestimonialsKey = keyof typeof ALL_SECTIONS.testimonials;
+  let testimonialsChoice: TestimonialsKey = 'slider';
+  if (style === 'elegant' || style === 'luxury') testimonialsChoice = 'featuredSingle';
+  else if (style === 'modern') testimonialsChoice = 'grid';
+  
+  // About selection
+  type AboutKey = keyof typeof ALL_SECTIONS.about;
+  let aboutChoice: AboutKey = 'split';
+  if (style === 'minimal') aboutChoice = 'story';
+  else if (industryLower.includes('agency') || industryLower.includes('startup')) aboutChoice = 'missionVision';
+  
+  // CTA selection
+  type CtaKey = keyof typeof ALL_SECTIONS.cta;
+  let ctaChoice: CtaKey = 'gradient';
+  if (style === 'minimal') ctaChoice = 'minimal';
+  else if (style === 'bold') ctaChoice = 'fullImage';
+  
+  // Footer selection
+  type FooterKey = keyof typeof ALL_SECTIONS.footer;
+  let footerChoice: FooterKey = 'full';
+  
+  // Contact selection - handle potentially missing contact section
+  const contactSection = (ALL_SECTIONS as any).contact;
+  let contactTemplate = '';
+  if (contactSection && contactSection.splitForm) {
+    contactTemplate = contactSection.splitForm;
+  }
 
-## WHAT YOU DO NOT CUSTOMIZE:
-- Colors, typography, spacing, shadows, animations, border-radius, layouts
-- These come DIRECTLY from the King's DNA
-
-## OUTPUT FORMAT
-- Return ONLY the complete HTML file
-- Start with <!DOCTYPE html>, end with </html>
-- ALL CSS in a single <style> tag in <head>
-- ALL JavaScript in a single <script> tag before </body>
-- NO explanations, NO markdown, NO preamble
-- Must be 100% complete and functional
-- Must be fully mobile responsive`;
+  return {
+    hero: HERO_COMPONENTS[heroChoice] || HERO_COMPONENTS.splitHero,
+    heroAlt: HERO_COMPONENTS.centeredHero, // Alternative option
+    services: ALL_SECTIONS.services[servicesChoice] || ALL_SECTIONS.services.bentoGrid,
+    servicesAlt: ALL_SECTIONS.services.iconCards, // Alternative option
+    testimonials: ALL_SECTIONS.testimonials[testimonialsChoice] || ALL_SECTIONS.testimonials.slider,
+    about: ALL_SECTIONS.about[aboutChoice] || ALL_SECTIONS.about.split,
+    cta: ALL_SECTIONS.cta[ctaChoice] || ALL_SECTIONS.cta.gradient,
+    footer: ALL_SECTIONS.footer[footerChoice] || ALL_SECTIONS.footer.full,
+    contact: contactTemplate,
+    nav: ALL_SECTIONS.nav?.standard || '',
+  };
 }
 
 // =============================================================================
-// BUILD THE DESIGN DNA SPECIFICATION
+// DEFAULT FALLBACK INTELLIGENCE (Complete Structure)
 // =============================================================================
 
-function buildDesignDNA(profile: KingForensicProfile): string {
-  return `
-## ═══════════════════════════════════════════════════════
-## DESIGN DNA — EXTRACTED FROM: ${profile.meta.kingName}
-## Use these values EXACTLY. No interpretation. No deviation.
-## ═══════════════════════════════════════════════════════
+const DEFAULT_FALLBACK: IndustryIntelligence = {
+  id: 'general',
+  name: 'General Business',
+  category: 'general',
+  topBrands: ['Apple', 'Airbnb', 'Stripe', 'Notion'],
+  psychology: {
+    customerNeeds: [
+      'Clear understanding of services/products',
+      'Easy way to contact or purchase',
+      'Trust and credibility signals',
+      'Professional appearance',
+    ],
+    trustFactors: [
+      'Professional design',
+      'Clear contact information',
+      'Customer testimonials',
+      'About us section',
+    ],
+    emotionalTriggers: [
+      'Confidence in quality',
+      'Ease of doing business',
+      'Professional reliability',
+      'Modern and current',
+    ],
+  },
+  sections: [
+    { id: 'hero', name: 'Hero', purpose: 'Capture attention and communicate value proposition', keyElements: ['Headline', 'Subheadline', 'CTA Button', 'Hero Image'], required: true },
+    { id: 'services', name: 'Services', purpose: 'Showcase what you offer', keyElements: ['Service cards', 'Icons', 'Brief descriptions'], required: true },
+    { id: 'about', name: 'About', purpose: 'Build trust and connection', keyElements: ['Company story', 'Mission', 'Team photo'], required: true },
+    { id: 'testimonials', name: 'Testimonials', purpose: 'Social proof', keyElements: ['Customer quotes', 'Names', 'Photos'], required: false },
+    { id: 'contact', name: 'Contact', purpose: 'Enable customer connection', keyElements: ['Contact form', 'Phone', 'Email', 'Address'], required: true },
+    { id: 'footer', name: 'Footer', purpose: 'Navigation and legal', keyElements: ['Links', 'Social media', 'Copyright'], required: true },
+  ],
+  design: {
+    colors: {
+      primary: '#000000',
+      secondary: '#4F46E5',
+      accent: '#10B981',
+      background: '#FFFFFF',
+    },
+    colorDescription: 'Clean, professional palette with black primary and indigo accent',
+    fonts: {
+      heading: 'Inter',
+      body: 'Inter',
+    },
+    typography: 'Modern sans-serif typography for clean readability',
+    imageStyle: 'Professional, high-quality photography with clean compositions',
+    spacing: 'Generous whitespace for premium feel',
+    mood: 'Professional, trustworthy, modern',
+  },
+  copywriting: {
+    tone: 'Professional yet approachable, clear and concise',
+    exampleHeadlines: [
+      'Solutions That Drive Results',
+      'Your Success, Our Mission',
+      'Excellence in Every Detail',
+    ],
+    exampleCTAs: [
+      'Get Started',
+      'Learn More',
+      'Contact Us',
+      'Request a Quote',
+    ],
+    avoidPhrases: [
+      'We are the best',
+      'Synergy',
+      'Revolutionary',
+      'Game-changing',
+    ],
+  },
+  images: {
+    hero: [
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920',
+      'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1920',
+    ],
+    products: [
+      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
+    ],
+    lifestyle: [
+      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800',
+    ],
+    about: [
+      'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=800',
+    ],
+  },
+};
 
-### GOOGLE FONTS IMPORT
-${profile.typography.headingFont.googleFontsUrl}
-${profile.typography.headingFont.googleFontsUrl !== profile.typography.bodyFont.googleFontsUrl ? profile.typography.bodyFont.googleFontsUrl : '(same as heading font import)'}
+// =============================================================================
+// INDUSTRY ID MAPPING (for legacy/simplified IDs)
+// =============================================================================
 
-### CSS CUSTOM PROPERTIES (copy this EXACT :root block into your CSS)
+const INDUSTRY_ID_ALIASES: Record<string, string> = {
+  'ecommerce': 'fashion-clothing',
+  'e-commerce': 'fashion-clothing',
+  'retail': 'fashion-clothing',
+  'restaurant': 'restaurant',
+  'food': 'restaurant',
+  'lawyer': 'law-firm',
+  'legal': 'law-firm',
+  'salon': 'salon-hair',
+  'spa': 'med-spa',
+  'general': 'general',
+};
+
+function normalizeIndustryId(id: string): string {
+  const normalized = id.toLowerCase().trim();
+  return INDUSTRY_ID_ALIASES[normalized] || normalized;
+}
+
+// =============================================================================
+// SAFE PROPERTY ACCESS HELPERS
+// =============================================================================
+
+function ensureCompleteIntelligence(partial: Partial<IndustryIntelligence> | undefined, id: string): IndustryIntelligence {
+  if (!partial) {
+    return { ...DEFAULT_FALLBACK, id, name: `${id} Business` };
+  }
+
+  return {
+    id: partial.id || id,
+    name: partial.name || `${id} Business`,
+    category: partial.category || 'general',
+    topBrands: partial.topBrands?.length ? partial.topBrands : DEFAULT_FALLBACK.topBrands,
+    psychology: {
+      customerNeeds: partial.psychology?.customerNeeds?.length ? partial.psychology.customerNeeds : DEFAULT_FALLBACK.psychology.customerNeeds,
+      trustFactors: partial.psychology?.trustFactors?.length ? partial.psychology.trustFactors : DEFAULT_FALLBACK.psychology.trustFactors,
+      emotionalTriggers: partial.psychology?.emotionalTriggers?.length ? partial.psychology.emotionalTriggers : DEFAULT_FALLBACK.psychology.emotionalTriggers,
+    },
+    sections: partial.sections?.length ? partial.sections : DEFAULT_FALLBACK.sections,
+    design: {
+      colors: {
+        primary: partial.design?.colors?.primary || DEFAULT_FALLBACK.design.colors.primary,
+        secondary: partial.design?.colors?.secondary || DEFAULT_FALLBACK.design.colors.secondary,
+        accent: partial.design?.colors?.accent || DEFAULT_FALLBACK.design.colors.accent,
+        background: partial.design?.colors?.background || DEFAULT_FALLBACK.design.colors.background,
+      },
+      colorDescription: partial.design?.colorDescription || DEFAULT_FALLBACK.design.colorDescription,
+      fonts: {
+        heading: partial.design?.fonts?.heading || DEFAULT_FALLBACK.design.fonts.heading,
+        body: partial.design?.fonts?.body || DEFAULT_FALLBACK.design.fonts.body,
+      },
+      typography: partial.design?.typography || DEFAULT_FALLBACK.design.typography,
+      imageStyle: partial.design?.imageStyle || DEFAULT_FALLBACK.design.imageStyle,
+      spacing: partial.design?.spacing || DEFAULT_FALLBACK.design.spacing,
+      mood: partial.design?.mood || DEFAULT_FALLBACK.design.mood,
+    },
+    copywriting: {
+      tone: partial.copywriting?.tone || DEFAULT_FALLBACK.copywriting.tone,
+      exampleHeadlines: partial.copywriting?.exampleHeadlines?.length ? partial.copywriting.exampleHeadlines : DEFAULT_FALLBACK.copywriting.exampleHeadlines,
+      exampleCTAs: partial.copywriting?.exampleCTAs?.length ? partial.copywriting.exampleCTAs : DEFAULT_FALLBACK.copywriting.exampleCTAs,
+      avoidPhrases: partial.copywriting?.avoidPhrases?.length ? partial.copywriting.avoidPhrases : DEFAULT_FALLBACK.copywriting.avoidPhrases,
+    },
+    images: {
+      hero: partial.images?.hero?.length ? partial.images.hero : DEFAULT_FALLBACK.images.hero,
+      products: partial.images?.products?.length ? partial.images.products : DEFAULT_FALLBACK.images.products,
+      lifestyle: partial.images?.lifestyle?.length ? partial.images.lifestyle : DEFAULT_FALLBACK.images.lifestyle,
+      about: partial.images?.about?.length ? partial.images.about : DEFAULT_FALLBACK.images.about,
+    },
+  };
+}
+
+// =============================================================================
+// INDUSTRY INTELLIGENCE FETCHING
+// =============================================================================
+
+interface IntelligenceResult {
+  intelligence: IndustryIntelligence;
+  source: 'database' | 'static' | 'fallback';
+  originalId?: string;
+  mappedFrom?: string;
+}
+
+async function getIndustryIntelligence(industryId: string): Promise<IntelligenceResult> {
+  const originalId = industryId;
+  const normalizedId = normalizeIndustryId(industryId);
+  const wasNormalized = normalizedId !== industryId.toLowerCase().trim();
+
+  // Try database first
+  try {
+    const { data, error } = await supabase
+      .from('industries')
+      .select('intelligence')
+      .eq('id', industryId)
+      .single();
+
+    if (!error && data?.intelligence) {
+      return {
+        intelligence: ensureCompleteIntelligence(data.intelligence as Partial<IndustryIntelligence>, industryId),
+        source: 'database',
+        originalId,
+      };
+    }
+  } catch {
+    // Continue to fallback
+  }
+
+  // Try static data
+  const staticIndustry = getIndustry(normalizedId);
+  if (staticIndustry) {
+    return {
+      intelligence: ensureCompleteIntelligence(staticIndustry, normalizedId),
+      source: 'static',
+      originalId,
+      mappedFrom: wasNormalized ? industryId : undefined,
+    };
+  }
+
+  // Use fallback
+  return {
+    intelligence: ensureCompleteIntelligence(undefined, industryId),
+    source: 'fallback',
+    originalId,
+  };
+}
+
+// =============================================================================
+// PROMPT BUILDING - IMPROVED VERSION
+// =============================================================================
+
+interface PromptConfig {
+  intelligence: IndustryIntelligence;
+  businessName: string;
+  businessDescription?: string;
+  targetAudience?: string;
+  uniqueSellingPoints?: string[];
+  location?: string;
+  contactInfo?: {
+    phone?: string;
+    email?: string;
+    address?: string;
+  };
+  customizations?: {
+    excludeSections?: string[];
+    colorOverride?: Partial<ColorPalette>;
+    fontOverride?: Partial<FontPairing>;
+  };
+  pageType: string;
+}
+
+function buildDetailedPrompt(config: PromptConfig): string {
+  const {
+    intelligence,
+    businessName,
+    businessDescription,
+    targetAudience,
+    uniqueSellingPoints,
+    location,
+    contactInfo,
+    customizations,
+    pageType,
+  } = config;
+
+  // Apply overrides
+  const colors = {
+    primary: customizations?.colorOverride?.primary || intelligence.design.colors.primary,
+    secondary: customizations?.colorOverride?.secondary || intelligence.design.colors.secondary,
+    accent: customizations?.colorOverride?.accent || intelligence.design.colors.accent,
+    background: customizations?.colorOverride?.background || intelligence.design.colors.background,
+  };
+  
+  const fonts = {
+    heading: customizations?.fontOverride?.heading || intelligence.design.fonts.heading,
+    body: customizations?.fontOverride?.body || intelligence.design.fonts.body,
+  };
+
+  // Select appropriate templates for this industry/style
+  const templates = selectTemplates(intelligence.id, 'modern');
+
+  // Build the comprehensive prompt
+  return `${MASTER_SYSTEM_PROMPT}
+
+═══════════════════════════════════════════════════════════════════════════════
+                         🎯 CRITICAL INSTRUCTION 🎯
+═══════════════════════════════════════════════════════════════════════════════
+
+You MUST use the section templates provided below as the foundation for the website.
+DO NOT create sections from scratch. Instead:
+1. Take the HTML template provided for each section
+2. Replace the [PLACEHOLDER] values with actual content for this business
+3. Keep all CSS classes exactly as shown in templates
+4. Include the full CSS framework provided
+
+═══════════════════════════════════════════════════════════════════════════════
+                              BUSINESS DETAILS
+═══════════════════════════════════════════════════════════════════════════════
+
+**Business Name:** ${businessName}
+**Industry:** ${intelligence.name}
+${businessDescription ? `**Description:** ${businessDescription}` : ''}
+${targetAudience ? `**Target Audience:** ${targetAudience}` : ''}
+${uniqueSellingPoints?.length ? `**Unique Selling Points:**\n${uniqueSellingPoints.map((usp) => `• ${usp}`).join('\n')}` : ''}
+${location ? `**Location:** ${location}` : ''}
+${contactInfo?.phone ? `**Phone:** ${contactInfo.phone}` : ''}
+${contactInfo?.email ? `**Email:** ${contactInfo.email}` : ''}
+${contactInfo?.address ? `**Address:** ${contactInfo.address}` : ''}
+
+═══════════════════════════════════════════════════════════════════════════════
+                    CSS VARIABLES (UPDATE THESE VALUES)
+═══════════════════════════════════════════════════════════════════════════════
+
+Your website MUST use this exact color system in the :root CSS:
+
 :root {
-  /* Colors */
-  --primary: ${profile.colors.primary};
-  --primary-rgb: ${profile.colors.primaryRgb};
-  --primary-dark: ${profile.colors.primaryDark};
-  --primary-light: ${profile.colors.primaryLight};
-  --secondary: ${profile.colors.secondary};
-  --secondary-rgb: ${profile.colors.secondaryRgb};
-  --accent: ${profile.colors.accent};
-  --accent-rgb: ${profile.colors.accentRgb};
-  
-  /* Backgrounds */
-  --bg-primary: ${profile.colors.background.main};
-  --bg-secondary: ${profile.colors.background.secondary};
-  --bg-tertiary: ${profile.colors.background.tertiary};
-  --bg-dark: ${profile.colors.background.dark};
-  --bg-card: ${profile.colors.background.card};
-  
-  /* Text */
-  --text-primary: ${profile.colors.text.primary};
-  --text-secondary: ${profile.colors.text.secondary};
-  --text-muted: ${profile.colors.text.muted};
-  --text-inverse: ${profile.colors.text.inverse};
-  --text-link: ${profile.colors.text.link};
-  
-  /* Borders */
-  --border-light: ${profile.colors.border.light};
-  --border-dark: ${profile.colors.border.dark};
-  --border-focus: ${profile.colors.border.focus};
-  
-  /* Typography */
-  --font-display: ${profile.typography.headingFont.family};
-  --font-body: ${profile.typography.bodyFont.family};
-  
-  /* Transitions */
-  --transition-default: ${profile.animations.transition.default};
-  --transition-fast: ${profile.animations.transition.fast};
-  --transition-slow: ${profile.animations.transition.slow};
-  
-  /* Shadows */
-  --shadow-sm: ${profile.designSystem.shadows.sm};
-  --shadow-md: ${profile.designSystem.shadows.md};
-  --shadow-lg: ${profile.designSystem.shadows.lg};
-  --shadow-xl: ${profile.designSystem.shadows.xl};
-  --shadow-card: ${profile.designSystem.shadows.cardDefault};
-  --shadow-card-hover: ${profile.designSystem.shadows.cardHover};
-  --shadow-button: ${profile.designSystem.shadows.buttonDefault};
-  --shadow-button-hover: ${profile.designSystem.shadows.buttonHover};
-  --shadow-glow: ${profile.designSystem.shadows.glow};
-  
-  /* Border Radius */
-  --radius-sm: ${profile.designSystem.borderRadius.small};
-  --radius-md: ${profile.designSystem.borderRadius.medium};
-  --radius-lg: ${profile.designSystem.borderRadius.large};
-  --radius-xl: ${profile.designSystem.borderRadius.xl};
-  --radius-full: ${profile.designSystem.borderRadius.full};
-  --radius-button: ${profile.designSystem.borderRadius.buttons};
-  --radius-card: ${profile.designSystem.borderRadius.cards};
-  --radius-image: ${profile.designSystem.borderRadius.images};
-  --radius-input: ${profile.designSystem.borderRadius.inputs};
-  
-  /* Spacing */
-  --container-max: ${profile.designSystem.containerMaxWidth};
-  --container-padding: ${profile.designSystem.containerPadding};
-  --section-padding: ${profile.designSystem.sectionPadding.desktop};
-  --section-padding-mobile: ${profile.designSystem.sectionPadding.mobile};
+  --primary: ${colors.primary};
+  --primary-rgb: ${hexToRgb(colors.primary)};
+  --secondary: ${colors.secondary};
+  --secondary-rgb: ${hexToRgb(colors.secondary)};
+  --accent: ${colors.accent};
+  --accent-rgb: ${hexToRgb(colors.accent)};
+  --background: ${colors.background};
+  --font-display: '${fonts.heading}', sans-serif;
+  --font-body: '${fonts.body}', sans-serif;
 }
 
-### TYPOGRAPHY SCALE (use these EXACT values)
-- h1: font-size: ${profile.typography.scale.h1.size}; font-weight: ${profile.typography.scale.h1.weight}; line-height: ${profile.typography.scale.h1.lineHeight}; letter-spacing: ${profile.typography.scale.h1.letterSpacing}; text-transform: ${profile.typography.scale.h1.textTransform};
-- h2: font-size: ${profile.typography.scale.h2.size}; font-weight: ${profile.typography.scale.h2.weight}; line-height: ${profile.typography.scale.h2.lineHeight}; letter-spacing: ${profile.typography.scale.h2.letterSpacing}; text-transform: ${profile.typography.scale.h2.textTransform};
-- h3: font-size: ${profile.typography.scale.h3.size}; font-weight: ${profile.typography.scale.h3.weight}; line-height: ${profile.typography.scale.h3.lineHeight}; letter-spacing: ${profile.typography.scale.h3.letterSpacing};
-- h4: font-size: ${profile.typography.scale.h4.size}; font-weight: ${profile.typography.scale.h4.weight}; line-height: ${profile.typography.scale.h4.lineHeight};
-- body: font-size: ${profile.typography.scale.body.size}; font-weight: ${profile.typography.scale.body.weight}; line-height: ${profile.typography.scale.body.lineHeight};
-- small: font-size: ${profile.typography.scale.small.size};
-- Section labels: font-size: ${profile.typography.sectionLabel.fontSize}; font-weight: ${profile.typography.sectionLabel.fontWeight}; letter-spacing: ${profile.typography.sectionLabel.letterSpacing}; text-transform: ${profile.typography.sectionLabel.textTransform}; style: ${profile.typography.sectionLabel.style};
+═══════════════════════════════════════════════════════════════════════════════
+                    REQUIRED CSS FRAMEWORK (COPY INTO <style>)
+═══════════════════════════════════════════════════════════════════════════════
 
-### DARK/LIGHT THEME
-isDarkTheme: ${profile.colors.isDarkTheme}
-${profile.colors.isDarkTheme ? 'Build with dark background and light text as the default.' : 'Build with light background and dark text as the default.'}
-Selection color: ${profile.colors.selectionColor}
+${REQUIRED_CSS}
 
-### GRADIENTS
-- Primary gradient: ${profile.colors.gradients.primary}
-- Hero gradient: ${profile.colors.gradients.hero}
-- Accent gradient: ${profile.colors.gradients.accent}
-- Text gradient: ${profile.colors.gradients.text}`;
+${ANIMATION_KEYFRAMES}
+
+═══════════════════════════════════════════════════════════════════════════════
+                    SECTION TEMPLATES - USE THESE EXACTLY
+═══════════════════════════════════════════════════════════════════════════════
+
+Copy these templates and replace [PLACEHOLDERS] with business-specific content.
+
+### 1. NAVIGATION:
+${templates.nav}
+
+### 2. HERO SECTION (choose one):
+Option A - Split Layout:
+${templates.hero}
+
+Option B - Centered:
+${templates.heroAlt}
+
+### 3. SERVICES SECTION (choose one):
+Option A:
+${templates.services}
+
+Option B:
+${templates.servicesAlt}
+
+### 4. ABOUT SECTION:
+${templates.about}
+
+### 5. TESTIMONIALS SECTION:
+${templates.testimonials}
+
+### 6. CTA SECTION:
+${templates.cta}
+
+### 7. CONTACT SECTION:
+${templates.contact || `<section class="section contact" id="contact">
+  <div class="container">
+    <div class="contact-grid">
+      <div class="contact-info reveal">
+        <h2>Get in Touch</h2>
+        <p>Ready to get started? Contact us today.</p>
+        <div class="contact-details">
+          <div class="contact-item">
+            <span class="contact-icon">📍</span>
+            <span>[ADDRESS]</span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon">📞</span>
+            <span>[PHONE]</span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon">✉️</span>
+            <span>[EMAIL]</span>
+          </div>
+        </div>
+      </div>
+      <div class="contact-form reveal">
+        <form data-form>
+          <div class="form-group">
+            <input type="text" name="name" placeholder="Your Name" required>
+          </div>
+          <div class="form-group">
+            <input type="email" name="email" placeholder="Your Email" required>
+          </div>
+          <div class="form-group">
+            <textarea name="message" placeholder="Your Message" rows="4" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg btn-block">Send Message</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>`}
+
+### 8. FOOTER:
+${templates.footer}
+
+═══════════════════════════════════════════════════════════════════════════════
+                    REQUIRED JAVASCRIPT (BEFORE </body>)
+═══════════════════════════════════════════════════════════════════════════════
+
+${REQUIRED_JS}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              IMAGES TO USE
+═══════════════════════════════════════════════════════════════════════════════
+
+Use these real Unsplash images (they work immediately):
+
+Hero Images:
+${intelligence.images.hero.map((url) => `• ${url}`).join('\n')}
+
+About/Team Images:
+${intelligence.images.about.map((url) => `• ${url}`).join('\n')}
+
+Product/Service Images:
+${intelligence.images.products.map((url) => `• ${url}`).join('\n')}
+
+═══════════════════════════════════════════════════════════════════════════════
+                              COPYWRITING GUIDANCE
+═══════════════════════════════════════════════════════════════════════════════
+
+Tone: ${intelligence.copywriting.tone}
+
+Example Headlines (use similar style):
+${intelligence.copywriting.exampleHeadlines.map((h) => `• "${h}"`).join('\n')}
+
+CTA Buttons:
+${intelligence.copywriting.exampleCTAs.map((cta) => `• "${cta}"`).join('\n')}
+
+DO NOT use these overused phrases:
+${intelligence.copywriting.avoidPhrases.map((p) => `• "${p}"`).join('\n')}
+
+═══════════════════════════════════════════════════════════════════════════════
+                         📋 OUTPUT CHECKLIST 📋
+═══════════════════════════════════════════════════════════════════════════════
+
+Your output MUST:
+✅ Start with <!DOCTYPE html> (no markdown, no explanation)
+✅ Include ALL CSS from the framework above in a single <style> tag
+✅ Include ALL JavaScript before </body> in a single <script> tag
+✅ Use the section templates provided (with placeholders replaced)
+✅ Be fully responsive (mobile-first)
+✅ Use the exact colors from the design system
+✅ Include these sections: Nav, Hero, Services, About, Testimonials, Contact, Footer
+✅ End with </html> (no explanation after)
+
+Generate the complete HTML website now:`;
 }
 
-// =============================================================================
-// BUILD THE COMPONENT SPECIFICATIONS
-// =============================================================================
-
-function buildComponentSpecs(profile: KingForensicProfile): string {
-  const nav = profile.navigation;
-  const hero = profile.hero;
-  const ds = profile.designSystem;
-  const anim = profile.animations;
-  const footer = profile.footer;
-
-  return `
-### ═══ NAVIGATION ═══
-- Type: ${nav.type}
-- Height: ${nav.height}
-- Background: ${nav.backgroundColor}
-- Background on scroll: ${nav.backgroundOnScroll}
-- Logo: ${nav.logoPlacement} placement, style: ${nav.logoStyle}
-- Menu alignment: ${nav.menuAlignment}
-- Menu items: ${nav.menuItems.map(m => `"${m.label}"${m.hasDropdown ? ' (dropdown)' : ''}`).join(', ')}
-- CTA button: ${nav.ctaButton ? `"${nav.ctaButton.text}" — style: ${nav.ctaButton.style}, color: ${nav.ctaButton.color}, radius: ${nav.ctaButton.borderRadius}` : 'none'}
-- Has search: ${nav.hasSearch}
-- Has cart icon: ${nav.hasCartIcon}
-- Mobile menu: ${nav.mobileMenuType}
-- Backdrop blur: ${nav.backdropBlur}
-- Border bottom: ${nav.borderBottom}
-- Padding: ${nav.padding}
-- Font: ${nav.fontFamily}, ${nav.fontSize}, ${nav.fontWeight}
-- Letter spacing: ${nav.letterSpacing}
-- Text transform: ${nav.textTransform}
-
-### ═══ HERO SECTION ═══
-- Layout: ${hero.layout}
-- Height: ${hero.height}
-- Content alignment: ${hero.contentAlignment}
-- Headline: font-size: ${hero.headline.fontSize}; font-weight: ${hero.headline.fontWeight}; font-family: ${hero.headline.fontFamily}; line-height: ${hero.headline.lineHeight}; letter-spacing: ${hero.headline.letterSpacing}; color: ${hero.headline.color}; max-width: ${hero.headline.maxWidth}; text-transform: ${hero.headline.textTransform}
-- Has gradient text: ${hero.headline.hasGradient}${hero.headline.hasGradient ? ` (${hero.headline.gradientColors})` : ''}
-- Subheadline: font-size: ${hero.subheadline.fontSize}; font-weight: ${hero.subheadline.fontWeight}; color: ${hero.subheadline.color}; line-height: ${hero.subheadline.lineHeight}; max-width: ${hero.subheadline.maxWidth}
-- CTA buttons:
-${hero.ctaButtons.map((btn, i) => `  Button ${i + 1}: "${btn.text}" — style: ${btn.style}, bg: ${btn.backgroundColor}, text: ${btn.textColor}, radius: ${btn.borderRadius}, padding: ${btn.padding}, font-size: ${btn.fontSize}, font-weight: ${btn.fontWeight}, hover: ${btn.hoverEffect}${btn.hasIcon ? `, icon: ${btn.iconPosition}` : ''}`).join('\n')}
-- Overlay: ${hero.hasOverlay ? `yes — color: ${hero.overlayColor}, opacity: ${hero.overlayOpacity}` : 'no'}
-- Background style: ${hero.backgroundImageStyle}
-- Social proof: ${hero.socialProof ? `type: ${hero.socialProof.type}, text: "${hero.socialProof.text}", placement: ${hero.socialProof.placement}` : 'none'}
-- Decorative elements: ${hero.decorativeElements.length > 0 ? hero.decorativeElements.join(', ') : 'none'}
-- Padding: top: ${hero.padding.top}, bottom: ${hero.padding.bottom}
-- Content gap: ${hero.contentGap}
-- Headline formula: "${hero.headline.formula}"
-
-### ═══ BUTTON STYLES ═══
-PRIMARY BUTTON:
-  background: ${ds.buttonStyles.primary.backgroundColor}
-  color: ${ds.buttonStyles.primary.textColor}
-  border: ${ds.buttonStyles.primary.border}
-  border-radius: ${ds.buttonStyles.primary.borderRadius}
-  padding: ${ds.buttonStyles.primary.padding}
-  font-size: ${ds.buttonStyles.primary.fontSize}
-  font-weight: ${ds.buttonStyles.primary.fontWeight}
-  letter-spacing: ${ds.buttonStyles.primary.letterSpacing}
-  text-transform: ${ds.buttonStyles.primary.textTransform}
-  shadow: ${ds.buttonStyles.primary.shadow}
-  hover-transform: ${ds.buttonStyles.primary.hoverTransform}
-  hover-shadow: ${ds.buttonStyles.primary.hoverShadow}
-  hover-bg: ${ds.buttonStyles.primary.hoverBg}
-  transition: ${ds.buttonStyles.primary.transition}
-
-SECONDARY BUTTON:
-  background: ${ds.buttonStyles.secondary.backgroundColor}
-  color: ${ds.buttonStyles.secondary.textColor}
-  border: ${ds.buttonStyles.secondary.border}
-  border-radius: ${ds.buttonStyles.secondary.borderRadius}
-  padding: ${ds.buttonStyles.secondary.padding}
-  hover: ${ds.buttonStyles.secondary.hoverEffect}
-
-### ═══ CARD STYLES ═══
-  background: ${ds.cardStyles.background}
-  border: ${ds.cardStyles.border}
-  border-radius: ${ds.cardStyles.borderRadius}
-  padding: ${ds.cardStyles.padding}
-  shadow: ${ds.cardStyles.shadow}
-  hover-transform: ${ds.cardStyles.hoverTransform}
-  hover-shadow: ${ds.cardStyles.hoverShadow}
-  hover-border: ${ds.cardStyles.hoverBorder}
-  transition: ${ds.cardStyles.transition}
-
-### ═══ ICON SYSTEM ═══
-  style: ${ds.iconSystem.style}
-  library: ${ds.iconSystem.library}
-  size: ${ds.iconSystem.size}
-  color: ${ds.iconSystem.color}
-  container: ${ds.iconSystem.containerStyle} (size: ${ds.iconSystem.containerSize}, color: ${ds.iconSystem.containerColor})
-
-### ═══ IMAGE STYLES ═══
-  border-radius: ${ds.imageStyles.borderRadius}
-  aspect-ratio: ${ds.imageStyles.aspectRatio}
-  object-fit: ${ds.imageStyles.objectFit}
-  filter: ${ds.imageStyles.filter}
-  hover: ${ds.imageStyles.hoverEffect}
-
-### ═══ FORM/INPUT STYLES ═══
-  background: ${ds.inputStyles.backgroundColor}
-  border: ${ds.inputStyles.border}
-  border-radius: ${ds.inputStyles.borderRadius}
-  padding: ${ds.inputStyles.padding}
-  font-size: ${ds.inputStyles.fontSize}
-  focus-border: ${ds.inputStyles.focusBorder}
-  focus-shadow: ${ds.inputStyles.focusShadow}
-  placeholder: ${ds.inputStyles.placeholder}
-
-### ═══ ANIMATIONS ═══
-Page load: ${anim.pageLoad}
-Scroll reveal: ${anim.scrollReveal.enabled ? `YES — type: ${anim.scrollReveal.type}, duration: ${anim.scrollReveal.duration}, delay: ${anim.scrollReveal.delay}, stagger: ${anim.scrollReveal.stagger}, threshold: ${anim.scrollReveal.threshold}` : 'NO'}
-Hover effects:
-  Cards: ${anim.hoverEffects.cards}
-  Buttons: ${anim.hoverEffects.buttons}
-  Links: ${anim.hoverEffects.links}
-  Images: ${anim.hoverEffects.images}
-Special animations: ${anim.specialAnimations.length > 0 ? anim.specialAnimations.join(', ') : 'none'}
-Respects prefers-reduced-motion: ${anim.prefersReducedMotion}
-
-### ═══ SECTION STRUCTURE (build in this EXACT order) ═══
-${profile.sections.map((s, i) => `
-${i + 1}. ${s.name.toUpperCase()}
-   Type: ${s.type}
-   Layout: ${s.layout}
-   Grid: ${s.gridColumns} columns, gap: ${s.gridGap}
-   Background: ${s.backgroundColor}
-   Padding: top: ${s.padding.top}, bottom: ${s.padding.bottom}
-   Container: ${s.containerWidth}
-   Animation: ${s.hasAnimation ? s.animationType : 'none'}
-   Header style: ${s.headerStyle}
-   Content pattern: ${s.contentPattern}
-   Special elements: ${s.specialElements.length > 0 ? s.specialElements.join(', ') : 'none'}
-`).join('')}
-
-### ═══ FOOTER ═══
-  Layout: ${footer.layout}
-  Columns: ${footer.columns}
-  Background: ${footer.backgroundColor}
-  Text color: ${footer.textColor}
-  Newsletter: ${footer.hasNewsletter ? `yes — style: ${footer.newsletterStyle}` : 'no'}
-  Social icons: ${footer.hasSocialIcons ? `yes — style: ${footer.socialIconStyle}` : 'no'}
-  CTA section: ${footer.hasCtaSection ? `yes — "${footer.ctaText}"` : 'no'}
-  Legal links: ${footer.legalLinks.join(', ')}
-  Padding: ${footer.padding}
-  Border top: ${footer.borderTop}
-  Bottom bar: ${footer.bottomBarStyle}
-  Column content: ${footer.columnContent.map(c => `"${c.heading}": [${c.links.join(', ')}]`).join(' | ')}
-
-### ═══ MOBILE BEHAVIOR ═══
-  Breakpoints: tablet: ${profile.mobile.breakpoints.tablet}, mobile: ${profile.mobile.breakpoints.mobile}
-  Nav behavior: ${profile.mobile.navBehavior}
-  Hero changes: ${profile.mobile.heroChanges}
-  Grid behavior: ${profile.mobile.gridBehavior}
-  Section padding: ${profile.mobile.sectionPaddingMobile}
-  Hidden on mobile: ${profile.mobile.hiddenOnMobile.join(', ') || 'nothing'}
-  Font reductions: ${Object.entries(profile.mobile.fontSizeReductions).map(([k, v]) => `${k}: ${v}`).join(', ')}
-
-### ═══ DIVIDER/SECTION SEPARATOR ═══
-  Style: ${ds.dividerStyle}
-
-${profile.uniqueElements && profile.uniqueElements.length > 0 ? `
-### ═══ UNIQUE/SPECIAL ELEMENTS ═══
-${profile.uniqueElements.map(el => `
-  Description: ${el.description}
-  CSS: ${el.cssSnippet}
-  HTML: ${el.htmlStructure}
-`).join('\n')}` : ''}`;
+// Helper to convert hex to RGB values
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return '0, 0, 0';
+  return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`;
 }
 
 // =============================================================================
-// BUILD THE COPYWRITING GUIDE
+// API HANDLERS
 // =============================================================================
 
-function buildCopywritingGuide(profile: KingForensicProfile): string {
-  const copy = profile.copywriting;
+export async function POST(request: NextRequest) {
+  const startTime = Date.now();
 
-  return `
-### ═══ COPYWRITING DNA ═══
-Follow these EXACT patterns from ${profile.meta.kingName}:
+  try {
+    const body = (await request.json()) as GenerateRequest;
+    const { project, pageType = 'landing', customInstructions, customizations } = body;
+    
+    if (!project || typeof project !== 'object') {
+      return NextResponse.json(
+        { error: 'Invalid request: project object is required' },
+        { status: 400 }
+      );
+    }
 
-TONE: ${copy.tone}
+    const {
+      id: projectId,
+      industry: industryId,
+      businessName,
+      businessDescription,
+      targetAudience,
+      uniqueSellingPoints,
+      location,
+      contactInfo,
+    } = project;
 
-HEADLINE FORMULAS:
-  Hero headline: "${copy.headlineFormulas.hero}"
-  Section headlines: "${copy.headlineFormulas.section}"
-  Card headlines: "${copy.headlineFormulas.card}"
+    if (!projectId || !industryId || !businessName) {
+      return NextResponse.json(
+        { error: 'Missing required fields: project.id, project.industry, project.businessName' },
+        { status: 400 }
+      );
+    }
 
-CTA PATTERNS:
-  Primary CTAs: ${copy.ctaPatterns.primary.join(', ')}
-  Secondary CTAs: ${copy.ctaPatterns.secondary.join(', ')}
-  CTA style: ${copy.ctaPatterns.style}
+    // Fetch industry intelligence
+    const { intelligence, source, mappedFrom } = await getIndustryIntelligence(industryId);
 
-SOCIAL PROOF: ${copy.socialProofStyle}
-TRUST SIGNALS: ${copy.trustSignals.join(', ')}
-URGENCY TACTICS: ${copy.urgencyTactics.join(', ')}
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log(`🚀 GENERATING WEBSITE (v3.1 - IMPROVED)`);
+    console.log(`   Business: ${businessName}`);
+    console.log(`   Industry: ${intelligence.name} (${intelligence.id})`);
+    console.log(`   Source: ${source}`);
+    console.log(`   Templates: Using pre-built components`);
+    console.log('═══════════════════════════════════════════════════════════════');
 
-EXAMPLE HEADLINES FROM KING (match this level/style):
-${copy.exampleHeadlines.map(h => `  → "${h}"`).join('\n')}
+    // Build prompt with actual templates included
+    let prompt = buildDetailedPrompt({
+      intelligence,
+      businessName,
+      businessDescription,
+      targetAudience,
+      uniqueSellingPoints,
+      location,
+      contactInfo,
+      customizations,
+      pageType,
+    });
 
-EXAMPLE CTAs FROM KING:
-${copy.exampleCTAs.map(c => `  → "${c}"`).join('\n')}
+    if (customInstructions) {
+      prompt += `\n\nADDITIONAL INSTRUCTIONS:\n${customInstructions}`;
+    }
 
-IMPORTANT: Write copy that follows these PATTERNS and FORMULAS but uses the CUSTOMER'S business details, services, and value propositions. Do not copy the King's actual text — replicate the structure and approach.`;
-}
+    // Log prompt size for debugging
+    console.log(`   Prompt size: ${(prompt.length / 1024).toFixed(1)}KB`);
 
-// =============================================================================
-// BUILD THE CUSTOMER CONTENT SECTION
-// =============================================================================
-
-function buildCustomerContent(customer: CustomerQuestionnaire): string {
-  let content = `
-## ═══════════════════════════════════════════════════════
-## CUSTOMER CONTENT — Use this for ALL text/content
-## ═══════════════════════════════════════════════════════
-
-### BUSINESS INFORMATION
-- Business Name: ${customer.businessName}
-- Industry: ${customer.industry}
-- Description: ${customer.description}
-- Target Audience: ${customer.targetAudience}
-- Website Goal: ${customer.websiteGoal}
-- Unique Selling Points: ${customer.uniqueSellingPoints.join(', ')}
-
-### SERVICES / PRODUCTS
-${customer.services.map((s, i) => `${i + 1}. ${s}`).join('\n')}
-
-### FEATURES TO INCLUDE
-${customer.features.map(f => `- ${f}`).join('\n')}
-
-### CONTACT INFORMATION
-- Email: ${customer.contactInfo.email}
-- Phone: ${customer.contactInfo.phone}
-- Address: ${customer.contactInfo.address}
-`;
-
-  if (customer.socialMedia && Object.keys(customer.socialMedia).length > 0) {
-    content += `\n### SOCIAL MEDIA\n${Object.entries(customer.socialMedia).map(([k, v]) => `- ${k}: ${v}`).join('\n')}\n`;
-  }
-
-  if (customer.testimonials && customer.testimonials.length > 0) {
-    content += `\n### TESTIMONIALS (use these exact testimonials)\n${customer.testimonials.map((t, i) => `${i + 1}. "${t.text}" — ${t.name}, ${t.role} (${t.rating}★)`).join('\n')}\n`;
-  }
-
-  if (customer.stats && customer.stats.length > 0) {
-    content += `\n### STATS / NUMBERS\n${customer.stats.map(s => `- ${s.number}: ${s.label}`).join('\n')}\n`;
-  }
-
-  if (customer.pricing && customer.pricing.length > 0) {
-    content += `\n### PRICING TIERS\n${customer.pricing.map(p => `- ${p.name}: ${p.price}${p.isPopular ? ' [POPULAR]' : ''}\n  Features: ${p.features.join(', ')}`).join('\n')}\n`;
-  }
-
-  if (customer.faqs && customer.faqs.length > 0) {
-    content += `\n### FAQ\n${customer.faqs.map((f, i) => `${i + 1}. Q: ${f.question}\n   A: ${f.answer}`).join('\n')}\n`;
-  }
-
-  return content;
-}
-
-// =============================================================================
-// BUILD IMAGE GUIDANCE
-// =============================================================================
-
-function buildImageGuidance(profile: KingForensicProfile, customer: CustomerQuestionnaire): string {
-  return `
-### ═══ IMAGE GUIDANCE ═══
-Use high-quality Unsplash images that match the CUSTOMER'S industry (${customer.industry}).
-
-Image format: https://images.unsplash.com/photo-[ID]?w=[WIDTH]&q=80
-
-Image styling rules (from King DNA):
-- Border radius: ${profile.designSystem.imageStyles.borderRadius}
-- Aspect ratio: ${profile.designSystem.imageStyles.aspectRatio}
-- Object fit: ${profile.designSystem.imageStyles.objectFit}
-- Filter: ${profile.designSystem.imageStyles.filter}
-- Hover effect: ${profile.designSystem.imageStyles.hoverEffect}
-
-Search for images matching: ${customer.industry}, ${customer.description.split(' ').slice(0, 5).join(' ')}
-
-For hero: use a wide, impactful image relevant to "${customer.industry}"
-For sections: use images that match each section's content
-For team/testimonials: use professional headshot-style images`;
-}
-
-// =============================================================================
-// MAIN GENERATION FUNCTION
-// =============================================================================
-
-export async function generateFromKingDNA(
-  profile: KingForensicProfile,
-  customer: CustomerQuestionnaire
-): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
-
-  // Build the complete prompt
-  const systemPrompt = buildSystemPrompt(profile);
-
-  const userPrompt = `${buildDesignDNA(profile)}
-
-${buildComponentSpecs(profile)}
-
-${buildCopywritingGuide(profile)}
-
-${buildCustomerContent(customer)}
-
-${buildImageGuidance(profile, customer)}
-
-## ═══════════════════════════════════════════════════════
-## FINAL INSTRUCTIONS
-## ═══════════════════════════════════════════════════════
-
-Now generate the complete website.
-
-1. Use EVERY design specification from the King DNA above
-2. Fill with the CUSTOMER'S content above
-3. Follow the EXACT section order from the King
-4. Write copy using the King's copywriting FORMULAS applied to the customer's business
-5. Include ALL CSS custom properties in :root
-6. Include scroll reveal JavaScript
-7. Include mobile responsive styles
-8. Include navigation scroll behavior
-9. Include form handling
-10. Include smooth scrolling for anchor links
-
-The CSS should read like a direct extraction from ${profile.meta.kingName}'s website.
-The content should be 100% about ${customer.businessName}.
-
-Output ONLY the complete HTML starting with <!DOCTYPE html>`;
-
-  // Call Claude
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
+    // Generate with Claude
+    const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 16000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
+      messages: [{ role: 'user', content: prompt }],
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Claude API error: ${response.status}`);
+    const content = message.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Unexpected response type from Claude');
+    }
+
+    // Clean up response
+    let html = content.text.trim();
+    
+    // Remove markdown code blocks if present
+    const htmlMatch = html.match(/```(?:html)?\n?([\s\S]*?)```/);
+    if (htmlMatch) {
+      html = htmlMatch[1].trim();
+    }
+
+    // Ensure DOCTYPE
+    if (!html.startsWith('<!DOCTYPE') && !html.startsWith('<!doctype')) {
+      const doctypeIndex = html.toLowerCase().indexOf('<!doctype');
+      if (doctypeIndex > 0) {
+        html = html.substring(doctypeIndex);
+      }
+    }
+
+    const generationTime = Date.now() - startTime;
+    console.log(`✅ Generated in ${generationTime}ms (${(html.length / 1024).toFixed(1)}KB output)`);
+
+    return NextResponse.json({
+      success: true,
+      industry: intelligence.id,
+      industryName: intelligence.name,
+      usedFallback: source === 'fallback',
+      generatedCode: html,
+      projectId,
+      intelligenceSource: source,
+      generationTimeMs: generationTime,
+      mappedFrom: mappedFrom || null,
+    });
+  } catch (error) {
+    console.error('❌ Generation error:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate website', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
-
-  const data = await response.json();
-  let html = data.content[0].text.trim();
-
-  // Clean markdown artifacts
-  html = html.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '');
-  const doctypeIndex = html.toLowerCase().indexOf('<!doctype');
-  if (doctypeIndex > 0) html = html.substring(doctypeIndex);
-
-  return html;
 }
 
-// =============================================================================
-// REVISION FUNCTION (King-aware)
-// =============================================================================
-
-export async function reviseFromKingDNA(
-  profile: KingForensicProfile,
-  currentHtml: string,
-  feedback: string,
-  customer: CustomerQuestionnaire
-): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
-
-  const systemPrompt = `You are a precision website editor. You have the design DNA from ${profile.meta.kingName}.
-Apply the requested changes while STRICTLY maintaining the King's design specifications.
-Do NOT deviate from the established colors, typography, spacing, shadows, or layout patterns.
-Output ONLY the complete updated HTML.`;
-
-  // Include a condensed version of the design DNA for reference
-  const designRef = `
-DESIGN DNA REFERENCE (${profile.meta.kingName}):
-Colors: primary=${profile.colors.primary}, secondary=${profile.colors.secondary}, accent=${profile.colors.accent}, bg=${profile.colors.background.main}
-Fonts: heading=${profile.typography.headingFont.family}, body=${profile.typography.bodyFont.family}
-Card radius: ${profile.designSystem.borderRadius.cards}, Button radius: ${profile.designSystem.borderRadius.buttons}
-Card shadow: ${profile.designSystem.shadows.cardDefault}
-Button style: bg=${profile.designSystem.buttonStyles.primary.backgroundColor}, radius=${profile.designSystem.buttonStyles.primary.borderRadius}
-Section padding: ${profile.designSystem.sectionPadding.desktop}
-Container: ${profile.designSystem.containerMaxWidth}`;
-
-  const userPrompt = `Apply this change: ${feedback}
-
-${designRef}
-
-Business: ${customer.businessName} (${customer.industry})
-
-Current HTML:
-${currentHtml.substring(0, 25000)}
-
-Return the COMPLETE updated HTML starting with <!DOCTYPE html>.
-Maintain ALL design DNA specifications from ${profile.meta.kingName}.`;
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 16000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
+export async function GET() {
+  return NextResponse.json({
+    status: 'healthy',
+    service: 'VERKTORLABS Website Generation API',
+    version: '3.1.0',
+    note: 'Improved template selection and prompt structure',
   });
-
-  if (!response.ok) throw new Error('Revision failed');
-
-  const data = await response.json();
-  let html = data.content[0].text.trim();
-  html = html.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '');
-
-  return html;
 }
