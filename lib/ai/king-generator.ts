@@ -1,14 +1,14 @@
 // /lib/ai/king-generator.ts
-// VERKTORLABS - King DNA Website Generator v3
+// VERKTORLABS - King DNA Website Generator v4
 //
-// THE FIX:
-// v1: "use these colors and fonts" → Claude built generic landing pages
-// v2: "build a product grid with image, name, price" → Claude STILL built generic pages
-// v3: Injects ACTUAL HTML SCAFFOLDING → Claude MUST fill in the structure
+// THE INSIGHT v1-v3 MISSED:
+// Telling Claude "build an e-commerce site" or "only write CSS" doesn't work.
+// Claude ALWAYS rewrites the HTML into a generic centered-text landing page.
 //
-// Instead of describing a product card, we GIVE Claude the HTML skeleton:
-// <div class="product-card"><img/><h3/><span class="price"/><button>ADD TO CART</button></div>
-// This makes it structurally impossible to generate a centered-text landing page.
+// v4 SOLUTION: Build the ENTIRE e-commerce HTML+CSS in TypeScript.
+// Use King DNA tokens directly as CSS values. Zero ambiguity.
+// Claude is ONLY called for copywriting (headlines, descriptions).
+// The page structure is 100% deterministic.
 
 import type { KingForensicProfile, CustomerQuestionnaire } from './king-forensic-profile';
 
@@ -16,171 +16,1060 @@ import type { KingForensicProfile, CustomerQuestionnaire } from './king-forensic
 // SITE TYPE DETECTION
 // =============================================================================
 
-function detectSiteType(profile: KingForensicProfile): 
+function detectSiteType(profile: KingForensicProfile):
   'ecommerce' | 'saas' | 'agency' | 'portfolio' | 'restaurant' | 'service' | 'generic' {
-  
-  const industry = (profile.meta.industry || '').toLowerCase();
-  const vibe = (profile.meta.overallVibe || '').toLowerCase();
-  const hasCart = profile.navigation.hasCartIcon;
-  const navLabels = profile.navigation.menuItems.map(m => m.label.toLowerCase()).join(' ');
-  const sectionTypes = profile.sections.map(s => s.type.toLowerCase()).join(' ');
-  const sectionNames = profile.sections.map(s => s.name.toLowerCase()).join(' ');
 
-  if (hasCart || 
+  const industry = (profile.meta.industry || '').toLowerCase();
+  const hasCart = profile.navigation.hasCartIcon;
+  const navLabels = profile.navigation.menuItems.map((m: any) => m.label.toLowerCase()).join(' ');
+  const sectionTypes = profile.sections.map((s: any) => s.type.toLowerCase()).join(' ');
+  const sectionNames = profile.sections.map((s: any) => s.name.toLowerCase()).join(' ');
+
+  if (hasCart ||
       navLabels.match(/shop|collection|product|sale|new arrival|men|women|accessories/) ||
       sectionTypes.match(/product|catalog|collection/) ||
       sectionNames.match(/product|shop|collection|bestseller|new arrival/) ||
       industry.match(/fashion|jewelry|beauty|skincare|clothing|activewear|footwear|pet|food|beverage|supplement|home|furniture|bedding/)) {
     return 'ecommerce';
   }
-
-  if (navLabels.match(/pricing|docs|documentation|api|developer|changelog/) ||
+  if (navLabels.match(/pricing|docs|documentation|api|developer/) ||
       sectionTypes.match(/pricing|feature|integration/) ||
-      industry.match(/saas|tech|software|fintech/)) {
-    return 'saas';
-  }
-
+      industry.match(/saas|tech|software|fintech/)) return 'saas';
   if (navLabels.match(/menu|reservation|order|dine/) ||
-      industry.match(/restaurant|food service|cafe|bar/)) {
-    return 'restaurant';
-  }
-
+      industry.match(/restaurant|food service|cafe|bar/)) return 'restaurant';
   if (navLabels.match(/work|case stud|portfolio|client/) ||
-      sectionTypes.match(/portfolio|case.study|client/)) {
-    return 'agency';
-  }
-
+      sectionTypes.match(/portfolio|case.study|client/)) return 'agency';
   if (navLabels.match(/service|appointment|book|consult/) ||
-      industry.match(/salon|spa|dental|medical|legal|accounting/)) {
-    return 'service';
-  }
-
+      industry.match(/salon|spa|dental|medical|legal|accounting/)) return 'service';
   return 'generic';
 }
 
 // =============================================================================
-// HTML SCAFFOLD GENERATORS
-// The critical v3 innovation: instead of text descriptions, we provide
-// actual HTML skeletons that Claude MUST use as the page structure.
+// COPY GENERATOR — The ONLY thing Claude does
 // =============================================================================
 
-function buildEcommerceScaffold(
+interface GeneratedCopy {
+  heroTag: string;
+  heroHeadline: string;
+  heroSub: string;
+  products: { name: string; price: string; }[];
+  collections: string[];
+  reviewQuotes: string[];
+  newsletterHeadline: string;
+  aboutBlurb: string;
+}
+
+async function generateCopy(
   profile: KingForensicProfile,
   customer: CustomerQuestionnaire
+): Promise<GeneratedCopy> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    // Fallback copy if no API key
+    return getDefaultCopy(customer);
+  }
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        system: `You are a conversion copywriter for ${customer.industry} e-commerce brands. Output ONLY valid JSON, no markdown, no explanation.`,
+        messages: [{
+          role: 'user',
+          content: `Generate e-commerce copy for "${customer.businessName}" (${customer.industry}).
+Description: ${customer.description || 'Premium quality products'}
+Target: ${customer.targetAudience || 'style-conscious consumers'}
+
+Return this EXACT JSON structure:
+{
+  "heroTag": "short 2-3 word category tag",
+  "heroHeadline": "bold 4-6 word headline",
+  "heroSub": "one compelling sentence about the brand",
+  "products": [
+    {"name": "Product Name 1", "price": "39.99"},
+    {"name": "Product Name 2", "price": "44.99"},
+    {"name": "Product Name 3", "price": "54.99"},
+    {"name": "Product Name 4", "price": "64.99"},
+    {"name": "Product Name 5", "price": "29.99"},
+    {"name": "Product Name 6", "price": "49.99"},
+    {"name": "Product Name 7", "price": "34.99"},
+    {"name": "Product Name 8", "price": "74.99"}
+  ],
+  "collections": ["Collection 1", "Collection 2", "Collection 3", "Collection 4"],
+  "reviewQuotes": [
+    "Short customer review 1",
+    "Short customer review 2",
+    "Short customer review 3"
+  ],
+  "newsletterHeadline": "Get X% Off Your First Order",
+  "aboutBlurb": "One sentence brand description for footer"
+}
+
+Make product names specific to ${customer.industry}. Prices should be realistic.
+JSON ONLY — no backticks, no markdown, no explanation.`
+        }],
+      }),
+    });
+
+    if (!response.ok) return getDefaultCopy(customer);
+
+    const data = await response.json();
+    let text = data.content[0].text.trim();
+    // Strip any markdown wrapper
+    text = text.replace(/^```json?\n?/i, '').replace(/\n?```$/i, '');
+    const parsed = JSON.parse(text);
+    return parsed as GeneratedCopy;
+  } catch (e) {
+    console.error('[KingGenerator v4] Copy generation failed, using defaults:', e);
+    return getDefaultCopy(customer);
+  }
+}
+
+function getDefaultCopy(customer: CustomerQuestionnaire): GeneratedCopy {
+  const brand = customer.businessName;
+  const ind = (customer.industry || '').toLowerCase();
+
+  if (ind.match(/gym|athletic|activewear|fitness|sport/)) {
+    return {
+      heroTag: 'Performance Wear',
+      heroHeadline: 'Engineered for Your Best',
+      heroSub: `${brand} delivers premium athletic wear built for those who push limits.`,
+      products: [
+        { name: `${brand} Performance Tee`, price: '39.99' },
+        { name: `${brand} Flex Shorts`, price: '44.99' },
+        { name: `${brand} Pro Leggings`, price: '54.99' },
+        { name: `${brand} Essential Hoodie`, price: '64.99' },
+        { name: `${brand} Training Tank`, price: '29.99' },
+        { name: `${brand} Joggers`, price: '49.99' },
+        { name: `${brand} Sports Bra`, price: '34.99' },
+        { name: `${brand} Seamless Set`, price: '74.99' },
+      ],
+      collections: ['New Arrivals', "Men's Training", "Women's Training", 'Accessories'],
+      reviewQuotes: [
+        'Best gym wear I\'ve ever owned. Fits perfectly and breathes amazingly.',
+        'The quality blew me away. Feels premium without the premium price.',
+        'Ordered three more after trying one. That\'s how good these are.',
+      ],
+      newsletterHeadline: 'Get 15% Off Your First Order',
+      aboutBlurb: customer.description || `${brand} — premium athletic wear for serious athletes.`,
+    };
+  }
+
+  if (ind.match(/jewel/)) {
+    return {
+      heroTag: 'Fine Jewelry',
+      heroHeadline: 'Timeless Pieces, Modern Edge',
+      heroSub: `${brand} creates jewelry that tells your story. Crafted with intention.`,
+      products: [
+        { name: `${brand} Classic Chain`, price: '28.99' },
+        { name: `${brand} Pearl Drops`, price: '22.99' },
+        { name: `${brand} Signet Ring`, price: '34.99' },
+        { name: `${brand} Tennis Bracelet`, price: '45.99' },
+        { name: `${brand} Layered Necklace`, price: '32.99' },
+        { name: `${brand} Gold Hoops`, price: '19.99' },
+        { name: `${brand} Pendant Charm`, price: '26.99' },
+        { name: `${brand} Cuff Bracelet`, price: '38.99' },
+      ],
+      collections: ['Necklaces', 'Earrings', 'Rings', 'Bracelets'],
+      reviewQuotes: [
+        'The quality for the price is unreal. Gets me compliments daily.',
+        'Hasn\'t tarnished after months of daily wear. Truly impressed.',
+        'My go-to for layering. Clean, minimal, and so elegant.',
+      ],
+      newsletterHeadline: 'Get 10% Off Your First Order',
+      aboutBlurb: customer.description || `${brand} — modern jewelry for everyday elegance.`,
+    };
+  }
+
+  // Generic fallback
+  return {
+    heroTag: 'New Collection',
+    heroHeadline: `Discover ${brand}`,
+    heroSub: customer.description || `Premium products from ${brand}. Quality you can feel.`,
+    products: [
+      { name: `${brand} Essential`, price: '39.99' },
+      { name: `${brand} Classic`, price: '44.99' },
+      { name: `${brand} Premium`, price: '54.99' },
+      { name: `${brand} Signature`, price: '64.99' },
+      { name: `${brand} Core`, price: '29.99' },
+      { name: `${brand} Select`, price: '49.99' },
+      { name: `${brand} Original`, price: '34.99' },
+      { name: `${brand} Complete Set`, price: '74.99' },
+    ],
+    collections: ['New Arrivals', 'Best Sellers', 'Collections', 'Sale'],
+    reviewQuotes: [
+      'Exceeded all my expectations. Will definitely order again.',
+      'The quality-to-price ratio is incredible. Highly recommend.',
+      'Fast shipping and the product is exactly as described. Love it.',
+    ],
+    newsletterHeadline: 'Get 10% Off Your First Order',
+    aboutBlurb: customer.description || `${brand} — quality products delivered to your door.`,
+  };
+}
+
+// =============================================================================
+// UNSPLASH IMAGE HELPERS
+// =============================================================================
+
+function getHeroImage(industry: string): string {
+  const ind = industry.toLowerCase();
+  if (ind.match(/gym|athletic|activewear|fitness/)) return 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1600&q=80';
+  if (ind.match(/jewel/)) return 'https://images.unsplash.com/photo-1515562141207-82f56648e57c?w=1600&q=80';
+  if (ind.match(/beauty|skincare/)) return 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1600&q=80';
+  return 'https://images.unsplash.com/photo-1441984904996-e0b6ba687f04?w=1600&q=80';
+}
+
+function getProductImages(industry: string): string[] {
+  const ind = industry.toLowerCase();
+  if (ind.match(/gym|athletic|activewear|fitness|sport/)) return [
+    'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80',
+    'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=600&q=80',
+    'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=600&q=80',
+    'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&q=80',
+    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80',
+    'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80',
+    'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&q=80',
+    'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80',
+  ];
+  if (ind.match(/jewel/)) return [
+    'https://images.unsplash.com/photo-1515562141207-82f56648e57c?w=600&q=80',
+    'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&q=80',
+    'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=600&q=80',
+    'https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=600&q=80',
+    'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=600&q=80',
+    'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&q=80',
+    'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=600&q=80',
+    'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600&q=80',
+  ];
+  if (ind.match(/beauty|skincare/)) return [
+    'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600&q=80',
+    'https://images.unsplash.com/photo-1570194065650-d99fb4a38648?w=600&q=80',
+    'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600&q=80',
+    'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=600&q=80',
+    'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=600&q=80',
+    'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=600&q=80',
+    'https://images.unsplash.com/photo-1611930022073-b7a4ba5fba98?w=600&q=80',
+    'https://images.unsplash.com/photo-1612817288484-6f916006741a?w=600&q=80',
+  ];
+  return [
+    'https://images.unsplash.com/photo-1441984904996-e0b6ba687f04?w=600&q=80',
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80',
+    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80',
+    'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&q=80',
+    'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600&q=80',
+    'https://images.unsplash.com/photo-1560343090-f0409e92791a?w=600&q=80',
+    'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=600&q=80',
+    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80',
+  ];
+}
+
+function getCollectionImages(industry: string): string[] {
+  const ind = industry.toLowerCase();
+  if (ind.match(/gym|athletic|activewear|fitness/)) return [
+    'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80',
+    'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80',
+    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80',
+    'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&q=80',
+  ];
+  if (ind.match(/jewel/)) return [
+    'https://images.unsplash.com/photo-1515562141207-82f56648e57c?w=800&q=80',
+    'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=800&q=80',
+    'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=800&q=80',
+    'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&q=80',
+  ];
+  return [
+    'https://images.unsplash.com/photo-1441984904996-e0b6ba687f04?w=800&q=80',
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',
+    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80',
+    'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&q=80',
+  ];
+}
+
+// =============================================================================
+// COLOR HELPERS
+// =============================================================================
+
+function getProductColors(industry: string): string[][] {
+  const ind = industry.toLowerCase();
+  if (ind.match(/gym|athletic|activewear|fitness/)) return [
+    ['#1a1a1a', '#2d3748', '#c53030'],
+    ['#1a1a1a', '#2b6cb0', '#38a169'],
+    ['#1a1a1a', '#553c9a', '#d53f8c'],
+    ['#4a5568', '#1a1a1a', '#2d3748'],
+    ['#fff', '#1a1a1a', '#e53e3e'],
+    ['#4a5568', '#1a1a1a', '#2b6cb0'],
+    ['#1a1a1a', '#d53f8c', '#553c9a'],
+    ['#1a1a1a', '#718096', '#d53f8c'],
+  ];
+  if (ind.match(/jewel/)) return [
+    ['#d4af37', '#c0c0c0', '#e5c890'],
+    ['#d4af37', '#c0c0c0', '#e5c890'],
+    ['#d4af37', '#c0c0c0', '#b76e79'],
+    ['#d4af37', '#c0c0c0', '#e5c890'],
+    ['#d4af37', '#c0c0c0', '#e5c890'],
+    ['#d4af37', '#c0c0c0', '#b76e79'],
+    ['#d4af37', '#c0c0c0', '#e5c890'],
+    ['#d4af37', '#c0c0c0', '#b76e79'],
+  ];
+  return [
+    ['#1a1a1a', '#4a5568', '#718096'],
+    ['#1a1a1a', '#2d3748', '#a0aec0'],
+    ['#1a1a1a', '#4a5568', '#e53e3e'],
+    ['#1a1a1a', '#2b6cb0', '#4a5568'],
+    ['#1a1a1a', '#38a169', '#4a5568'],
+    ['#1a1a1a', '#4a5568', '#d69e2e'],
+    ['#1a1a1a', '#553c9a', '#4a5568'],
+    ['#1a1a1a', '#4a5568', '#dd6b20'],
+  ];
+}
+
+function getProductRatings(): { rating: number; reviews: number }[] {
+  return [
+    { rating: 4.8, reviews: 342 },
+    { rating: 4.7, reviews: 256 },
+    { rating: 4.9, reviews: 489 },
+    { rating: 4.8, reviews: 378 },
+    { rating: 4.6, reviews: 198 },
+    { rating: 4.7, reviews: 312 },
+    { rating: 4.8, reviews: 423 },
+    { rating: 4.9, reviews: 567 },
+  ];
+}
+
+// =============================================================================
+// E-COMMERCE HTML BUILDER — 100% deterministic, no Claude involvement
+// =============================================================================
+
+function buildEcommerceHTML(
+  profile: KingForensicProfile,
+  customer: CustomerQuestionnaire,
+  copy: GeneratedCopy
 ): string {
-  const brandName = customer.businessName;
-  const navItems = profile.navigation.menuItems.slice(0, 5);
-  const ctaText = profile.hero.ctaButtons[0]?.text || 'SHOP NOW';
+  const brand = customer.businessName;
   const industry = customer.industry || 'fashion';
-  
-  // Generate realistic product data based on industry
-  const productData = generateProductData(customer);
-  
+  const heroImage = getHeroImage(industry);
+  const productImages = getProductImages(industry);
+  const collectionImages = getCollectionImages(industry);
+  const productColors = getProductColors(industry);
+  const ratings = getProductRatings();
+
+  // Extract King DNA tokens
+  const c = profile.colors;
+  const t = profile.typography;
+  const ds = profile.designSystem;
+  const nav = profile.navigation;
+  const hero = profile.hero;
+  const footer = profile.footer;
+  const anim = profile.animations;
+
+  // Determine font imports
+  const fontImports: string[] = [];
+  if (t.headingFont.googleFontsUrl) fontImports.push(t.headingFont.googleFontsUrl);
+  if (t.bodyFont.googleFontsUrl && t.bodyFont.googleFontsUrl !== t.headingFont.googleFontsUrl) {
+    fontImports.push(t.bodyFont.googleFontsUrl);
+  }
+  const fontLinks = fontImports.map(url => `<link href="${url}" rel="stylesheet" />`).join('\n  ');
+
   // Build product cards HTML
-  const productCardsHtml = productData.map((p, i) => `
-        <div class="product-card">
-          <div class="product-image-wrapper">
-            <img src="https://images.unsplash.com/photo-${getProductImageId(industry, i)}?w=600&q=80" alt="${p.name}" class="product-image" />
-            ${i < 2 ? '<span class="product-badge">NEW</span>' : ''}
-          </div>
-          <div class="product-info">
-            <h3 class="product-name">${p.name}</h3>
-            <div class="product-price">$${p.price}</div>
-            <div class="product-rating">
-              <span class="stars">${'★'.repeat(Math.floor(p.rating))}${p.rating % 1 >= 0.5 ? '½' : ''}</span>
-              <span class="review-count">(${p.reviews})</span>
+  const productCards = copy.products.map((p, i) => {
+    const img = productImages[i % productImages.length];
+    const colors = productColors[i % productColors.length];
+    const r = ratings[i % ratings.length];
+    const stars = '★'.repeat(Math.floor(r.rating)) + (r.rating % 1 >= 0.5 ? '☆' : '');
+    const badge = i < 2 ? '<span class="product-badge">NEW</span>' : '';
+
+    return `
+          <div class="product-card">
+            <div class="product-img-wrap">
+              <img src="${img}" alt="${p.name}" loading="lazy" />
+              ${badge}
             </div>
-            <div class="color-swatches">
-              <span class="swatch" style="background:${p.colors[0]}"></span>
-              <span class="swatch" style="background:${p.colors[1]}"></span>
-              <span class="swatch" style="background:${p.colors[2]}"></span>
+            <div class="product-info">
+              <h3 class="product-name">${p.name}</h3>
+              <div class="product-price">$${p.price}</div>
+              <div class="product-rating">
+                <span class="stars">${stars}</span>
+                <span class="review-count">(${r.reviews})</span>
+              </div>
+              <div class="color-swatches">
+                ${colors.map(clr => `<span class="swatch" style="background:${clr}"></span>`).join('')}
+              </div>
+              <button class="add-to-cart">ADD TO CART</button>
             </div>
-            <button class="add-to-cart-btn">ADD TO CART</button>
-          </div>
-        </div>`).join('\n');
+          </div>`;
+  }).join('\n');
 
   // Build collection cards
-  const collections = getCollections(customer);
-  const collectionCardsHtml = collections.map((c, i) => `
-        <div class="collection-card">
-          <img src="https://images.unsplash.com/photo-${getCollectionImageId(industry, i)}?w=800&q=80" alt="${c}" class="collection-image" />
-          <div class="collection-overlay">
-            <h3 class="collection-name">${c}</h3>
-            <a href="#" class="collection-link">Shop Now →</a>
-          </div>
-        </div>`).join('\n');
+  const collectionCards = copy.collections.map((name, i) => {
+    const img = collectionImages[i % collectionImages.length];
+    return `
+          <div class="collection-card">
+            <img src="${img}" alt="${name}" loading="lazy" />
+            <div class="collection-overlay">
+              <h3>${name}</h3>
+              <span class="shop-link">Shop Now &rarr;</span>
+            </div>
+          </div>`;
+  }).join('\n');
 
-  return `
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- HTML SCAFFOLD — Claude, you MUST use this exact structure.            -->
-<!-- Fill in the CSS styles using the Design DNA values provided.         -->
-<!-- Do NOT restructure this. Do NOT remove sections.                     -->
-<!-- Do NOT convert this to a centered-text landing page.                 -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+  // Build review cards
+  const reviewNames = ['Sarah M.', 'James K.', 'Maria L.'];
+  const reviewCards = copy.reviewQuotes.map((quote, i) => `
+          <div class="review-card">
+            <div class="review-stars">★★★★★</div>
+            <p class="review-text">&ldquo;${quote}&rdquo;</p>
+            <div class="review-author">
+              <strong>${reviewNames[i]}</strong>
+              <span class="verified">✓ Verified Purchase</span>
+            </div>
+          </div>`).join('\n');
 
-<!DOCTYPE html>
+  // Nav items from King profile
+  const navItems = nav.menuItems.slice(0, 5);
+  const navLinks = navItems.map((item: any) => `<li><a href="#">${item.label}</a></li>`).join('\n            ');
+  const navCta = nav.ctaButton ? nav.ctaButton.text : 'Shop Now';
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${brandName} — Official Store</title>
-  <!-- LOAD GOOGLE FONTS FROM KING DNA -->
+  <title>${brand} — Official Store</title>
+  ${fontLinks}
   <style>
-    /* ══════ RESET + VARIABLES ══════ */
-    /* USE THE CSS CUSTOM PROPERTIES FROM THE DESIGN DNA SECTION */
-    /* Apply all --primary, --secondary, --font-heading, --font-body etc. */
+    /* ═══ RESET ═══ */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     
-    /* ══════ GLOBAL STYLES ══════ */
-    
-    /* ══════ ANNOUNCEMENT BAR ══════ */
-    
-    /* ══════ NAVIGATION ══════ */
-    /* Match King's nav: height, bg color, font family, font size, text-transform */
-    
-    /* ══════ HERO BANNER ══════ */
-    /* THIS IS A FULL-WIDTH IMAGE BANNER — NOT a text hero */
-    /* Height: min-height 70vh or per King's hero.height */
-    /* Background: full-bleed lifestyle image with overlay */
-    
-    /* ══════ TRUST BAR ══════ */
-    
-    /* ══════ PRODUCT GRID ══════ */
-    /* 4 columns desktop, 2 mobile */
-    /* Card styles from King DNA: radius, shadow, hover transform */
-    
-    /* ══════ COLLECTION CATEGORIES ══════ */
-    
-    /* ══════ SOCIAL PROOF / REVIEWS ══════ */
-    
-    /* ══════ NEWSLETTER ══════ */
-    
-    /* ══════ FOOTER ══════ */
-    
-    /* ══════ RESPONSIVE ══════ */
+    /* ═══ KING DNA TOKENS ═══ */
+    :root {
+      --primary: ${c.primary};
+      --primary-rgb: ${c.primaryRgb || '0,0,0'};
+      --secondary: ${c.secondary};
+      --accent: ${c.accent};
+      --bg-main: ${c.background.main};
+      --bg-alt: ${c.background.secondary};
+      --bg-dark: ${c.background.dark};
+      --bg-card: ${c.background.card};
+      --text-primary: ${c.text.primary};
+      --text-secondary: ${c.text.secondary};
+      --text-muted: ${c.text.muted};
+      --border: ${c.border.light};
+      --font-heading: '${t.headingFont.family}', sans-serif;
+      --font-body: '${t.bodyFont.family}', sans-serif;
+      --shadow-card: ${ds.shadows.cardDefault};
+      --shadow-card-hover: ${ds.shadows.cardHover};
+      --shadow-sm: ${ds.shadows.sm};
+      --radius-btn: ${ds.borderRadius.buttons};
+      --radius-card: ${ds.borderRadius.cards};
+      --radius-sm: ${ds.borderRadius.small};
+      --radius-lg: ${ds.borderRadius.large};
+      --container: ${ds.containerMaxWidth};
+      --transition: ${anim.transition.default};
+    }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--text-primary);
+      background: var(--bg-main);
+      line-height: ${t.scale.body.lineHeight};
+      font-size: ${t.scale.body.size};
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4 { font-family: var(--font-heading); }
+    img { display: block; max-width: 100%; }
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+    button { cursor: pointer; border: none; font-family: var(--font-body); }
+
+    .container {
+      max-width: var(--container);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ═══ ANNOUNCEMENT BAR ═══ */
+    .announce {
+      background: var(--bg-dark);
+      color: ${c.text.inverse || '#fff'};
+      text-align: center;
+      padding: 10px 16px;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ═══ NAVIGATION ═══ */
+    .nav {
+      background: ${nav.backgroundColor};
+      height: ${nav.height || '72px'};
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: var(--container);
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: var(--font-heading);
+      font-size: ${t.scale.h3?.size || '24px'};
+      font-weight: ${t.scale.h3?.weight || '700'};
+      color: var(--text-primary);
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+    }
+    .nav-links a {
+      font-family: ${nav.fontFamily || 'var(--font-body)'};
+      font-size: ${nav.fontSize || '14px'};
+      font-weight: ${nav.fontWeight || '500'};
+      text-transform: ${nav.textTransform || 'none'};
+      color: var(--text-secondary);
+      transition: var(--transition);
+    }
+    .nav-links a:hover { color: var(--text-primary); }
+    .nav-actions { display: flex; align-items: center; gap: 16px; }
+    .nav-actions button {
+      background: none;
+      color: var(--text-primary);
+      position: relative;
+    }
+    .nav-cta {
+      background: ${ds.buttonStyles.primary.backgroundColor};
+      color: ${ds.buttonStyles.primary.textColor};
+      padding: ${ds.buttonStyles.primary.padding || '12px 24px'};
+      border-radius: ${ds.buttonStyles.primary.borderRadius};
+      font-weight: ${ds.buttonStyles.primary.fontWeight || '600'};
+      font-size: 14px;
+      text-transform: ${ds.buttonStyles.primary.textTransform || 'none'};
+      transition: var(--transition);
+    }
+    .nav-cta:hover { opacity: 0.9; transform: ${ds.buttonStyles.primary.hoverTransform || 'translateY(-1px)'}; }
+    .cart-count {
+      position: absolute;
+      top: -6px; right: -8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 10px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .mobile-toggle { display: none; background: none; }
+    .mobile-toggle span { display: block; width: 22px; height: 2px; background: var(--text-primary); margin: 5px 0; }
+
+    /* ═══ HERO BANNER ═══ */
+    .hero {
+      position: relative;
+      min-height: ${hero.height || '80vh'};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 100%);
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      color: #fff;
+      padding: 40px 24px;
+      max-width: 700px;
+    }
+    .hero-tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      padding: 8px 20px;
+      border-radius: 100px;
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: ${hero.headline.fontSize || t.scale.h1.size};
+      font-weight: ${hero.headline.fontWeight || t.scale.h1.weight};
+      line-height: ${t.scale.h1.lineHeight};
+      letter-spacing: ${t.scale.h1.letterSpacing};
+      text-transform: ${hero.headline.textTransform || t.scale.h1.textTransform || 'none'};
+      margin-bottom: 16px;
+    }
+    .hero-sub {
+      font-size: 18px;
+      opacity: 0.9;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    .hero-ctas { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-block;
+      background: ${hero.ctaButtons[0]?.backgroundColor || ds.buttonStyles.primary.backgroundColor};
+      color: ${hero.ctaButtons[0]?.textColor || ds.buttonStyles.primary.textColor};
+      padding: ${hero.ctaButtons[0]?.padding || ds.buttonStyles.primary.padding || '16px 36px'};
+      border-radius: ${hero.ctaButtons[0]?.borderRadius || ds.buttonStyles.primary.borderRadius};
+      font-weight: 600;
+      font-size: 15px;
+      transition: var(--transition);
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-2px); }
+    .btn-secondary {
+      display: inline-block;
+      background: transparent;
+      color: #fff;
+      padding: 16px 36px;
+      border-radius: ${ds.buttonStyles.secondary.borderRadius || ds.buttonStyles.primary.borderRadius};
+      font-weight: 600;
+      font-size: 15px;
+      border: 2px solid rgba(255,255,255,0.4);
+      transition: var(--transition);
+    }
+    .btn-secondary:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
+
+    /* ═══ TRUST BAR ═══ */
+    .trust-bar {
+      background: var(--bg-alt);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .trust-bar .container {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .trust-item svg { flex-shrink: 0; }
+
+    /* ═══ SECTION HEADERS ═══ */
+    .section { padding: ${ds.sectionPadding?.desktop || '80px 0'}; }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+    .section-title {
+      font-size: ${t.scale.h2.size};
+      font-weight: ${t.scale.h2.weight};
+      line-height: ${t.scale.h2.lineHeight};
+    }
+    .view-all {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      transition: var(--transition);
+    }
+    .view-all:hover { color: var(--primary); }
+
+    /* ═══ PRODUCT GRID ═══ */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: ${ds.sectionPadding?.desktop ? '24px' : '20px'};
+    }
+    .product-card {
+      background: var(--bg-card);
+      border: ${ds.cardStyles.border || '1px solid var(--border)'};
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      transition: var(--transition);
+      box-shadow: var(--shadow-card);
+    }
+    .product-card:hover {
+      transform: ${ds.cardStyles.hoverTransform || 'translateY(-4px)'};
+      box-shadow: var(--shadow-card-hover);
+    }
+    .product-img-wrap {
+      position: relative;
+      aspect-ratio: 3/4;
+      overflow: hidden;
+      background: var(--bg-alt);
+    }
+    .product-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+    .product-card:hover .product-img-wrap img { transform: scale(1.05); }
+    .product-badge {
+      position: absolute;
+      top: 12px; left: 12px;
+      background: var(--accent);
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .product-info { padding: 16px; }
+    .product-name {
+      font-size: ${t.scale.h4?.size || '15px'};
+      font-weight: ${t.scale.h4?.weight || '600'};
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    .product-price {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .product-rating {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .stars { color: #f59e0b; font-size: 13px; }
+    .review-count { font-size: 12px; color: var(--text-muted); }
+    .color-swatches {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .swatch {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .swatch:hover { transform: scale(1.2); }
+    .add-to-cart {
+      width: 100%;
+      padding: 12px;
+      background: ${ds.buttonStyles.primary.backgroundColor};
+      color: ${ds.buttonStyles.primary.textColor};
+      border-radius: ${ds.buttonStyles.primary.borderRadius};
+      font-weight: ${ds.buttonStyles.primary.fontWeight || '600'};
+      font-size: 13px;
+      text-transform: ${ds.buttonStyles.primary.textTransform || 'uppercase'};
+      letter-spacing: 0.5px;
+      transition: var(--transition);
+    }
+    .add-to-cart:hover { opacity: 0.9; }
+
+    /* ═══ COLLECTIONS ═══ */
+    .collection-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .collection-card {
+      position: relative;
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      aspect-ratio: 3/4;
+      cursor: pointer;
+    }
+    .collection-card img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s ease;
+    }
+    .collection-card:hover img { transform: scale(1.08); }
+    .collection-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(transparent 40%, rgba(0,0,0,0.7));
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 24px;
+      color: #fff;
+    }
+    .collection-overlay h3 {
+      font-size: ${t.scale.h3?.size || '20px'};
+      font-weight: ${t.scale.h3?.weight || '600'};
+      margin-bottom: 4px;
+    }
+    .shop-link {
+      font-size: 14px;
+      opacity: 0.8;
+      transition: var(--transition);
+    }
+    .collection-card:hover .shop-link { opacity: 1; }
+
+    /* ═══ REVIEWS ═══ */
+    .reviews-section { background: var(--bg-alt); }
+    .reviews-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .overall-rating {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .big-rating {
+      font-size: 48px;
+      font-weight: 800;
+      font-family: var(--font-heading);
+    }
+    .rating-stars { color: #f59e0b; font-size: 20px; }
+    .rating-count { font-size: 14px; color: var(--text-muted); }
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .review-card {
+      background: var(--bg-card);
+      border: ${ds.cardStyles.border || '1px solid var(--border)'};
+      border-radius: var(--radius-card);
+      padding: 28px;
+      box-shadow: var(--shadow-card);
+    }
+    .review-stars { color: #f59e0b; margin-bottom: 16px; font-size: 16px; }
+    .review-text {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+    .review-author { display: flex; align-items: center; gap: 8px; }
+    .verified {
+      font-size: 12px;
+      color: #22c55e;
+      font-weight: 500;
+    }
+
+    /* ═══ NEWSLETTER ═══ */
+    .newsletter {
+      background: var(--bg-dark);
+      color: ${c.text.inverse || '#fff'};
+      text-align: center;
+      padding: 80px 24px;
+    }
+    .newsletter h2 {
+      font-size: ${t.scale.h2.size};
+      font-weight: ${t.scale.h2.weight};
+      margin-bottom: 12px;
+    }
+    .newsletter-sub {
+      font-size: 16px;
+      opacity: 0.8;
+      margin-bottom: 32px;
+    }
+    .newsletter-form {
+      display: flex;
+      max-width: 480px;
+      margin: 0 auto;
+      gap: 0;
+    }
+    .newsletter-form input {
+      flex: 1;
+      padding: 16px 20px;
+      border: ${ds.inputStyles?.border || '1px solid rgba(255,255,255,0.2)'};
+      border-radius: ${ds.inputStyles?.borderRadius || 'var(--radius-btn)'} 0 0 ${ds.inputStyles?.borderRadius || 'var(--radius-btn)'};
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+    }
+    .newsletter-form input::placeholder { color: rgba(255,255,255,0.5); }
+    .newsletter-form button {
+      padding: 16px 28px;
+      background: ${c.accent || '#fff'};
+      color: ${c.background.dark || '#000'};
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 0 ${ds.inputStyles?.borderRadius || 'var(--radius-btn)'} ${ds.inputStyles?.borderRadius || 'var(--radius-btn)'} 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: var(--transition);
+    }
+    .newsletter-form button:hover { opacity: 0.9; }
+    .newsletter-privacy {
+      font-size: 12px;
+      opacity: 0.5;
+      margin-top: 16px;
+    }
+
+    /* ═══ FOOTER ═══ */
+    .footer {
+      background: ${footer.backgroundColor || 'var(--bg-dark)'};
+      color: ${footer.textColor || 'rgba(255,255,255,0.8)'};
+      padding: 60px 0 24px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 48px;
+    }
+    .footer h4 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+    .footer-about {
+      font-size: 14px;
+      line-height: 1.7;
+      opacity: 0.7;
+      margin-bottom: 20px;
+    }
+    .footer-social { display: flex; gap: 12px; }
+    .footer-social a {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      transition: var(--transition);
+    }
+    .footer-social a:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.4); }
+    .footer ul li { margin-bottom: 12px; }
+    .footer ul a {
+      font-size: 14px;
+      opacity: 0.7;
+      transition: var(--transition);
+    }
+    .footer ul a:hover { opacity: 1; }
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer-bottom p { font-size: 13px; opacity: 0.5; }
+    .payment-icons {
+      display: flex;
+      gap: 12px;
+    }
+    .payment-icons span {
+      padding: 4px 12px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      font-size: 11px;
+      opacity: 0.6;
+    }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 1024px) {
+      .product-grid { grid-template-columns: repeat(3, 1fr); }
+      .collection-grid { grid-template-columns: repeat(2, 1fr); }
+      .reviews-grid { grid-template-columns: repeat(2, 1fr); }
+      .footer-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-links.active {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0; right: 0;
+        background: ${nav.backgroundColor};
+        padding: 24px;
+        gap: 20px;
+        border-bottom: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+      }
+      .mobile-toggle { display: block; }
+      .nav-cta { display: none; }
+      .product-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .collection-grid { grid-template-columns: repeat(2, 1fr); }
+      .reviews-grid { grid-template-columns: 1fr; }
+      .hero { min-height: 60vh; }
+      .hero h1 { font-size: clamp(28px, 7vw, ${hero.headline.fontSize || t.scale.h1.size}); }
+      .section { padding: 48px 0; }
+      .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .reviews-header { flex-direction: column; align-items: flex-start; }
+      .newsletter-form { flex-direction: column; gap: 12px; }
+      .newsletter-form input { border-radius: var(--radius-btn); }
+      .newsletter-form button { border-radius: var(--radius-btn); }
+      .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+    }
+    @media (max-width: 480px) {
+      .product-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .product-info { padding: 10px; }
+      .product-name { font-size: 13px; }
+      .add-to-cart { padding: 10px; font-size: 11px; }
+    }
+
+    /* ═══ ANIMATIONS ═══ */
+    ${anim.scrollReveal?.enabled ? `
+    .fade-up {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+    ` : ''}
   </style>
 </head>
 <body>
 
-  <!-- ══════ ANNOUNCEMENT BAR ══════ -->
-  <div class="announcement-bar">
-    🚚 Free Shipping on Orders Over $75 | New Arrivals Just Dropped
+  <!-- ANNOUNCEMENT BAR -->
+  <div class="announce">
+    🚚 Free Shipping on Orders Over $75 &nbsp;|&nbsp; New Arrivals Just Dropped
   </div>
 
-  <!-- ══════ NAVIGATION ══════ -->
-  <nav class="main-nav">
-    <div class="nav-container">
-      <a href="#" class="nav-logo">${brandName}</a>
-      <ul class="nav-menu">
-${navItems.map(item => `        <li><a href="#">${item.label}</a></li>`).join('\n')}
+  <!-- NAVIGATION -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">${brand}</a>
+      <ul class="nav-links">
+        ${navLinks}
       </ul>
       <div class="nav-actions">
-        <button class="nav-search" aria-label="Search">
+        <button aria-label="Search">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         </button>
-        <button class="nav-cart" aria-label="Cart">
+        <button aria-label="Cart" style="position:relative">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
           <span class="cart-count">0</span>
         </button>
+        <a href="#" class="nav-cta">${navCta}</a>
       </div>
       <button class="mobile-toggle" aria-label="Menu">
         <span></span><span></span><span></span>
@@ -188,139 +1077,111 @@ ${navItems.map(item => `        <li><a href="#">${item.label}</a></li>`).join('\
     </div>
   </nav>
 
-  <!-- ══════ HERO — FULL-WIDTH IMAGE BANNER ══════ -->
-  <!-- THIS IS NOT A TEXT HERO. It's a full-bleed lifestyle image with overlaid text. -->
-  <section class="hero-banner">
-    <div class="hero-image-wrapper">
-      <img src="https://images.unsplash.com/photo-${getHeroImageId(industry)}?w=1600&q=80" alt="${brandName} Collection" class="hero-bg-image" />
-      <div class="hero-overlay"></div>
-    </div>
+  <!-- HERO BANNER -->
+  <section class="hero">
+    <img src="${heroImage}" alt="${brand}" class="hero-bg" />
+    <div class="hero-overlay"></div>
     <div class="hero-content">
-      <span class="hero-tag">${getHeroTag(customer)}</span>
-      <h1 class="hero-headline">${getHeroHeadline(customer)}</h1>
-      <p class="hero-subheadline">${getHeroSubheadline(customer)}</p>
+      <span class="hero-tag">${copy.heroTag}</span>
+      <h1>${copy.heroHeadline}</h1>
+      <p class="hero-sub">${copy.heroSub}</p>
       <div class="hero-ctas">
-        <a href="#products" class="btn-primary">${ctaText}</a>
+        <a href="#products" class="btn-primary">${hero.ctaButtons[0]?.text || 'SHOP NOW'}</a>
         <a href="#collections" class="btn-secondary">View Collections</a>
       </div>
     </div>
   </section>
 
-  <!-- ══════ TRUST BAR ══════ -->
-  <section class="trust-bar">
-    <div class="trust-container">
+  <!-- TRUST BAR -->
+  <div class="trust-bar">
+    <div class="container">
       <div class="trust-item">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         <span>Free Shipping Over $75</span>
       </div>
       <div class="trust-item">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        <span>30-Day Easy Returns</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        <span>30-Day Returns</span>
       </div>
       <div class="trust-item">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
         <span>Secure Checkout</span>
       </div>
       <div class="trust-item">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         <span>12,000+ Happy Customers</span>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- ══════ PRODUCT GRID — THE CORE OF THE STORE ══════ -->
-  <section class="products-section" id="products">
-    <div class="section-container">
+  <!-- PRODUCTS -->
+  <section class="section" id="products">
+    <div class="container">
       <div class="section-header">
         <h2 class="section-title">Best Sellers</h2>
-        <a href="#" class="view-all-link">View All →</a>
+        <a href="#" class="view-all">View All →</a>
       </div>
       <div class="product-grid">
-${productCardsHtml}
+${productCards}
       </div>
     </div>
   </section>
 
-  <!-- ══════ COLLECTION CATEGORIES ══════ -->
-  <section class="collections-section" id="collections">
-    <div class="section-container">
-      <h2 class="section-title">Shop by Collection</h2>
+  <!-- COLLECTIONS -->
+  <section class="section" id="collections" style="background: var(--bg-alt);">
+    <div class="container">
+      <h2 class="section-title" style="margin-bottom:40px;">Shop by Collection</h2>
       <div class="collection-grid">
-${collectionCardsHtml}
+${collectionCards}
       </div>
     </div>
   </section>
 
-  <!-- ══════ SOCIAL PROOF / REVIEWS ══════ -->
-  <section class="reviews-section">
-    <div class="section-container">
+  <!-- REVIEWS -->
+  <section class="section reviews-section">
+    <div class="container">
       <div class="reviews-header">
         <h2 class="section-title">What Our Customers Say</h2>
         <div class="overall-rating">
           <span class="big-rating">4.8</span>
-          <span class="rating-stars">★★★★★</span>
-          <span class="rating-count">Based on 2,400+ reviews</span>
+          <div>
+            <div class="rating-stars">★★★★★</div>
+            <div class="rating-count">Based on 2,400+ reviews</div>
+          </div>
         </div>
       </div>
       <div class="reviews-grid">
-        <div class="review-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="review-text">"Absolutely love the quality. Fits perfectly and the material is premium. Will definitely order again!"</p>
-          <div class="review-author">
-            <strong>Sarah M.</strong>
-            <span class="verified-badge">✓ Verified Purchase</span>
-          </div>
-        </div>
-        <div class="review-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="review-text">"Best ${industry} purchase I've made. The attention to detail is incredible. Shipped fast too!"</p>
-          <div class="review-author">
-            <strong>James K.</strong>
-            <span class="verified-badge">✓ Verified Purchase</span>
-          </div>
-        </div>
-        <div class="review-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="review-text">"I've tried many brands but ${brandName} stands out. The quality-to-price ratio is unmatched."</p>
-          <div class="review-author">
-            <strong>Maria L.</strong>
-            <span class="verified-badge">✓ Verified Purchase</span>
-          </div>
-        </div>
+${reviewCards}
       </div>
     </div>
   </section>
 
-  <!-- ══════ NEWSLETTER SIGNUP ══════ -->
-  <section class="newsletter-section">
-    <div class="section-container">
-      <div class="newsletter-content">
-        <h2 class="newsletter-title">Get 10% Off Your First Order</h2>
-        <p class="newsletter-sub">Join 15,000+ subscribers for exclusive deals and new arrivals</p>
-        <div class="newsletter-form">
-          <input type="email" placeholder="Enter your email" class="newsletter-input" />
-          <button class="newsletter-btn">SUBSCRIBE</button>
-        </div>
-        <p class="newsletter-privacy">We respect your privacy. Unsubscribe at any time.</p>
-      </div>
+  <!-- NEWSLETTER -->
+  <section class="newsletter">
+    <h2>${copy.newsletterHeadline}</h2>
+    <p class="newsletter-sub">Join 15,000+ subscribers for exclusive deals and new arrivals.</p>
+    <div class="newsletter-form">
+      <input type="email" placeholder="Enter your email" />
+      <button>SUBSCRIBE</button>
     </div>
+    <p class="newsletter-privacy">We respect your privacy. Unsubscribe anytime.</p>
   </section>
 
-  <!-- ══════ FOOTER ══════ -->
-  <footer class="main-footer">
-    <div class="footer-container">
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
       <div class="footer-grid">
-        <div class="footer-col">
-          <h4>${brandName}</h4>
-          <p class="footer-about">${customer.description || 'Premium quality products designed for those who demand excellence.'}</p>
+        <div>
+          <h4>${brand}</h4>
+          <p class="footer-about">${copy.aboutBlurb}</p>
           <div class="footer-social">
             <a href="#" aria-label="Instagram">IG</a>
             <a href="#" aria-label="TikTok">TK</a>
             <a href="#" aria-label="Facebook">FB</a>
-            <a href="#" aria-label="Twitter">TW</a>
+            <a href="#" aria-label="Twitter">X</a>
           </div>
         </div>
-        <div class="footer-col">
+        <div>
           <h4>Shop</h4>
           <ul>
             <li><a href="#">New Arrivals</a></li>
@@ -329,7 +1190,7 @@ ${collectionCardsHtml}
             <li><a href="#">Gift Cards</a></li>
           </ul>
         </div>
-        <div class="footer-col">
+        <div>
           <h4>Support</h4>
           <ul>
             <li><a href="#">Contact Us</a></li>
@@ -338,47 +1199,55 @@ ${collectionCardsHtml}
             <li><a href="#">Size Guide</a></li>
           </ul>
         </div>
-        <div class="footer-col">
+        <div>
           <h4>Company</h4>
           <ul>
             <li><a href="#">About Us</a></li>
             <li><a href="#">Careers</a></li>
             <li><a href="#">Privacy Policy</a></li>
-            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Terms</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2025 ${brandName}. All rights reserved.</p>
+        <p>&copy; 2025 ${brand}. All rights reserved.</p>
         <div class="payment-icons">
-          <span>Visa</span> <span>Mastercard</span> <span>Amex</span> <span>PayPal</span> <span>Apple Pay</span>
+          <span>Visa</span><span>Mastercard</span><span>Amex</span><span>PayPal</span><span>Apple Pay</span>
         </div>
       </div>
     </div>
   </footer>
 
   <script>
-    // Mobile nav toggle
+    // Mobile nav
     document.querySelector('.mobile-toggle')?.addEventListener('click', function() {
-      document.querySelector('.nav-menu')?.classList.toggle('active');
+      document.querySelector('.nav-links')?.classList.toggle('active');
     });
-    // Smooth scroll for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(a => {
-      a.addEventListener('click', e => {
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+      a.addEventListener('click', function(e) {
         e.preventDefault();
-        const target = document.querySelector(a.getAttribute('href'));
-        if (target) target.scrollIntoView({ behavior: 'smooth' });
+        var t = document.querySelector(a.getAttribute('href'));
+        if (t) t.scrollIntoView({ behavior: 'smooth' });
       });
     });
-    // Add to cart button feedback
-    document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+    // Add to cart
+    document.querySelectorAll('.add-to-cart').forEach(function(btn) {
       btn.addEventListener('click', function() {
-        const original = this.textContent;
+        var orig = this.textContent;
         this.textContent = '✓ ADDED';
-        this.style.backgroundColor = '#22c55e';
-        setTimeout(() => { this.textContent = original; this.style.backgroundColor = ''; }, 1500);
+        this.style.background = '#22c55e';
+        var b = this;
+        setTimeout(function() { b.textContent = orig; b.style.background = ''; }, 1500);
       });
     });
+    ${anim.scrollReveal?.enabled ? `
+    // Scroll reveal
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-up').forEach(function(el) { obs.observe(el); });
+    ` : ''}
   </script>
 
 </body>
@@ -386,388 +1255,33 @@ ${collectionCardsHtml}
 }
 
 // =============================================================================
-// PRODUCT DATA GENERATORS
+// NON-ECOMMERCE: Still uses Claude for full generation (v2 approach)
 // =============================================================================
 
-interface ProductItem {
-  name: string;
-  price: string;
-  rating: number;
-  reviews: number;
-  colors: string[];
-}
-
-function generateProductData(customer: CustomerQuestionnaire): ProductItem[] {
-  const industry = (customer.industry || '').toLowerCase();
-  const brand = customer.businessName;
-  
-  const industryProducts: Record<string, ProductItem[]> = {
-    // Activewear / Athletic / Gym
-    default_athletic: [
-      { name: `${brand} Performance Tee`, price: '39.99', rating: 4.8, reviews: 342, colors: ['#1a1a1a', '#2d3748', '#c53030'] },
-      { name: `${brand} Flex Shorts`, price: '44.99', rating: 4.7, reviews: 256, colors: ['#1a1a1a', '#2b6cb0', '#38a169'] },
-      { name: `${brand} Pro Leggings`, price: '54.99', rating: 4.9, reviews: 489, colors: ['#1a1a1a', '#553c9a', '#d53f8c'] },
-      { name: `${brand} Essential Hoodie`, price: '64.99', rating: 4.8, reviews: 378, colors: ['#4a5568', '#1a1a1a', '#2d3748'] },
-      { name: `${brand} Training Tank`, price: '29.99', rating: 4.6, reviews: 198, colors: ['#fff', '#1a1a1a', '#e53e3e'] },
-      { name: `${brand} Joggers`, price: '49.99', rating: 4.7, reviews: 312, colors: ['#4a5568', '#1a1a1a', '#2b6cb0'] },
-      { name: `${brand} Sports Bra`, price: '34.99', rating: 4.8, reviews: 423, colors: ['#1a1a1a', '#d53f8c', '#553c9a'] },
-      { name: `${brand} Seamless Set`, price: '74.99', rating: 4.9, reviews: 567, colors: ['#1a1a1a', '#718096', '#d53f8c'] },
-    ],
-    // Jewelry
-    default_jewelry: [
-      { name: `${brand} Classic Chain`, price: '28.99', rating: 4.8, reviews: 234, colors: ['#d4af37', '#c0c0c0', '#e5c890'] },
-      { name: `${brand} Pearl Drop Earrings`, price: '22.99', rating: 4.7, reviews: 189, colors: ['#d4af37', '#c0c0c0', '#e5c890'] },
-      { name: `${brand} Signet Ring`, price: '34.99', rating: 4.9, reviews: 312, colors: ['#d4af37', '#c0c0c0', '#b76e79'] },
-      { name: `${brand} Tennis Bracelet`, price: '45.99', rating: 4.6, reviews: 156, colors: ['#d4af37', '#c0c0c0', '#e5c890'] },
-      { name: `${brand} Layered Necklace`, price: '32.99', rating: 4.8, reviews: 278, colors: ['#d4af37', '#c0c0c0', '#e5c890'] },
-      { name: `${brand} Hoop Earrings`, price: '19.99', rating: 4.7, reviews: 345, colors: ['#d4af37', '#c0c0c0', '#b76e79'] },
-      { name: `${brand} Pendant Charm`, price: '26.99', rating: 4.8, reviews: 203, colors: ['#d4af37', '#c0c0c0', '#e5c890'] },
-      { name: `${brand} Cuff Bracelet`, price: '38.99', rating: 4.9, reviews: 167, colors: ['#d4af37', '#c0c0c0', '#b76e79'] },
-    ],
-    // Beauty / Skincare
-    default_beauty: [
-      { name: `${brand} Glow Serum`, price: '42.00', rating: 4.9, reviews: 567, colors: ['#fce4ec', '#e8eaf6', '#e8f5e9'] },
-      { name: `${brand} Daily Moisturizer`, price: '36.00', rating: 4.7, reviews: 423, colors: ['#fce4ec', '#fff3e0', '#e0f2f1'] },
-      { name: `${brand} Vitamin C Cream`, price: '48.00', rating: 4.8, reviews: 389, colors: ['#fff8e1', '#fce4ec', '#e8f5e9'] },
-      { name: `${brand} Eye Cream`, price: '34.00', rating: 4.6, reviews: 234, colors: ['#e8eaf6', '#fce4ec', '#e0f7fa'] },
-      { name: `${brand} Cleanser`, price: '28.00', rating: 4.8, reviews: 512, colors: ['#e0f2f1', '#fce4ec', '#fff3e0'] },
-      { name: `${brand} Face Mask Set`, price: '52.00', rating: 4.9, reviews: 345, colors: ['#fce4ec', '#e8eaf6', '#e8f5e9'] },
-      { name: `${brand} SPF 50 Sunscreen`, price: '32.00', rating: 4.7, reviews: 456, colors: ['#fff8e1', '#e0f2f1', '#fce4ec'] },
-      { name: `${brand} Night Repair Oil`, price: '56.00', rating: 4.8, reviews: 278, colors: ['#311b92', '#1a237e', '#4a148c'] },
-    ],
-  };
-
-  // Match industry to product set
-  if (industry.match(/gym|athletic|activewear|fitness|sport|workout/)) return industryProducts.default_athletic;
-  if (industry.match(/jewel|accessor/)) return industryProducts.default_jewelry;
-  if (industry.match(/beauty|skincare|cosmetic/)) return industryProducts.default_beauty;
-  
-  // Default: use athletic for fashion-adjacent, or generate generic
-  if (industry.match(/fashion|clothing|apparel/)) return industryProducts.default_athletic;
-  
-  // Generic fallback — adapt athletic products
-  return industryProducts.default_athletic.map(p => ({
-    ...p,
-    name: p.name.replace('Performance Tee', 'Essential Item 1')
-      .replace('Flex Shorts', 'Classic Item 2')
-      .replace('Pro Leggings', 'Premium Item 3')
-      .replace('Essential Hoodie', 'Signature Item 4')
-      .replace('Training Tank', 'Core Item 5')
-      .replace('Joggers', 'Active Item 6')
-      .replace('Sports Bra', 'Select Item 7')
-      .replace('Seamless Set', 'Complete Set'),
-  }));
-}
-
-function getCollections(customer: CustomerQuestionnaire): string[] {
-  const industry = (customer.industry || '').toLowerCase();
-  if (industry.match(/gym|athletic|activewear|fitness|sport/)) {
-    return ['New Arrivals', 'Men\'s Training', 'Women\'s Training', 'Accessories'];
-  }
-  if (industry.match(/jewel/)) {
-    return ['Necklaces', 'Earrings', 'Rings', 'Bracelets'];
-  }
-  if (industry.match(/beauty|skincare/)) {
-    return ['Skincare', 'Body Care', 'Gift Sets', 'Best Sellers'];
-  }
-  return ['New Arrivals', 'Best Sellers', 'Collections', 'Sale'];
-}
-
-// Unsplash photo IDs by industry (real, high-quality images)
-function getHeroImageId(industry: string): string {
-  const ind = industry.toLowerCase();
-  if (ind.match(/gym|athletic|activewear|fitness/)) return '1534438327276-14e5300c3a48';
-  if (ind.match(/jewel/)) return '1515562141207-82f56648e57c';
-  if (ind.match(/beauty|skincare/)) return '1596462502278-27bfdc403348';
-  if (ind.match(/fashion|clothing/)) return '1441984904996-e0b6ba687f04';
-  return '1441984904996-e0b6ba687f04';
-}
-
-function getProductImageId(industry: string, index: number): string {
-  const ind = industry.toLowerCase();
-  const athleticIds = [
-    '1521572163474-6864f9cf17ab', '1562157873-818bc0726f68', '1556906781-9a412961c28c',
-    '1556821840-3a63f95609a7', '1571019613454-1cb2f99b2d8b', '1515886657613-9f3515b0c78f',
-    '1571019614242-c5c5dee9f50b', '1544367567-0f2fcb009e0b'
-  ];
-  const jewelryIds = [
-    '1515562141207-82f56648e57c', '1535632066927-ab7c9ab60908', '1602173574767-37ac01994b2a',
-    '1611085583191-a3b181a88401', '1573408301185-9146fe634ad0', '1599643478518-a784e5dc4c8f',
-    '1603561591411-07134e71a2a9', '1611591437281-460bfbe1220a'
-  ];
-  const beautyIds = [
-    '1596462502278-27bfdc403348', '1570194065650-d99fb4a38648', '1556228578-8c89e6adf883',
-    '1571781926291-c477ebfd024b', '1598440947619-2c35fc9aa908', '1608248543803-ba4f8c70ae0b',
-    '1611930022073-b7a4ba5fba98', '1612817288484-6f916006741a'
-  ];
-  
-  if (ind.match(/gym|athletic|activewear|fitness|sport/)) return athleticIds[index % athleticIds.length];
-  if (ind.match(/jewel/)) return jewelryIds[index % jewelryIds.length];
-  if (ind.match(/beauty|skincare/)) return beautyIds[index % beautyIds.length];
-  return athleticIds[index % athleticIds.length];
-}
-
-function getCollectionImageId(industry: string, index: number): string {
-  const ind = industry.toLowerCase();
-  const ids: Record<string, string[]> = {
-    athletic: ['1517836357463-d25dfeac3438', '1518611012118-696072aa579a', '1571019613454-1cb2f99b2d8b', '1576678927484-cc907957088c'],
-    jewelry: ['1515562141207-82f56648e57c', '1573408301185-9146fe634ad0', '1602173574767-37ac01994b2a', '1599643478518-a784e5dc4c8f'],
-    beauty: ['1596462502278-27bfdc403348', '1570194065650-d99fb4a38648', '1556228578-8c89e6adf883', '1571781926291-c477ebfd024b'],
-  };
-  
-  let key = 'athletic';
-  if (ind.match(/jewel/)) key = 'jewelry';
-  if (ind.match(/beauty|skincare/)) key = 'beauty';
-  
-  return ids[key][index % ids[key].length];
-}
-
-function getHeroTag(customer: CustomerQuestionnaire): string {
-  const ind = (customer.industry || '').toLowerCase();
-  if (ind.match(/gym|athletic|fitness/)) return 'New Season Collection';
-  if (ind.match(/jewel/)) return 'Handcrafted Luxury';
-  if (ind.match(/beauty|skincare/)) return 'Clean Beauty Essentials';
-  return 'New Collection';
-}
-
-function getHeroHeadline(customer: CustomerQuestionnaire): string {
-  const ind = (customer.industry || '').toLowerCase();
-  if (ind.match(/gym|athletic|fitness/)) return 'Engineered for Performance';
-  if (ind.match(/jewel/)) return 'Timeless Elegance, Modern Design';
-  if (ind.match(/beauty|skincare/)) return 'Your Skin Deserves the Best';
-  return `Discover ${customer.businessName}`;
-}
-
-function getHeroSubheadline(customer: CustomerQuestionnaire): string {
-  return customer.description || 'Premium quality products designed for those who demand excellence.';
-}
-
-// =============================================================================
-// SYSTEM PROMPT — Aggressive CSS-only instruction
-// =============================================================================
-
-function buildSystemPrompt(profile: KingForensicProfile, siteType: string): string {
-  if (siteType === 'ecommerce') {
-    return `You are a CSS styling engine. You will receive a COMPLETE HTML scaffold for an e-commerce website. Your ONLY job is to write the CSS styles inside the <style> tag.
-
-## WHAT YOU MUST DO:
-1. Take the HTML scaffold provided — DO NOT modify the HTML structure
-2. Write ALL CSS styles using the Design DNA values (colors, fonts, spacing, shadows, radius)
-3. Make it look EXACTLY like ${profile.meta.kingName}'s website in terms of visual design
-4. Ensure full mobile responsiveness
-
-## WHAT YOU MUST NOT DO:
-- DO NOT change the HTML structure
-- DO NOT remove any sections (product grid, trust bar, reviews, newsletter, etc.)
-- DO NOT convert the e-commerce layout into a landing page
-- DO NOT replace product cards with generic content cards
-- DO NOT remove prices, ratings, add-to-cart buttons, or color swatches
-
-## CSS REQUIREMENTS:
-- Use the exact CSS custom properties provided in the Design DNA
-- Match ${profile.meta.kingName}'s visual style: their button shapes, card shadows, font weights, spacing
-- Hero must be a full-bleed image banner with overlay text (NOT centered text on white background)
-- Product grid: 4 columns desktop, 2 tablet, 2 mobile
-- Cards should have the exact shadow, radius, and hover effects from the King DNA
-- Buttons match King's button style exactly
-- Typography scale matches King's h1/h2/h3/body sizes and weights
-
-## OUTPUT:
-Return the COMPLETE HTML document (the scaffold with your CSS filled in).
-Start with <!DOCTYPE html>. No markdown, no explanation.`;
-  }
-
-  // Non-ecommerce: use v2 approach
-  return `You are a precision website builder. You have the EXACT design DNA from ${profile.meta.kingName}.
-
-## SITE TYPE: ${siteType.toUpperCase()}
-Build the exact page structure from ${profile.meta.kingName} — same sections, layout, and visual style.
-Fill with the CUSTOMER's content, not the King's content.
-
-## RULES:
-- Use exact hex codes: ${profile.colors.primary}, ${profile.colors.secondary}
-- Use exact fonts: ${profile.typography.headingFont.family}, ${profile.typography.bodyFont.family}
-- Use exact radius: ${profile.designSystem.borderRadius.buttons} for buttons
-- Match section order from blueprints below
-
-## OUTPUT: Complete HTML only. <!DOCTYPE html> to </html>. No markdown.`;
-}
-
-// =============================================================================
-// BUILD DESIGN DNA (CSS custom properties and specs)
-// =============================================================================
-
-function buildDesignDNA(profile: KingForensicProfile): string {
-  return `
-## ═══ DESIGN DNA FROM: ${profile.meta.kingName} ═══
-
-### GOOGLE FONTS TO LOAD
-${profile.typography.headingFont.googleFontsUrl || 'Use system fonts'}
-${profile.typography.bodyFont.googleFontsUrl !== profile.typography.headingFont.googleFontsUrl ? profile.typography.bodyFont.googleFontsUrl || '' : ''}
-
-### CSS CUSTOM PROPERTIES — Apply these in the :root selector:
-:root {
-  --primary: ${profile.colors.primary};
-  --primary-rgb: ${profile.colors.primaryRgb || '0,0,0'};
-  --secondary: ${profile.colors.secondary};
-  --accent: ${profile.colors.accent};
-  --bg-main: ${profile.colors.background.main};
-  --bg-secondary: ${profile.colors.background.secondary};
-  --bg-dark: ${profile.colors.background.dark};
-  --bg-card: ${profile.colors.background.card};
-  --text-primary: ${profile.colors.text.primary};
-  --text-secondary: ${profile.colors.text.secondary};
-  --text-muted: ${profile.colors.text.muted};
-  --border-default: ${profile.colors.border.light};
-  --font-heading: '${profile.typography.headingFont.family}', sans-serif;
-  --font-body: '${profile.typography.bodyFont.family}', sans-serif;
-  --shadow-sm: ${profile.designSystem.shadows.sm};
-  --shadow-md: ${profile.designSystem.shadows.md};
-  --shadow-card: ${profile.designSystem.shadows.cardDefault};
-  --shadow-card-hover: ${profile.designSystem.shadows.cardHover};
-  --radius-sm: ${profile.designSystem.borderRadius.small};
-  --radius-md: ${profile.designSystem.borderRadius.medium};
-  --radius-lg: ${profile.designSystem.borderRadius.large};
-  --radius-button: ${profile.designSystem.borderRadius.buttons};
-  --radius-card: ${profile.designSystem.borderRadius.cards};
-  --container-max: ${profile.designSystem.containerMaxWidth};
-  --section-padding: ${profile.designSystem.sectionPadding.desktop};
-  --transition: ${profile.animations.transition.default};
-}
-
-### TYPOGRAPHY SCALE:
-- h1: ${profile.typography.scale.h1.size}; weight: ${profile.typography.scale.h1.weight}; line-height: ${profile.typography.scale.h1.lineHeight}; letter-spacing: ${profile.typography.scale.h1.letterSpacing}; text-transform: ${profile.typography.scale.h1.textTransform}
-- h2: ${profile.typography.scale.h2.size}; weight: ${profile.typography.scale.h2.weight}; line-height: ${profile.typography.scale.h2.lineHeight}
-- h3: ${profile.typography.scale.h3.size}; weight: ${profile.typography.scale.h3.weight}
-- body: ${profile.typography.scale.body.size}; weight: ${profile.typography.scale.body.weight}; line-height: ${profile.typography.scale.body.lineHeight}
-
-### BUTTON STYLES:
-PRIMARY: bg ${profile.designSystem.buttonStyles.primary.backgroundColor}; color ${profile.designSystem.buttonStyles.primary.textColor}; radius ${profile.designSystem.buttonStyles.primary.borderRadius}; padding ${profile.designSystem.buttonStyles.primary.padding}; font-weight ${profile.designSystem.buttonStyles.primary.fontWeight}; text-transform ${profile.designSystem.buttonStyles.primary.textTransform}; hover: ${profile.designSystem.buttonStyles.primary.hoverTransform}
-SECONDARY: bg ${profile.designSystem.buttonStyles.secondary.backgroundColor}; color ${profile.designSystem.buttonStyles.secondary.textColor}; border ${profile.designSystem.buttonStyles.secondary.border}; radius ${profile.designSystem.buttonStyles.secondary.borderRadius}
-
-### CARD STYLES:
-bg ${profile.designSystem.cardStyles.background}; border ${profile.designSystem.cardStyles.border}; radius ${profile.designSystem.cardStyles.borderRadius}; shadow ${profile.designSystem.cardStyles.shadow}; hover: ${profile.designSystem.cardStyles.hoverTransform}, shadow: ${profile.designSystem.cardStyles.hoverShadow}
-
-### NAVIGATION:
-Type: ${profile.navigation.type}; Height: ${profile.navigation.height}; BG: ${profile.navigation.backgroundColor}; Font: ${profile.navigation.fontFamily} ${profile.navigation.fontSize} ${profile.navigation.fontWeight}; Text-transform: ${profile.navigation.textTransform}
-${profile.navigation.ctaButton ? `Nav CTA: "${profile.navigation.ctaButton.text}" — ${profile.navigation.ctaButton.style}, color: ${profile.navigation.ctaButton.color}, radius: ${profile.navigation.ctaButton.borderRadius}` : ''}
-
-### HERO SPECS:
-Layout: ${profile.hero.layout}; Height: ${profile.hero.height}
-Headline: font-size: ${profile.hero.headline.fontSize}; font-weight: ${profile.hero.headline.fontWeight}; text-transform: ${profile.hero.headline.textTransform}
-CTA: bg: ${profile.hero.ctaButtons[0]?.backgroundColor || 'var(--primary)'}; text: ${profile.hero.ctaButtons[0]?.textColor || '#fff'}; radius: ${profile.hero.ctaButtons[0]?.borderRadius || '0'}; padding: ${profile.hero.ctaButtons[0]?.padding || '16px 32px'}
-
-### FOOTER:
-Layout: ${profile.footer.layout}; Columns: ${profile.footer.columns}; BG: ${profile.footer.backgroundColor}; Text: ${profile.footer.textColor}
-
-### ANIMATIONS:
-Scroll reveal: ${profile.animations.scrollReveal.enabled ? `${profile.animations.scrollReveal.type}, ${profile.animations.scrollReveal.duration}` : 'none'}
-Card hover: ${profile.animations.hoverEffects.cards}
-Button hover: ${profile.animations.hoverEffects.buttons}
-
-### THEME:
-${profile.colors.isDarkTheme ? 'DARK THEME — dark backgrounds, light text' : 'LIGHT THEME — light backgrounds, dark text'}`;
-}
-
-// =============================================================================
-// NON-ECOMMERCE BLUEPRINT (v2 approach for SaaS, agency, etc.)
-// =============================================================================
-
-function buildGenericBlueprint(
+async function generateWithClaude(
   profile: KingForensicProfile,
   customer: CustomerQuestionnaire,
   siteType: string
-): string {
-  let blueprint = `\n## ═══ PAGE BLUEPRINT ═══\n\n`;
-
-  profile.sections.forEach((section, i) => {
-    const type = (section.type || section.name || '').toLowerCase();
-    
-    if (siteType === 'saas') {
-      if (type.includes('hero') || i === 0) {
-        blueprint += `## SECTION ${i+1}: HERO\n- Headline + subheadline + primary CTA + product screenshot\n\n`;
-      } else if (type.includes('feature')) {
-        blueprint += `## SECTION ${i+1}: FEATURES\n- ${section.gridColumns || 3} feature cards with icon + title + description\n\n`;
-      } else if (type.includes('pricing')) {
-        blueprint += `## SECTION ${i+1}: PRICING\n- 2-3 tiers with name, price, features, CTA\n\n`;
-      } else {
-        blueprint += `## SECTION ${i+1}: ${section.name}\n- ${section.contentPattern || section.type}\n\n`;
-      }
-    } else {
-      blueprint += `## SECTION ${i+1}: ${section.name}\nType: ${section.type}; Layout: ${section.layout}\nContent: ${section.contentPattern || 'appropriate for section type'}\n\n`;
-    }
-  });
-
-  return blueprint;
-}
-
-// =============================================================================
-// CUSTOMER CONTENT
-// =============================================================================
-
-function buildCustomerContent(customer: CustomerQuestionnaire): string {
-  return `
-## ═══ CUSTOMER DETAILS ═══
-Business Name: ${customer.businessName}
-Industry: ${customer.industry}
-Description: ${customer.description}
-Target Audience: ${customer.targetAudience}
-Products/Services: ${customer.services?.length > 0 ? customer.services.join(', ') : customer.uniqueSellingPoints?.join(', ') || 'Professional products'}
-Contact: ${customer.contactInfo?.email || ''} | ${customer.contactInfo?.phone || ''}`;
-}
-
-// =============================================================================
-// MAIN GENERATION FUNCTION
-// =============================================================================
-
-export async function generateFromKingDNA(
-  profile: KingForensicProfile,
-  customer: CustomerQuestionnaire
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
 
-  const siteType = detectSiteType(profile);
-  console.log(`[KingGenerator v3] Site type: ${siteType}`);
-  console.log(`[KingGenerator v3] King: ${profile.meta.kingName}`);
-  console.log(`[KingGenerator v3] Customer: ${customer.businessName}`);
+  const c = profile.colors;
+  const t = profile.typography;
+  const ds = profile.designSystem;
 
-  const systemPrompt = buildSystemPrompt(profile, siteType);
+  const systemPrompt = `You are a precision website builder with the exact design DNA from ${profile.meta.kingName}.
+Build a ${siteType.toUpperCase()} website using these exact specs:
+- Colors: ${c.primary}, ${c.secondary}, ${c.accent}
+- Fonts: ${t.headingFont.family}, ${t.bodyFont.family}
+- Button radius: ${ds.borderRadius.buttons}; Card radius: ${ds.borderRadius.cards}
+- Shadows: ${ds.shadows.cardDefault}
+Output ONLY complete HTML. <!DOCTYPE html> to </html>. No markdown.`;
 
-  let userPrompt: string;
-
-  if (siteType === 'ecommerce') {
-    // V3 APPROACH: Give Claude the complete HTML scaffold + Design DNA
-    // Claude's job is ONLY to write the CSS styles
-    const scaffold = buildEcommerceScaffold(profile, customer);
-    const designDNA = buildDesignDNA(profile);
-
-    userPrompt = `${designDNA}
-
-## ═══ HTML SCAFFOLD ═══
-Below is the COMPLETE HTML structure for this e-commerce website.
-Your job: Fill in the <style> tag with CSS that makes this look like ${profile.meta.kingName}'s website.
-Apply every design token from the Design DNA above.
-DO NOT modify the HTML. ONLY write the CSS.
-
-${scaffold}
-
-## REMINDER:
-- Fill the <style> tag with complete CSS
-- Use the exact Design DNA values (colors, fonts, spacing, shadows)  
-- Hero = full-bleed image banner with dark overlay + white text
-- Product grid = 4 cols desktop, 2 mobile
-- Make it look like ${profile.meta.kingName} built this store
-- Return the COMPLETE HTML with your CSS filled in
-- Start with <!DOCTYPE html>`;
-  } else {
-    // Non-ecommerce: use v2 blueprint approach
-    const designDNA = buildDesignDNA(profile);
-    const blueprint = buildGenericBlueprint(profile, customer, siteType);
-    const content = buildCustomerContent(customer);
-
-    userPrompt = `${designDNA}\n\n${blueprint}\n\n${content}\n\nBuild the complete website. Output ONLY HTML starting with <!DOCTYPE html>.`;
-  }
+  let blueprint = '';
+  profile.sections.forEach((section: any, i: number) => {
+    blueprint += `Section ${i+1}: ${section.name} (${section.type}) — ${section.contentPattern || section.layout || 'standard'}\n`;
+  });
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -780,29 +1294,52 @@ ${scaffold}
       model: 'claude-sonnet-4-20250514',
       max_tokens: 16000,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
+      messages: [{ role: 'user', content: `Build a ${siteType} website for "${customer.businessName}" (${customer.industry}).
+${customer.description}
+
+Sections:\n${blueprint}
+
+Use all design DNA specs. Full HTML output only.` }],
     }),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Claude API error: ${response.status} - ${error.substring(0, 200)}`);
-  }
-
+  if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
   const data = await response.json();
   let html = data.content[0].text.trim();
-
-  // Clean markdown artifacts
   html = html.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '');
-  const doctypeIndex = html.toLowerCase().indexOf('<!doctype');
-  if (doctypeIndex > 0) html = html.substring(doctypeIndex);
-
-  console.log(`[KingGenerator v3] Generated ${(html.length / 1024).toFixed(1)}KB HTML`);
+  const idx = html.toLowerCase().indexOf('<!doctype');
+  if (idx > 0) html = html.substring(idx);
   return html;
 }
 
 // =============================================================================
-// REVISION FUNCTION
+// MAIN EXPORT
+// =============================================================================
+
+export async function generateFromKingDNA(
+  profile: KingForensicProfile,
+  customer: CustomerQuestionnaire
+): Promise<string> {
+  const siteType = detectSiteType(profile);
+  console.log(`[KingGenerator v4] Site type: ${siteType} | King: ${profile.meta.kingName} | Customer: ${customer.businessName}`);
+
+  if (siteType === 'ecommerce') {
+    // v4: Build HTML programmatically, Claude only does copywriting
+    const copy = await generateCopy(profile, customer);
+    console.log(`[KingGenerator v4] Copy generated, building HTML...`);
+    const html = buildEcommerceHTML(profile, customer, copy);
+    console.log(`[KingGenerator v4] Built ${(html.length / 1024).toFixed(1)}KB HTML (deterministic)`);
+    return html;
+  }
+
+  // Non-ecommerce: Claude generates full page
+  const html = await generateWithClaude(profile, customer, siteType);
+  console.log(`[KingGenerator v4] Generated ${(html.length / 1024).toFixed(1)}KB HTML (Claude)`);
+  return html;
+}
+
+// =============================================================================
+// REVISION — Claude edits the existing HTML
 // =============================================================================
 
 export async function reviseFromKingDNA(
@@ -826,14 +1363,9 @@ export async function reviseFromKingDNA(
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 16000,
-      system: `You are editing a ${siteType} website built from ${profile.meta.kingName}'s design DNA.
-
-MAINTAIN these specs:
-- Colors: ${profile.colors.primary}, ${profile.colors.secondary}, ${profile.colors.accent}
-- Fonts: ${profile.typography.headingFont.family}, ${profile.typography.bodyFont.family}
-- Buttons: bg ${profile.designSystem.buttonStyles.primary.backgroundColor}, radius ${profile.designSystem.buttonStyles.primary.borderRadius}
-${siteType === 'ecommerce' ? '\nThis is E-COMMERCE. Keep product grids, prices, add-to-cart buttons, trust badges, reviews.' : ''}
-
+      system: `You are editing a ${siteType} website styled with ${profile.meta.kingName}'s design DNA.
+Maintain: colors (${profile.colors.primary}, ${profile.colors.secondary}), fonts, button/card styles.
+${siteType === 'ecommerce' ? 'Keep product grids, prices, add-to-cart buttons, trust badges, reviews.' : ''}
 Apply the requested change. Output ONLY complete HTML.`,
       messages: [{
         role: 'user',
@@ -843,7 +1375,6 @@ Apply the requested change. Output ONLY complete HTML.`,
   });
 
   if (!response.ok) throw new Error('Revision failed');
-
   const data = await response.json();
   let html = data.content[0].text.trim();
   html = html.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '');
