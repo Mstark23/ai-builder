@@ -61,11 +61,35 @@ You will receive the raw HTML and CSS of a live website. You must analyze EVERY 
 - Social proof placement and style
 - Trust signals used
 
-### 7. SECTION MAPPING
-- List every section in exact order
-- Note the layout pattern for each
-- Content structure within each section
-- Background color transitions between sections
+### 7. SITE TYPE IDENTIFICATION
+First, determine what KIND of website this is:
+- E-COMMERCE: Has product grids, prices, add-to-cart buttons, shopping cart icon, collection pages
+- SAAS: Has feature sections, pricing tables, integration logos, signup CTAs
+- AGENCY: Has case studies, portfolio, client logos
+- RESTAURANT: Has menu sections, reservation buttons, food imagery
+- SERVICE: Has service listings, booking CTAs, testimonials
+Set meta.overallVibe to include the site type (e.g., "Modern e-commerce store with bold typography" or "Minimalist SaaS landing page")
+
+### 8. SECTION MAPPING (CRITICAL — describe WHAT'S IN each section)
+For EVERY section on the page, in exact order, extract:
+- The section name and type
+- Layout pattern (grid columns, split layout, etc.)
+- **contentPattern** — THIS IS THE MOST IMPORTANT FIELD. Describe EXACTLY what elements are inside:
+  - For product grids: "Product cards with: product image (3:4 ratio), product name, price ($XX.XX format), star rating with review count, color swatches (3-4 circles), ADD TO CART button"
+  - For hero: "Full-width banner image with overlaid headline, subheadline, and CTA button" or "Split layout: text left with headline + CTA, product image right"
+  - For testimonials: "Review cards with: star rating, review text, reviewer name, verified badge"
+  - For collection categories: "Category image cards with overlaid category name and Shop Now link"
+  - Do NOT just say "product grid" — describe every element inside each card/component
+- specialElements: list specific elements like "color swatches", "quick-add overlay", "sale badge", "trust badges", "countdown timer", "size selector", "wishlist icon"
+- Background color and transitions between sections
+
+### 9. E-COMMERCE SPECIFIC (if applicable)
+If this is an e-commerce site, pay special attention to:
+- Product card anatomy: image aspect ratio, name position, price format, rating style, button text, hover effects
+- Navigation: mega-menu structure, categories (Women/Men/Sale etc.), cart icon, search
+- Trust elements: shipping info, return policy, secure checkout badges
+- Promotional elements: announcement bars, sale banners, countdown timers
+- Newsletter/email capture sections
 
 ## CRITICAL RULES
 1. NEVER guess or assume. If you can't determine a value, say "not-detected"
