@@ -868,7 +868,6 @@ export default function ProjectDetailPage() {
     const log = r.debugLog || [];
     return (
       <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, backgroundColor:'rgba(0,0,0,0.85)', zIndex:99999, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
-        <DebugModal />
         <div style={{ background:'#1a1a2e', color:'#e0e0e0', borderRadius:'16px', maxWidth:'800px', width:'100%', maxHeight:'90vh', overflow:'auto', fontFamily:'monospace', fontSize:'13px', padding:'24px', border:'1px solid #333' }}>
           <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'16px' }}>
             <h2 style={{ color:'#fff', fontSize:'18px', margin:0 }}>🔍 GENERATION DEBUG</h2>
@@ -952,6 +951,7 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="space-y-6">
+      <DebugModal />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -1277,4 +1277,3 @@ export default function ProjectDetailPage() {
     </div>
   );
 }
-
