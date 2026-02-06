@@ -1276,4 +1276,5 @@ export default function ProjectDetailPage() {
       )}
     </div>
   );
-}s
+}
+
