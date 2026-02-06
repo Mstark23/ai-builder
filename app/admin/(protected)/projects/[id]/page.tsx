@@ -782,7 +782,7 @@ export default function ProjectDetailPage() {
         business_name: project.business_name || 'NOT SET',
         industry: project.industry || 'NOT SET',
         description: (project.description || '').substring(0, 100) || 'NOT SET',
-        target_audience: project.target_audience || 'NOT SET',
+        target_audience: (project as any).target_audience || project.target_customer || 'NOT SET',
       },
       response: null,
       error: null,
@@ -1276,4 +1276,4 @@ export default function ProjectDetailPage() {
       )}
     </div>
   );
-}
+}s
