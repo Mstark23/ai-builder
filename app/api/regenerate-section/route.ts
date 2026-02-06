@@ -887,7 +887,7 @@ export async function POST(request: NextRequest) {
 
     // Use industry intelligence instead of scraping
     const kingProfile = resolveIndustryProfile(project.industry || '');
-    console.log(\`🏭 Industry profile loaded: \${project.industry}\`);
+    console.log(`🏭 Industry profile loaded: ${project.industry}`);
 
     // Detect site type
     const siteType = detectSiteType(kingProfile);
