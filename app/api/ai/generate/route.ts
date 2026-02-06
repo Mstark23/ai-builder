@@ -116,6 +116,20 @@ const INDUSTRY_KING_DEFAULTS: Record<string, string> = {
   'ecommerce': 'gymshark',
   'clothing': 'everlane',
   'footwear': 'allbirds',
+  'sports-outdoors': 'gymshark',
+  'sports': 'gymshark',
+  'fitness-gym': 'gymshark',
+  'fashion-clothing': 'gymshark',
+  'beauty-cosmetics': 'glossier',
+  'home-furniture': 'cb2',
+  'food-beverage-dtc': 'magic spoon',
+  'pet-products': 'bark',
+  'kids-baby': 'primary',
+  'electronics-gadgets': 'apple',
+  'spa-beauty': 'glossier',
+  'athletic': 'gymshark',
+  'gym': 'gymshark',
+  'sportswear': 'gymshark',
 };
 
 // =============================================================================
