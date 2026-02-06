@@ -140,6 +140,8 @@ function MultiPageManager({
 }) {
   const [selectedPages, setSelectedPages] = useState<string[]>(requestedPages || ['home']);
   const [generating, setGenerating] = useState(false);
+  const [debugData, setDebugData] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const maxPages = PLAN_PAGE_LIMITS[plan] || 1;
@@ -765,43 +767,69 @@ export default function ProjectDetailPage() {
 
   // ==========================================================================
   // ==========================================================================
-  // KING DNA v4: Calls /api/ai/generate (forensic extraction + deterministic build)
+  // INDUSTRY INTELLIGENCE: AI picks best companies, builds from proven patterns
   // ==========================================================================
   const generateWebsite = async () => {
     if (!project) return;
     setGenerating(true);
-    
+    setDebugData(null);
+
+    const debug: any = {
+      timestamp: new Date().toISOString(),
+      endpoint: '/api/ai/generate',
+      projectId: project.id,
+      projectFields: {
+        business_name: project.business_name,
+        industry: project.industry || 'NOT SET',
+        description: (project.description || '').substring(0, 100) || 'NOT SET',
+        target_audience: project.target_audience || 'NOT SET',
+      },
+      response: null,
+      error: null,
+    };
+
     try {
-      // Update status to GENERATING
       await supabase.from('projects').update({ status: 'GENERATING' }).eq('id', projectId);
       setFormData(prev => ({ ...prev, status: 'GENERATING' }));
 
-      // Call King DNA v4 generation route
-      // Handles: King resolution -> forensic extraction -> deterministic HTML build -> save to Supabase
+      const startTime = Date.now();
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: project.id,
-          action: 'generate',
-        }),
+        body: JSON.stringify({ projectId: project.id, action: 'generate' }),
       });
 
       const data = await response.json();
+      debug.responseTime = Date.now() - startTime;
+      debug.httpStatus = response.status;
+      debug.response = {
+        success: data.success,
+        mode: data.mode || 'UNKNOWN',
+        industry: data.industry || null,
+        debugLog: data.debugLog || [],
+        htmlSize: data.html ? (data.html.length / 1024).toFixed(1) + 'KB' : 'none',
+        hasProductCard: data.html?.includes('product-card') || false,
+        hasAddToCart: data.html?.includes('add-to-cart') || data.html?.includes('Add to Cart') || false,
+        hasProductGrid: data.html?.includes('product-grid') || false,
+        hasHeroImage: data.html?.includes('background-image') || false,
+        error: data.error || null,
+        details: data.details || null,
+      };
+
+      setDebugData(debug);
+      setShowDebug(true);
 
       if (response.ok && data.success) {
-        // /api/ai/generate already saves HTML to Supabase, just reload
         await loadProject();
         setActiveTab('preview');
       } else {
-        // Revert status on failure
         await supabase.from('projects').update({ status: formData.status || 'QUEUED' }).eq('id', projectId);
-        alert('Generation failed: ' + (data.details || data.error || 'Unknown error'));
       }
-    } catch (err) {
-      console.error('Error generating website:', err);
+    } catch (err: any) {
+      debug.error = err.message || String(err);
+      setDebugData(debug);
+      setShowDebug(true);
       await supabase.from('projects').update({ status: formData.status || 'QUEUED' }).eq('id', projectId);
-      alert('Error generating website.');
     } finally {
       setGenerating(false);
     }
@@ -824,6 +852,76 @@ export default function ProjectDetailPage() {
   };
 
   const getStatusConfig = (status: string) => STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0];
+
+  // ==========================================================================
+  // DEBUG MODAL
+  // ==========================================================================
+  const DebugModal = () => {
+    if (!showDebug || !debugData) return null;
+    const d = debugData;
+    const r = d.response || {};
+    const log = r.debugLog || [];
+    return (
+      <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, backgroundColor:'rgba(0,0,0,0.85)', zIndex:99999, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+        <DebugModal />
+        <div style={{ background:'#1a1a2e', color:'#e0e0e0', borderRadius:'16px', maxWidth:'800px', width:'100%', maxHeight:'90vh', overflow:'auto', fontFamily:'monospace', fontSize:'13px', padding:'24px', border:'1px solid #333' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'16px' }}>
+            <h2 style={{ color:'#fff', fontSize:'18px', margin:0 }}>🔍 GENERATION DEBUG</h2>
+            <button onClick={() => setShowDebug(false)} style={{ background:'#e63946', color:'#fff', border:'none', borderRadius:'8px', padding:'6px 16px', cursor:'pointer', fontWeight:'bold' }}>CLOSE</button>
+          </div>
+
+          <div style={{ background:'#111', borderRadius:'8px', padding:'12px', marginBottom:'12px' }}>
+            <div style={{ color:'#ffd700', fontWeight:'bold', marginBottom:'8px' }}>📡 REQUEST</div>
+            <div>Endpoint: <span style={{ color:'#4fc3f7' }}>{d.endpoint}</span></div>
+            <div>HTTP Status: <span style={{ color: d.httpStatus === 200 ? '#4caf50' : '#e63946' }}>{d.httpStatus}</span></div>
+            <div>Response Time: <span style={{ color:'#4fc3f7' }}>{d.responseTime}ms</span></div>
+          </div>
+
+          <div style={{ background:'#111', borderRadius:'8px', padding:'12px', marginBottom:'12px' }}>
+            <div style={{ color:'#ffd700', fontWeight:'bold', marginBottom:'8px' }}>📋 PROJECT</div>
+            {Object.entries(d.projectFields || {}).map(([k, v]: [string, any]) => (
+              <div key={k}>{k}: <span style={{ color: v === 'NOT SET' ? '#e63946' : '#4caf50' }}>{String(v)}</span></div>
+            ))}
+          </div>
+
+          <div style={{ background:'#111', borderRadius:'8px', padding:'12px', marginBottom:'12px' }}>
+            <div style={{ color:'#ffd700', fontWeight:'bold', marginBottom:'8px' }}>⚡ RESULT</div>
+            <div>Mode: <span style={{ color: r.mode?.includes('industry') ? '#4caf50' : r.mode === 'legacy-fallback' ? '#e63946' : '#ff9800', fontWeight:'bold', fontSize:'15px' }}>{r.mode || 'UNKNOWN'}</span></div>
+            <div>Success: <span style={{ color: r.success ? '#4caf50' : '#e63946' }}>{String(r.success)}</span></div>
+            {r.industry && <div>Industry: <span style={{ color:'#4fc3f7' }}>{r.industry.name} ({r.industry.id})</span></div>}
+            {r.industry?.topBrands && <div>Based on: <span style={{ color:'#4fc3f7' }}>{r.industry.topBrands.join(', ')}</span></div>}
+            <div>HTML Size: <span style={{ color:'#4fc3f7' }}>{r.htmlSize}</span></div>
+            {r.error && <div style={{ color:'#e63946' }}>Error: {r.error}</div>}
+            {r.details && <div style={{ color:'#e63946' }}>Details: {r.details}</div>}
+          </div>
+
+          <div style={{ background:'#111', borderRadius:'8px', padding:'12px', marginBottom:'12px' }}>
+            <div style={{ color:'#ffd700', fontWeight:'bold', marginBottom:'8px' }}>🔍 HTML QUALITY</div>
+            <div>Has product-card: <span style={{ color: r.hasProductCard ? '#4caf50' : '#e63946' }}>{String(r.hasProductCard)}</span></div>
+            <div>Has add-to-cart: <span style={{ color: r.hasAddToCart ? '#4caf50' : '#e63946' }}>{String(r.hasAddToCart)}</span></div>
+            <div>Has product-grid: <span style={{ color: r.hasProductGrid ? '#4caf50' : '#e63946' }}>{String(r.hasProductGrid)}</span></div>
+            <div>Has hero-image: <span style={{ color: r.hasHeroImage ? '#4caf50' : '#e63946' }}>{String(r.hasHeroImage)}</span></div>
+          </div>
+
+          {log.length > 0 && (
+            <div style={{ background:'#111', borderRadius:'8px', padding:'12px', marginBottom:'12px' }}>
+              <div style={{ color:'#ffd700', fontWeight:'bold', marginBottom:'8px' }}>📜 SERVER LOG ({log.length} entries)</div>
+              {log.map((entry: string, i: number) => (
+                <div key={i} style={{ padding:'4px 0', borderBottom:'1px solid #222', color: entry.includes('❌') ? '#e63946' : entry.includes('✅') ? '#4caf50' : entry.includes('⚠') ? '#ff9800' : '#e0e0e0' }}>{entry}</div>
+              ))}
+            </div>
+          )}
+
+          {d.error && (
+            <div style={{ background:'#3a0000', borderRadius:'8px', padding:'12px', marginTop:'12px', border:'1px solid #e63946' }}>
+              <div style={{ color:'#e63946', fontWeight:'bold' }}>🚨 CLIENT ERROR</div>
+              <div style={{ color:'#ff8a80' }}>{d.error}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
   const getPlanConfig = (plan: string) => PLAN_OPTIONS.find(p => p.value === plan) || PLAN_OPTIONS[0];
   const formatDate = (date: string) => new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
