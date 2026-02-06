@@ -1,7 +1,7 @@
 // app/api/regenerate-section/route.ts
-// Regenerate individual sections using King DNA v4 system
-// E-commerce sections are rebuilt deterministically from King DNA tokens
-// Non-ecommerce sections use Claude with King DNA context
+// Regenerate individual sections using Industry Intelligence
+// E-commerce sections rebuilt deterministically from industry profiles
+// Non-ecommerce sections use Claude with industry context
 
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
@@ -17,6 +17,151 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+
+// =============================================================================
+// INDUSTRY INTELLIGENCE — Build profile from industry name (no scraping)
+// =============================================================================
+
+function resolveIndustryProfile(industryInput: string): any {
+  const input = (industryInput || '').toLowerCase().trim();
+
+  const ALIASES: Record<string, string> = {
+    'gym': 'fitness', 'athletic': 'fitness', 'activewear': 'fitness',
+    'fitness': 'fitness', 'sportswear': 'fitness', 'workout': 'fitness',
+    'sports': 'fitness', 'outdoor': 'fitness', 'sports-outdoors': 'fitness',
+    'fitness-gym': 'fitness',
+    'fashion': 'fashion', 'clothing': 'fashion', 'apparel': 'fashion',
+    'fashion-clothing': 'fashion', 'boutique': 'fashion',
+    'beauty': 'beauty', 'cosmetics': 'beauty', 'skincare': 'beauty',
+    'beauty-cosmetics': 'beauty',
+    'jewelry': 'jewelry', 'jewellery': 'jewelry', 'accessories': 'jewelry',
+    'furniture': 'home', 'home': 'home', 'decor': 'home', 'home-furniture': 'home',
+    'food': 'food', 'beverage': 'food', 'food-beverage-dtc': 'food',
+    'electronics': 'tech', 'tech': 'tech', 'electronics-gadgets': 'tech',
+    'pet': 'pet', 'pets': 'pet', 'pet-products': 'pet',
+    'dental': 'default', 'restaurant': 'default', 'law': 'default', 'spa': 'default',
+  };
+
+  const schemes: Record<string, { colors: any; headingFont: string; bodyFont: string }> = {
+    fitness: {
+      colors: { primary: '#0a0a0a', secondary: '#1a1a2e', accent: '#e63946', primaryRgb: '10,10,10',
+        background: { main: '#ffffff', secondary: '#f8f9fa', dark: '#0a0a0a', card: '#ffffff' },
+        text: { primary: '#0a0a0a', secondary: '#4a5568', muted: '#9ca3af', inverse: '#ffffff' },
+        border: { light: '#e5e7eb' } },
+      headingFont: 'Inter', bodyFont: 'Inter',
+    },
+    fashion: {
+      colors: { primary: '#1a1a1a', secondary: '#c8a97e', accent: '#d4a574', primaryRgb: '26,26,26',
+        background: { main: '#faf9f7', secondary: '#f5f3ef', dark: '#1a1a1a', card: '#ffffff' },
+        text: { primary: '#1a1a1a', secondary: '#5c5c5c', muted: '#9ca3af', inverse: '#ffffff' },
+        border: { light: '#e8e5e0' } },
+      headingFont: 'Playfair Display', bodyFont: 'Inter',
+    },
+    beauty: {
+      colors: { primary: '#2d2d2d', secondary: '#d4a373', accent: '#e8b4b8', primaryRgb: '45,45,45',
+        background: { main: '#fffaf5', secondary: '#fef3e7', dark: '#2d2d2d', card: '#ffffff' },
+        text: { primary: '#2d2d2d', secondary: '#6b5b4f', muted: '#a89890', inverse: '#ffffff' },
+        border: { light: '#ede4dc' } },
+      headingFont: 'DM Serif Display', bodyFont: 'Inter',
+    },
+    jewelry: {
+      colors: { primary: '#1a1a1a', secondary: '#c9a227', accent: '#b76e79', primaryRgb: '26,26,26',
+        background: { main: '#faf9f7', secondary: '#f5f3ef', dark: '#1a1a1a', card: '#ffffff' },
+        text: { primary: '#1a1a1a', secondary: '#5c5c5c', muted: '#9ca3af', inverse: '#ffffff' },
+        border: { light: '#e8e5e0' } },
+      headingFont: 'Cormorant Garamond', bodyFont: 'Crimson Pro',
+    },
+    home: {
+      colors: { primary: '#2c2c2c', secondary: '#8b7355', accent: '#c4a77d', primaryRgb: '44,44,44',
+        background: { main: '#f5f3ef', secondary: '#ffffff', dark: '#2c2c2c', card: '#ffffff' },
+        text: { primary: '#2c2c2c', secondary: '#5c5c5c', muted: '#9ca3af', inverse: '#ffffff' },
+        border: { light: '#e8e5e0' } },
+      headingFont: 'DM Serif Display', bodyFont: 'Inter',
+    },
+    food: {
+      colors: { primary: '#1a1a1a', secondary: '#4a7c59', accent: '#e07b39', primaryRgb: '26,26,26',
+        background: { main: '#fffef5', secondary: '#f8f9fa', dark: '#1a1a1a', card: '#ffffff' },
+        text: { primary: '#1a1a1a', secondary: '#4a5568', muted: '#9ca3af', inverse: '#ffffff' },
+        border: { light: '#e5e7eb' } },
+      headingFont: 'DM Sans', bodyFont: 'Inter',
+    },
+    tech: {
+      colors: { primary: '#0a0a0a', secondary: '#333', accent: '#0071e3', primaryRgb: '10,10,10',
+        background: { main: '#ffffff', secondary: '#f8f9fa', dark: '#0a0a0a', card: '#ffffff' },
+        text: { primary: '#0a0a0a', secondary: '#4a5568', muted: '#9ca3af', inverse: '#ffffff' },
+        border: { light: '#e5e7eb' } },
+      headingFont: 'Inter', bodyFont: 'Inter',
+    },
+    pet: {
+      colors: { primary: '#2d4a3e', secondary: '#e8a87c', accent: '#d4a574', primaryRgb: '45,74,62',
+        background: { main: '#faf8f5', secondary: '#ffffff', dark: '#2d4a3e', card: '#ffffff' },
+        text: { primary: '#2d4a3e', secondary: '#4a5568', muted: '#9ca3af', inverse: '#ffffff' },
+        border: { light: '#e5e7eb' } },
+      headingFont: 'DM Sans', bodyFont: 'Inter',
+    },
+    default: {
+      colors: { primary: '#111827', secondary: '#4f46e5', accent: '#6366f1', primaryRgb: '17,24,39',
+        background: { main: '#ffffff', secondary: '#f9fafb', dark: '#111827', card: '#ffffff' },
+        text: { primary: '#111827', secondary: '#4b5563', muted: '#9ca3af', inverse: '#ffffff' },
+        border: { light: '#e5e7eb' } },
+      headingFont: 'Inter', bodyFont: 'Inter',
+    },
+  };
+
+  let schemeKey = 'default';
+  if (ALIASES[input]) schemeKey = ALIASES[input];
+  else {
+    for (const [alias, key] of Object.entries(ALIASES)) {
+      if (input.includes(alias) || alias.includes(input)) { schemeKey = key; break; }
+    }
+  }
+
+  const s = schemes[schemeKey] || schemes.default;
+  const c = s.colors;
+
+  return {
+    meta: { kingName: 'Industry: ' + (input || 'default'), industry: input, url: '' },
+    navigation: {
+      type: 'sticky', height: '72px', backgroundColor: '#ffffff',
+      menuItems: [
+        { label: 'Shop', hasDropdown: true }, { label: 'Collections', hasDropdown: true },
+        { label: 'New Arrivals', hasDropdown: false }, { label: 'About', hasDropdown: false },
+      ],
+      ctaButton: { text: 'Shop Now', style: 'filled', color: c.primary, borderRadius: '4px' },
+      hasSearch: true, hasCartIcon: true,
+      fontFamily: s.bodyFont, fontSize: '14px', fontWeight: '500', textTransform: 'uppercase',
+    },
+    hero: {
+      layout: 'full-width-image-overlay', height: '85vh',
+      headline: { fontSize: 'clamp(40px, 6vw, 72px)', fontWeight: '800', lineHeight: '1.05', textTransform: 'none', color: '#ffffff' },
+      ctaButtons: [{ text: 'SHOP NOW', backgroundColor: c.primary, textColor: '#ffffff', padding: '16px 40px', borderRadius: '4px', fontSize: '14px', fontWeight: '600' }],
+    },
+    colors: c,
+    typography: {
+      headingFont: { family: s.headingFont, googleFontsUrl: 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(s.headingFont) + ':wght@300;400;500;600;700;800;900&display=swap' },
+      bodyFont: { family: s.bodyFont, googleFontsUrl: s.bodyFont !== s.headingFont ? 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(s.bodyFont) + ':wght@300;400;500;600;700&display=swap' : '' },
+      scale: {
+        h1: { size: 'clamp(40px, 6vw, 72px)', weight: '800', lineHeight: '1.05' },
+        h2: { size: 'clamp(28px, 4vw, 42px)', weight: '700', lineHeight: '1.15' },
+        h3: { size: '20px', weight: '600' },
+        body: { size: '16px', lineHeight: '1.6' },
+      },
+    },
+    designSystem: {
+      containerMaxWidth: '1280px',
+      sectionPadding: { desktop: '80px 0', mobile: '48px 0' },
+      borderRadius: { buttons: '4px', cards: '12px', small: '6px', large: '16px' },
+      shadows: { cardDefault: '0 1px 3px rgba(0,0,0,0.08)', cardHover: '0 12px 32px rgba(0,0,0,0.12)', sm: '0 1px 2px rgba(0,0,0,0.05)' },
+      buttonStyles: { primary: { backgroundColor: c.primary, textColor: '#ffffff', borderRadius: '4px', padding: '14px 32px', fontWeight: '600', textTransform: 'uppercase' }, secondary: { borderRadius: '4px' } },
+      cardStyles: { border: '1px solid ' + c.border.light, hoverTransform: 'translateY(-4px)' },
+      inputStyles: { border: '1px solid ' + c.border.light, borderRadius: '4px', padding: '12px 16px', fontSize: '14px' },
+    },
+    animations: { scrollReveal: { type: 'fade-up', duration: '0.6s', distance: '20px', stagger: '0.1s' }, transition: { default: 'all 0.3s ease' } },
+    footer: { backgroundColor: c.background.dark, textColor: 'rgba(255,255,255,0.7)' },
+    sections: [{ type: 'hero', name: 'Hero' }, { type: 'product-grid', name: 'Products' }, { type: 'collection', name: 'Collections' }, { type: 'reviews', name: 'Reviews' }],
+  };
+}
 
 // =============================================================================
 // SECTION DEFINITIONS — Updated for e-commerce awareness
@@ -740,28 +885,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No generated HTML to modify' }, { status: 400 });
     }
 
-    // Load King DNA profile if available
-    let kingProfile: any = null;
-    if (project.king_url) {
-      const { data: cached } = await supabase
-        .from('king_profiles')
-        .select('profile_data')
-        .eq('king_url', project.king_url)
-        .eq('is_active', true)
-        .single();
-
-      if (cached?.profile_data) {
-        kingProfile = cached.profile_data;
-        console.log(`👑 Loaded King profile for regeneration: ${kingProfile.meta?.kingName || project.king_name}`);
-      }
-    }
+    // Use industry intelligence instead of scraping
+    const kingProfile = resolveIndustryProfile(project.industry || '');
+    console.log(\`🏭 Industry profile loaded: \${project.industry}\`);
 
     // Detect site type
     const siteType = detectSiteType(kingProfile);
     const customer = buildCustomerFromProject(project);
     const sectionDef = SECTIONS[sectionKey];
 
-    console.log(`🔄 Regenerating ${sectionKey} | Site type: ${siteType} | King: ${project.king_name || 'none'}`);
+    console.log(`🔄 Regenerating ${sectionKey} | Site type: ${siteType} | Industry: ${project.industry || 'none'}`);
 
     let newSection: string;
 
@@ -838,7 +971,7 @@ export async function GET(request: NextRequest) {
   if (projectId) {
     const { data: project } = await supabase
       .from('projects')
-      .select('generated_html, king_url')
+      .select('generated_html, king_url, industry')
       .eq('id', projectId)
       .single();
 
@@ -846,18 +979,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Project not found or no HTML' }, { status: 404 });
     }
 
-    // Load King profile for site type detection
-    let kingProfile: any = null;
-    if (project.king_url) {
-      const { data: cached } = await supabase
-        .from('king_profiles')
-        .select('profile_data')
-        .eq('king_url', project.king_url)
-        .eq('is_active', true)
-        .single();
-      if (cached?.profile_data) kingProfile = cached.profile_data;
-    }
-
+    // Use industry intelligence for site type detection
+    const kingProfile = resolveIndustryProfile(project.industry || '');
     const siteType = detectSiteType(kingProfile);
     const detectedSections: Record<string, boolean> = {};
 
