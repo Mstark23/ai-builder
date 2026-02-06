@@ -522,24 +522,73 @@ function industryToBuilderProfile(industry: IndustryProfile, businessName: strin
       transition: { default: 'all 0.3s ease' },
     },
     footer: {
+      layout: '4-column-grid',
+      columns: 4,
       backgroundColor: c.primary,
       textColor: 'rgba(255,255,255,0.7)',
+      hasNewsletter: true,
+      newsletterStyle: 'inline-input',
+      hasSocialIcons: true,
+      socialIconStyle: 'circle-outline',
+      hasCtaSection: false,
+      ctaText: '',
+      legalLinks: ['Privacy Policy', 'Terms of Service', 'Shipping Policy'],
+      columnContent: [
+        { heading: 'Shop', links: ['New Arrivals', 'Best Sellers', 'Sale'] },
+        { heading: 'Help', links: ['Contact Us', 'FAQ', 'Shipping'] },
+        { heading: 'About', links: ['Our Story', 'Careers', 'Press'] },
+        { heading: 'Follow Us', links: ['Instagram', 'TikTok', 'Twitter'] },
+      ],
+      padding: '60px 0',
+      borderTop: 'none',
+      bottomBarStyle: 'centered-copyright',
+      fontSizes: { heading: '14px', links: '13px', legal: '12px' },
     },
     sections: industry.category === 'ecommerce'
       ? [
-          { type: 'hero', name: 'Hero Banner' },
-          { type: 'product-grid', name: 'Products' },
-          { type: 'collection', name: 'Collections' },
-          { type: 'reviews', name: 'Reviews' },
-          { type: 'newsletter', name: 'Newsletter' },
+          { type: 'hero', name: 'Hero Banner', layout: 'full-width-image-overlay', gridColumns: '1', gridGap: '0', backgroundColor: 'transparent', padding: { top: '0', bottom: '0' }, containerWidth: '100%', hasAnimation: true, animationType: 'fade-in', headerStyle: 'none', contentPattern: 'hero-with-overlay', specialElements: [], borderTop: 'none', borderBottom: 'none' },
+          { type: 'product-grid', name: 'Products', layout: '4-column-grid', gridColumns: '4', gridGap: '24px', backgroundColor: c.background, padding: { top: '80px', bottom: '80px' }, containerWidth: '1280px', hasAnimation: true, animationType: 'fade-up', headerStyle: 'centered-with-badge', contentPattern: 'product-cards', specialElements: ['add-to-cart', 'quick-view'], borderTop: 'none', borderBottom: 'none' },
+          { type: 'collection', name: 'Collections', layout: '4-column-grid', gridColumns: '4', gridGap: '16px', backgroundColor: '#ffffff', padding: { top: '80px', bottom: '80px' }, containerWidth: '1280px', hasAnimation: true, animationType: 'fade-up', headerStyle: 'centered-with-badge', contentPattern: 'collection-cards', specialElements: [], borderTop: 'none', borderBottom: 'none' },
+          { type: 'testimonials', name: 'Reviews', layout: '3-column-grid', gridColumns: '3', gridGap: '24px', backgroundColor: c.background, padding: { top: '80px', bottom: '80px' }, containerWidth: '1280px', hasAnimation: true, animationType: 'fade-up', headerStyle: 'centered-with-badge', contentPattern: 'review-cards', specialElements: ['star-rating'], borderTop: 'none', borderBottom: 'none' },
+          { type: 'newsletter', name: 'Newsletter', layout: 'centered-stack', gridColumns: '1', gridGap: '0', backgroundColor: c.primary, padding: { top: '60px', bottom: '60px' }, containerWidth: '600px', hasAnimation: true, animationType: 'fade-up', headerStyle: 'centered-with-badge', contentPattern: 'email-signup', specialElements: [], borderTop: 'none', borderBottom: 'none' },
         ]
       : [
-          { type: 'hero', name: 'Hero Banner' },
-          { type: 'services', name: 'Services' },
-          { type: 'about', name: 'About' },
-          { type: 'testimonials', name: 'Testimonials' },
-          { type: 'contact', name: 'Contact' },
+          { type: 'hero', name: 'Hero Banner', layout: 'full-width-image-overlay', gridColumns: '1', gridGap: '0', backgroundColor: 'transparent', padding: { top: '0', bottom: '0' }, containerWidth: '100%', hasAnimation: true, animationType: 'fade-in', headerStyle: 'none', contentPattern: 'hero-with-overlay', specialElements: [], borderTop: 'none', borderBottom: 'none' },
+          { type: 'services', name: 'Services', layout: '3-column-grid', gridColumns: '3', gridGap: '24px', backgroundColor: '#ffffff', padding: { top: '80px', bottom: '80px' }, containerWidth: '1280px', hasAnimation: true, animationType: 'fade-up', headerStyle: 'centered-with-badge', contentPattern: 'service-cards', specialElements: [], borderTop: 'none', borderBottom: 'none' },
+          { type: 'about', name: 'About', layout: '2-col-split-image-right', gridColumns: '2', gridGap: '48px', backgroundColor: c.background, padding: { top: '80px', bottom: '80px' }, containerWidth: '1280px', hasAnimation: true, animationType: 'fade-up', headerStyle: 'left-aligned', contentPattern: 'about-split', specialElements: [], borderTop: 'none', borderBottom: 'none' },
+          { type: 'testimonials', name: 'Testimonials', layout: '3-column-grid', gridColumns: '3', gridGap: '24px', backgroundColor: '#ffffff', padding: { top: '80px', bottom: '80px' }, containerWidth: '1280px', hasAnimation: true, animationType: 'fade-up', headerStyle: 'centered-with-badge', contentPattern: 'testimonial-cards', specialElements: [], borderTop: 'none', borderBottom: 'none' },
+          { type: 'contact', name: 'Contact', layout: 'centered-stack', gridColumns: '1', gridGap: '0', backgroundColor: c.background, padding: { top: '80px', bottom: '80px' }, containerWidth: '600px', hasAnimation: true, animationType: 'fade-up', headerStyle: 'centered-with-badge', contentPattern: 'contact-form', specialElements: [], borderTop: 'none', borderBottom: 'none' },
         ],
+    pageStructure: {
+      totalPages: 1,
+      pages: [{ name: 'Home', url: '/', purpose: 'Main landing page', sectionsInOrder: ['hero', 'products', 'collections', 'reviews', 'newsletter'] }],
+      singlePageSections: ['hero', 'products', 'collections', 'reviews', 'newsletter'],
+    },
+    copywriting: {
+      tone: industry.design.mood || 'professional',
+      headlineFormulas: { hero: 'Benefit Statement', section: 'Action Verb + Benefit', card: 'Short noun phrase' },
+      ctaPatterns: { primary: industry.heroCTAs || ['Shop Now'], secondary: ['Learn More', 'View Details'], style: 'action-verb-first' },
+      socialProofStyle: 'avatar-stack-with-count',
+      exampleHeadlines: industry.heroHeadlines || [],
+      exampleSubheadlines: [],
+      exampleCTAs: industry.heroCTAs || [],
+      urgencyTactics: ['Limited stock', 'Selling fast'],
+      trustSignals: ['Free shipping', '30-day returns', 'Secure checkout'],
+    },
+    integrations: {
+      chatWidget: null, analytics: ['Google Analytics'], socialProofWidgets: [],
+      paymentProviders: ['Stripe'], newsletterService: 'Mailchimp', reviewPlatform: null,
+      bookingSystem: null, ecommercePlatform: 'Shopify', socialMedia: ['Instagram', 'TikTok'],
+      customIntegrations: [],
+    },
+    mobile: {
+      breakpoints: { tablet: '768px', mobile: '480px' },
+      navBehavior: 'hamburger-slide-in', heroChanges: 'stacks-vertically',
+      gridBehavior: 'collapses-to-single-column', hiddenOnMobile: [],
+      mobileOnlyElements: ['mobile-menu-toggle'], touchOptimizations: ['larger-tap-targets'],
+      sectionPaddingMobile: '40px 16px', fontSizeReductions: { h1: '32px', h2: '24px' },
+    },
+    uniqueElements: [],
   };
 }
 
@@ -696,7 +745,7 @@ export async function POST(request: NextRequest) {
         const kingGenerator = await import('@/lib/ai/king-generator');
         
         debugLog.push(`🚀 Calling generateFromKingDNA (deterministic builder)...`);
-        html = await kingGenerator.generateFromKingDNA(builderProfile, customer);
+        html = await kingGenerator.generateFromKingDNA(builderProfile as any, customer);
         generationMode = `industry-intelligence-${industry.id}`;
 
         // Verify output quality
@@ -769,7 +818,7 @@ export async function POST(request: NextRequest) {
         const industry = resolveIndustry(project.industry || '');
         const builderProfile = industryToBuilderProfile(industry, project.business_name || 'Business');
         const customer = buildCustomerFromProject(project);
-        html = await kingGenerator.reviseFromKingDNA(builderProfile, htmlToEdit, editRequest, customer);
+        html = await kingGenerator.reviseFromKingDNA(builderProfile as any, htmlToEdit, editRequest, customer);
       } catch {
         html = await legacyRevise(htmlToEdit, editRequest);
       }
