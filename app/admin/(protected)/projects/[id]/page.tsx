@@ -764,7 +764,8 @@ export default function ProjectDetailPage() {
   };
 
   // ==========================================================================
-  // FIXED: generateWebsite function - sends correct request format
+  // ==========================================================================
+  // KING DNA v4: Calls /api/ai/generate (forensic extraction + deterministic build)
   // ==========================================================================
   const generateWebsite = async () => {
     if (!project) return;
@@ -775,45 +776,21 @@ export default function ProjectDetailPage() {
       await supabase.from('projects').update({ status: 'GENERATING' }).eq('id', projectId);
       setFormData(prev => ({ ...prev, status: 'GENERATING' }));
 
-      // Build the project object expected by the API
-      const projectData = {
-        id: project.id,
-        industry: project.industry || 'general',
-        businessName: project.business_name,
-        businessDescription: project.description || '',
-        targetAudience: project.target_customer || '',
-        uniqueSellingPoints: project.primary_services || [],
-        location: project.address || '',
-        contactInfo: {
-          phone: project.contact_phone || '',
-          email: project.contact_email || '',
-          address: project.address || '',
-        },
-      };
-
-      // Call the API with correct format
-      const response = await fetch('/api/generate', {
+      // Call King DNA v4 generation route
+      // Handles: King resolution -> forensic extraction -> deterministic HTML build -> save to Supabase
+      const response = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          project: projectData,
-          pageType: 'landing',
-          customizations: {},
+          projectId: project.id,
+          action: 'generate',
         }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Save the generated HTML to the project
-        await supabase
-          .from('projects')
-          .update({
-            generated_html: data.generatedCode,
-            status: 'PREVIEW_READY',
-          })
-          .eq('id', projectId);
-
+        // /api/ai/generate already saves HTML to Supabase, just reload
         await loadProject();
         setActiveTab('preview');
       } else {
@@ -823,7 +800,6 @@ export default function ProjectDetailPage() {
       }
     } catch (err) {
       console.error('Error generating website:', err);
-      // Revert status on error
       await supabase.from('projects').update({ status: formData.status || 'QUEUED' }).eq('id', projectId);
       alert('Error generating website.');
     } finally {
