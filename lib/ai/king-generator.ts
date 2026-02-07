@@ -215,18 +215,62 @@ function getDefaultCopy(customer: CustomerQuestionnaire): GeneratedCopy {
 }
 
 // =============================================================================
-// UNSPLASH IMAGE HELPERS
+// IMAGE RESOLVER — Uses profile.images from Industry Intelligence FIRST,
+// falls back to hardcoded Unsplash by industry string.
+//
+// This is the KEY FIX: route.ts passes profile.images from the matched
+// IndustryProfile (13 profiles covering all industries). Previously,
+// king-generator used its OWN getHeroImage/getProductImages/getCollectionImages
+// which only matched 3 industries (gym, jewelry, beauty) and everything else
+// fell through to generic watch/sneaker/headphone images.
+//
+// Now: profile.images is ALWAYS populated by route.ts for all 13 industries.
+// The fallback only triggers if someone bypasses route.ts entirely.
 // =============================================================================
 
-function getHeroImage(industry: string): string {
+function resolveHeroImage(profile: KingForensicProfile, industry: string): string {
+  // 1. Use profile images from Industry Intelligence (passed by route.ts)
+  const pi = (profile as any).images;
+  if (pi?.hero?.length) {
+    console.log(`[KingGenerator] Using profile hero image for industry`);
+    return pi.hero[0];
+  }
+
+  // 2. Fallback: match by industry string (only if profile.images missing)
+  console.log(`[KingGenerator] WARNING: No profile.images.hero found, using fallback`);
   const ind = industry.toLowerCase();
   if (ind.match(/gym|athletic|activewear|fitness/)) return 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1600&q=80';
   if (ind.match(/jewel/)) return 'https://images.unsplash.com/photo-1515562141207-82f56648e57c?w=1600&q=80';
-  if (ind.match(/beauty|skincare/)) return 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1600&q=80';
+  if (ind.match(/beauty|skincare|cosmetic/)) return 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1600&q=80';
+  if (ind.match(/fashion|clothing|apparel/)) return 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=1600&q=80';
+  if (ind.match(/home|furniture|decor|bedding/)) return 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1600&q=80';
+  if (ind.match(/food|beverage|supplement/)) return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80';
+  if (ind.match(/electron|tech|gadget/)) return 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600&q=80';
+  if (ind.match(/pet|dog|cat/)) return 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=1600&q=80';
+  if (ind.match(/sport|outdoor/)) return 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1600&q=80';
+  if (ind.match(/footwear|shoe|sneaker/)) return 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=1600&q=80';
+  if (ind.match(/spa|wellness|salon/)) return 'https://images.unsplash.com/photo-1540555700478-4be289fbec6b?w=1600&q=80';
+  if (ind.match(/dental|medical|health|clinic/)) return 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1600&q=80';
+  if (ind.match(/restaurant|cafe|bar|dining/)) return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&q=80';
+  if (ind.match(/law|legal|attorney|accounting/)) return 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1600&q=80';
   return 'https://images.unsplash.com/photo-1441984904996-e0b6ba687f04?w=1600&q=80';
 }
 
-function getProductImages(industry: string): string[] {
+function resolveProductImages(profile: KingForensicProfile, industry: string, count: number = 8): string[] {
+  // 1. Use profile images (cycle if fewer than needed)
+  const pi = (profile as any).images;
+  if (pi?.products?.length) {
+    console.log(`[KingGenerator] Using ${pi.products.length} profile product images`);
+    const src = pi.products;
+    const result: string[] = [];
+    for (let i = 0; i < count; i++) {
+      result.push(src[i % src.length]);
+    }
+    return result;
+  }
+
+  // 2. Fallback: match by industry string
+  console.log(`[KingGenerator] WARNING: No profile.images.products found, using fallback`);
   const ind = industry.toLowerCase();
   if (ind.match(/gym|athletic|activewear|fitness|sport/)) return [
     'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80',
@@ -248,7 +292,7 @@ function getProductImages(industry: string): string[] {
     'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=600&q=80',
     'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600&q=80',
   ];
-  if (ind.match(/beauty|skincare/)) return [
+  if (ind.match(/beauty|skincare|cosmetic/)) return [
     'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600&q=80',
     'https://images.unsplash.com/photo-1570194065650-d99fb4a38648?w=600&q=80',
     'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600&q=80',
@@ -258,6 +302,117 @@ function getProductImages(industry: string): string[] {
     'https://images.unsplash.com/photo-1611930022073-b7a4ba5fba98?w=600&q=80',
     'https://images.unsplash.com/photo-1612817288484-6f916006741a?w=600&q=80',
   ];
+  if (ind.match(/fashion|clothing|apparel/)) return [
+    'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&q=80',
+    'https://images.unsplash.com/photo-1434389677669-e08b4cda3485?w=600&q=80',
+    'https://images.unsplash.com/photo-1516762689617-e1cffcef479d?w=600&q=80',
+    'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=600&q=80',
+    'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&q=80',
+    'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&q=80',
+    'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80',
+    'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=600&q=80',
+  ];
+  if (ind.match(/home|furniture|decor|bedding/)) return [
+    'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80',
+    'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=600&q=80',
+    'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=600&q=80',
+    'https://images.unsplash.com/photo-1540574163026-643ea20ade25?w=600&q=80',
+    'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&q=80',
+    'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=600&q=80',
+    'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80',
+    'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=600&q=80',
+  ];
+  if (ind.match(/food|beverage|supplement/)) return [
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
+    'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&q=80',
+    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80',
+    'https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=600&q=80',
+    'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=600&q=80',
+    'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&q=80',
+    'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&q=80',
+    'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=600&q=80',
+  ];
+  if (ind.match(/electron|tech|gadget/)) return [
+    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80',
+    'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&q=80',
+    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80',
+    'https://images.unsplash.com/photo-1546868871-af0de0ae72be?w=600&q=80',
+    'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=600&q=80',
+    'https://images.unsplash.com/photo-1484704849700-f032a568e944?w=600&q=80',
+    'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=600&q=80',
+    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&q=80',
+  ];
+  if (ind.match(/pet|dog|cat/)) return [
+    'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&q=80',
+    'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&q=80',
+    'https://images.unsplash.com/photo-1583337130417-13219ce08108?w=600&q=80',
+    'https://images.unsplash.com/photo-1623387641168-d9803ddd3f35?w=600&q=80',
+    'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&q=80',
+    'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&q=80',
+    'https://images.unsplash.com/photo-1583337130417-13219ce08108?w=600&q=80',
+    'https://images.unsplash.com/photo-1623387641168-d9803ddd3f35?w=600&q=80',
+  ];
+  if (ind.match(/footwear|shoe|sneaker/)) return [
+    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80',
+    'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=600&q=80',
+    'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=600&q=80',
+    'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=600&q=80',
+    'https://images.unsplash.com/photo-1539185441755-769473a23570?w=600&q=80',
+    'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=600&q=80',
+    'https://images.unsplash.com/photo-1600269452121-4f2416e55c28?w=600&q=80',
+    'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&q=80',
+  ];
+  if (ind.match(/sport|outdoor/)) return [
+    'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&q=80',
+    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80',
+    'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=600&q=80',
+    'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&q=80',
+    'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&q=80',
+    'https://images.unsplash.com/photo-1526676037777-05a232554f77?w=600&q=80',
+    'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&q=80',
+    'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=600&q=80',
+  ];
+  if (ind.match(/spa|wellness|salon/)) return [
+    'https://images.unsplash.com/photo-1540555700478-4be289fbec6b?w=600&q=80',
+    'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&q=80',
+    'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=600&q=80',
+    'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=600&q=80',
+    'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=600&q=80',
+    'https://images.unsplash.com/photo-1552693673-1bf958298935?w=600&q=80',
+    'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=600&q=80',
+    'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&q=80',
+  ];
+  if (ind.match(/dental|medical|health|clinic/)) return [
+    'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=600&q=80',
+    'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=600&q=80',
+    'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=600&q=80',
+    'https://images.unsplash.com/photo-1551076805-e1869033e561?w=600&q=80',
+    'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=600&q=80',
+    'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=600&q=80',
+    'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=600&q=80',
+    'https://images.unsplash.com/photo-1551076805-e1869033e561?w=600&q=80',
+  ];
+  if (ind.match(/restaurant|cafe|bar|dining/)) return [
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80',
+    'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80',
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=80',
+    'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=600&q=80',
+    'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600&q=80',
+    'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=80',
+    'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&q=80',
+  ];
+  if (ind.match(/law|legal|attorney|accounting/)) return [
+    'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&q=80',
+    'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=600&q=80',
+    'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&q=80',
+    'https://images.unsplash.com/photo-1521791055366-0d553872125f?w=600&q=80',
+    'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&q=80',
+    'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=600&q=80',
+    'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&q=80',
+    'https://images.unsplash.com/photo-1521791055366-0d553872125f?w=600&q=80',
+  ];
+  // Generic fallback
   return [
     'https://images.unsplash.com/photo-1441984904996-e0b6ba687f04?w=600&q=80',
     'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80',
@@ -270,7 +425,21 @@ function getProductImages(industry: string): string[] {
   ];
 }
 
-function getCollectionImages(industry: string): string[] {
+function resolveCollectionImages(profile: KingForensicProfile, industry: string, count: number = 4): string[] {
+  // 1. Use profile images — combine lifestyle + products for collections
+  const pi = (profile as any).images;
+  if (pi?.lifestyle?.length || pi?.products?.length) {
+    const pool = [...(pi.lifestyle || []), ...(pi.products || [])];
+    console.log(`[KingGenerator] Using ${pool.length} profile collection images`);
+    const result: string[] = [];
+    for (let i = 0; i < count; i++) {
+      result.push(pool[i % pool.length]);
+    }
+    return result;
+  }
+
+  // 2. Fallback: match by industry string
+  console.log(`[KingGenerator] WARNING: No profile collection images, using fallback`);
   const ind = industry.toLowerCase();
   if (ind.match(/gym|athletic|activewear|fitness/)) return [
     'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80',
@@ -283,6 +452,78 @@ function getCollectionImages(industry: string): string[] {
     'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=800&q=80',
     'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=800&q=80',
     'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&q=80',
+  ];
+  if (ind.match(/beauty|skincare|cosmetic/)) return [
+    'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&q=80',
+    'https://images.unsplash.com/photo-1487412912498-0447578fcca8?w=800&q=80',
+    'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800&q=80',
+    'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=800&q=80',
+  ];
+  if (ind.match(/fashion|clothing|apparel/)) return [
+    'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80',
+    'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&q=80',
+    'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=800&q=80',
+    'https://images.unsplash.com/photo-1434389677669-e08b4cda3485?w=800&q=80',
+  ];
+  if (ind.match(/home|furniture|decor|bedding/)) return [
+    'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&q=80',
+    'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80',
+    'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=800&q=80',
+    'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800&q=80',
+  ];
+  if (ind.match(/food|beverage|supplement/)) return [
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80',
+    'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&q=80',
+    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80',
+    'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=800&q=80',
+  ];
+  if (ind.match(/electron|tech|gadget/)) return [
+    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
+    'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&q=80',
+    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80',
+    'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800&q=80',
+  ];
+  if (ind.match(/pet|dog|cat/)) return [
+    'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=80',
+    'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&q=80',
+    'https://images.unsplash.com/photo-1583337130417-13219ce08108?w=800&q=80',
+    'https://images.unsplash.com/photo-1623387641168-d9803ddd3f35?w=800&q=80',
+  ];
+  if (ind.match(/footwear|shoe|sneaker/)) return [
+    'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=800&q=80',
+    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80',
+    'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=800&q=80',
+    'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=800&q=80',
+  ];
+  if (ind.match(/sport|outdoor/)) return [
+    'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80',
+    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80',
+    'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&q=80',
+    'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&q=80',
+  ];
+  if (ind.match(/spa|wellness|salon/)) return [
+    'https://images.unsplash.com/photo-1540555700478-4be289fbec6b?w=800&q=80',
+    'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80',
+    'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800&q=80',
+    'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=800&q=80',
+  ];
+  if (ind.match(/dental|medical|health|clinic/)) return [
+    'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=800&q=80',
+    'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=800&q=80',
+    'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&q=80',
+    'https://images.unsplash.com/photo-1551076805-e1869033e561?w=800&q=80',
+  ];
+  if (ind.match(/restaurant|cafe|bar|dining/)) return [
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
+    'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80',
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80',
+    'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800&q=80',
+  ];
+  if (ind.match(/law|legal|attorney|accounting/)) return [
+    'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&q=80',
+    'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800&q=80',
+    'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80',
+    'https://images.unsplash.com/photo-1521791055366-0d553872125f?w=800&q=80',
   ];
   return [
     'https://images.unsplash.com/photo-1441984904996-e0b6ba687f04?w=800&q=80',
@@ -354,9 +595,11 @@ function buildEcommerceHTML(
 ): string {
   const brand = customer.businessName;
   const industry = customer.industry || 'fashion';
-  const heroImage = getHeroImage(industry);
-  const productImages = getProductImages(industry);
-  const collectionImages = getCollectionImages(industry);
+
+  // *** USE PROFILE IMAGES FIRST, FALLBACK TO INDUSTRY MATCH ***
+  const heroImage = resolveHeroImage(profile, industry);
+  const productImages = resolveProductImages(profile, industry, copy.products.length);
+  const collectionImages = resolveCollectionImages(profile, industry, copy.collections.length);
   const productColors = getProductColors(industry);
   const ratings = getProductRatings();
 
