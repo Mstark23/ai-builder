@@ -1201,6 +1201,77 @@ export default function ProjectDetailPage() {
                 <span className="text-sm text-white/80">{formatDate(project.created_at)}</span>
               </div>
             </div>
+
+            {/* Platform & Credentials */}
+            <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+              <h2 className="font-semibold text-black mb-4">Platform & Credentials</h2>
+              {project.platform ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl">
+                    <span className="text-xl">
+                      {project.platform === 'shopify' ? '🛒' : project.platform === 'wordpress' ? '📝' : project.platform === 'squarespace' ? '⬛' : project.platform === 'wix' ? '✨' : project.platform === 'webflow' ? '🎨' : '🌐'}
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-black capitalize">{project.platform}</p>
+                      <p className="text-xs text-neutral-500">
+                        {project.platform === 'custom' ? 'We handle hosting' : 'Customer-hosted'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {project.platform_credentials && typeof project.platform_credentials === 'object' && Object.keys(project.platform_credentials).length > 0 ? (
+                    <div className="space-y-2">
+                      {Object.entries(project.platform_credentials as Record<string, string>)
+                        .filter(([_, value]) => value && String(value).trim())
+                        .map(([key, value]) => {
+                          const isPassword = key.includes('password');
+                          const label = key
+                            .replace(/(shopify_|wp_|squarespace_|wix_|webflow_)/, '')
+                            .replace(/_/g, ' ')
+                            .replace(/\b\w/g, (c: string) => c.toUpperCase());
+                          return (
+                            <div key={key} className="flex items-start justify-between p-2 bg-neutral-50 rounded-lg">
+                              <span className="text-xs text-neutral-500 font-medium min-w-[80px]">{label}</span>
+                              <span className="text-xs text-black font-mono text-right break-all ml-2">
+                                {isPassword ? '••••••••' : String(value)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      <button
+                        onClick={() => {
+                          const creds = Object.entries(project.platform_credentials as Record<string, string>)
+                            .filter(([_, v]) => v && String(v).trim())
+                            .map(([k, v]) => `${k}: ${v}`)
+                            .join('\n');
+                          navigator.clipboard.writeText(creds);
+                        }}
+                        className="w-full mt-2 px-3 py-2 bg-black text-white text-xs font-medium rounded-lg hover:bg-black/80 transition-colors"
+                      >
+                        📋 Copy All Credentials
+                      </button>
+                    </div>
+                  ) : project.platform !== 'custom' ? (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                      <p className="text-xs text-amber-700">⚠️ Customer hasn&apos;t submitted credentials yet.</p>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <p className="text-xs text-emerald-700">✅ No credentials needed — we handle hosting.</p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <span className={`w-2 h-2 rounded-full ${project.setup_completed ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                    <span className="text-xs text-neutral-500">
+                      Setup: {project.setup_completed ? 'Completed' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-neutral-500">No platform selected yet</p>
+              )}
+            </div>
           </div>
         </div>
       )}
