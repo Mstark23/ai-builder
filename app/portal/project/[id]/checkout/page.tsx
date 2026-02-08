@@ -202,7 +202,7 @@ export default function CheckoutPage() {
   const [paymentResult, setPaymentResult] = useState<any>(null);
   const [squareLoaded, setSquareLoaded] = useState(false);
   const [cardInstance, setCardInstance] = useState<any>(null);
-  const [billingErrors, setBillingErrors] = useState<Partial<BillingInfo>>({});
+  const [billingErrors, setBillingErrors] = useState<Partial<Record<keyof BillingInfo, string>>>({});
 
   const [billing, setBilling] = useState<BillingInfo>({
     fullName: '',
@@ -316,7 +316,7 @@ export default function CheckoutPage() {
 
   // ── Validate billing ──────────────────────────────────
   const validateBilling = (): boolean => {
-    const errors: Partial<BillingInfo> = {};
+    const errors: Partial<Record<keyof BillingInfo, string>> = {};
 
     if (!billing.fullName.trim()) errors.fullName = 'Full name is required';
     if (!billing.email.trim()) errors.email = 'Email is required';
