@@ -147,11 +147,10 @@ export default function CheckoutPage() {
     if (step !== 'payment') return;
 
     const loadSquare = async () => {
-      // Load the Square Web Payments SDK script
       if (!document.getElementById('square-web-sdk')) {
         const script = document.createElement('script');
         script.id = 'square-web-sdk';
-        script.src = process.env.NODE_ENV === 'production'
+        script.src = process.env.NEXT_PUBLIC_SQUARE_ENVIRONMENT === 'production'
           ? 'https://web.squarecdn.com/v1/square.js'
           : 'https://sandbox.web.squarecdn.com/v1/square.js';
         script.async = true;
@@ -164,7 +163,6 @@ export default function CheckoutPage() {
 
     const initializeSquare = async () => {
       try {
-        // @ts-ignore — Square is loaded globally
         const payments = (window as any).Square.payments(
           process.env.NEXT_PUBLIC_SQUARE_APP_ID!,
           process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!
@@ -413,7 +411,7 @@ export default function CheckoutPage() {
           </div>
 
           <p className="text-center text-xs text-neutral-400 mt-4">
-            By completing this purchase, you agree to VektorLabs' terms of service.
+            By completing this purchase, you agree to VektorLabs&apos; terms of service.
             Your website build will begin immediately after payment.
           </p>
         </div>
@@ -430,7 +428,7 @@ export default function CheckoutPage() {
         <div className="text-center max-w-sm mx-auto px-6">
           <div className="w-12 h-12 border-2 border-neutral-300 border-t-black rounded-full animate-spin mx-auto mb-6" />
           <h2 className="text-xl font-bold text-black">Processing payment...</h2>
-          <p className="text-neutral-500 text-sm mt-2">Please don't close this window.</p>
+          <p className="text-neutral-500 text-sm mt-2">Please don&apos;t close this window.</p>
         </div>
       </div>
     );
@@ -485,7 +483,7 @@ export default function CheckoutPage() {
             <h3 className="font-semibold text-blue-900 text-sm">What happens next?</h3>
             <ul className="mt-2 space-y-1.5 text-sm text-blue-800">
               <li>→ Your website build begins immediately</li>
-              <li>→ You'll receive a preview within 72 hours</li>
+              <li>→ You&apos;ll receive a preview within 72 hours</li>
               <li>→ Complete your setup to customize your site</li>
             </ul>
           </div>
