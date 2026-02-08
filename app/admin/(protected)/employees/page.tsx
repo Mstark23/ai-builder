@@ -27,21 +27,22 @@ export default function EmployeesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
-  const mockEmployees: Employee[] = [
-    { id: '1', name: 'Sarah Chen', email: 'sarah@verktorlabs.com', role: 'Senior Designer', avatar_url: null, status: 'online', created_at: '2024-01-01' },
-    { id: '2', name: 'Mike Johnson', email: 'mike@verktorlabs.com', role: 'Designer', avatar_url: null, status: 'online', created_at: '2024-02-15' },
-    { id: '3', name: 'Emma Wilson', email: 'emma@verktorlabs.com', role: 'Designer', avatar_url: null, status: 'offline', created_at: '2024-03-10' },
-    { id: '4', name: 'David Park', email: 'david@verktorlabs.com', role: 'Junior Designer', avatar_url: null, status: 'busy', created_at: '2024-06-01' },
-  ];
-
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
       const { data: projectsData } = await supabase.from('projects').select('id, business_name, status, assigned_to').not('status', 'in', '("DELIVERED","CANCELLED")');
       if (projectsData) setProjects(projectsData);
-      setEmployees(mockEmployees);
-    } catch (err) { console.error('Error loading data:', err); }
+
+      // Load real employees from database
+      const { data: employeesData } = await supabase
+        .from('employees')
+        .select('*');
+      if (employeesData && employeesData.length > 0) {
+        setEmployees(employeesData);
+      }
+      // If no employees table or no data, employees stays empty
+    } catch (err) { console.log('Employees table may not exist yet'); }
     finally { setLoading(false); }
   };
 
