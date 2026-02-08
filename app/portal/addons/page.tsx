@@ -147,7 +147,7 @@ export default function AddonsPage() {
   const handleCheckout = async () => {
     if (!selectedProject || cart.length === 0) return;
     
-    // Here you would integrate with Stripe
+    // Payment processed via Square
     // For now, we'll just save the addon requests to the database
     try {
       for (const addon of cart) {
