@@ -306,7 +306,7 @@ export default function SettingsPage() {
                 
                 <div className="space-y-3">
                   {[
-                    { name: 'Admin User', email: 'admin@verktorlabs.com', role: 'Super Admin' },
+                    { name: 'You', email: 'Owner', role: 'Super Admin' },
                   ].map((admin, i) => (
                     <div key={i} className="flex items-center justify-between p-4 bg-neutral-50 rounded-xl">
                       <div className="flex items-center gap-3">
