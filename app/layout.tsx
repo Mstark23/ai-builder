@@ -1,8 +1,11 @@
 import './globals.css';
 import type { Metadata } from 'next';
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://verktorlabs.com';
+const baseUrl = appUrl.startsWith('http') ? appUrl : `https://${appUrl}`;
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://verktorlabs.com'),
+  metadataBase: new URL(baseUrl),
   title: {
     default: 'VektorLabs — AI Website Builder',
     template: '%s | VektorLabs',
