@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 import { paymentsApi, customersApi, PLAN_PRICES, PLAN_NAMES } from '@/lib/square';
+import { requireAuth } from '@/lib/api-auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,6 +14,10 @@ const supabase = createClient(
 );
 
 export async function POST(request: NextRequest) {
+  // Auth: require logged-in user for payments
+  const auth = await requireAuth(request);
+  if (auth.error) return auth.error;
+
   console.log('Square checkout API called');
 
   try {
