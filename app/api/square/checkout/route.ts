@@ -1,5 +1,5 @@
 // app/api/square/checkout/route.ts
-// Square Payment Processing — replaces /api/stripe/checkout and /api/checkout
+// Square Payment Processing with Billing Info
 // Processes one-time payments for website builds
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
   console.log('Square checkout API called');
 
   try {
-    // Check for Square key
     if (!process.env.SQUARE_ACCESS_TOKEN) {
       console.error('Missing SQUARE_ACCESS_TOKEN');
       return NextResponse.json(
@@ -28,7 +27,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Request body:', body);
 
-    const { projectId, plan, businessName, sourceId } = body;
+    const { projectId, plan, businessName, sourceId, billing } = body;
 
     if (!projectId || !plan) {
       return NextResponse.json(
@@ -71,8 +70,8 @@ export async function POST(request: NextRequest) {
 
     // ── 1. Create or find customer in Square ──────────────
     let squareCustomerId: string | undefined;
-    const customerEmail = project.customers?.email;
-    const customerName = project.customers?.name || '';
+    const customerEmail = billing?.email || project.customers?.email;
+    const customerName = billing?.fullName || project.customers?.name || '';
 
     if (customerEmail) {
       try {
@@ -88,6 +87,20 @@ export async function POST(request: NextRequest) {
 
         if (searchResult.result.customers && searchResult.result.customers.length > 0) {
           squareCustomerId = searchResult.result.customers[0].id;
+
+          // Update customer with billing address
+          if (billing) {
+            await customersApi.updateCustomer(squareCustomerId!, {
+              address: {
+                addressLine1: billing.addressLine1 || undefined,
+                addressLine2: billing.addressLine2 || undefined,
+                locality: billing.city || undefined,
+                administrativeDistrictLevel1: billing.state || undefined,
+                postalCode: billing.postalCode || undefined,
+                country: billing.country || undefined,
+              },
+            });
+          }
         } else {
           const [givenName, ...familyParts] = customerName.split(' ');
           const familyName = familyParts.join(' ');
@@ -96,6 +109,14 @@ export async function POST(request: NextRequest) {
             givenName: givenName || undefined,
             familyName: familyName || undefined,
             emailAddress: customerEmail,
+            address: billing ? {
+              addressLine1: billing.addressLine1 || undefined,
+              addressLine2: billing.addressLine2 || undefined,
+              locality: billing.city || undefined,
+              administrativeDistrictLevel1: billing.state || undefined,
+              postalCode: billing.postalCode || undefined,
+              country: billing.country || undefined,
+            } : undefined,
             idempotencyKey: randomUUID(),
           });
 
@@ -121,6 +142,15 @@ export async function POST(request: NextRequest) {
       autocomplete: true,
       locationId: process.env.SQUARE_LOCATION_ID!,
       referenceId: projectId,
+      buyerEmailAddress: customerEmail || undefined,
+      billingAddress: billing ? {
+        addressLine1: billing.addressLine1 || undefined,
+        addressLine2: billing.addressLine2 || undefined,
+        locality: billing.city || undefined,
+        administrativeDistrictLevel1: billing.state || undefined,
+        postalCode: billing.postalCode || undefined,
+        country: billing.country || undefined,
+      } : undefined,
       note: `VektorLabs — ${planName} - ${businessName || project.business_name || 'Website'}`,
     });
 
@@ -135,6 +165,14 @@ export async function POST(request: NextRequest) {
           status: 'PAID',
           square_payment_id: result.payment.id,
           paid_at: new Date().toISOString(),
+          // Store billing info
+          billing_name: billing?.fullName || null,
+          billing_email: billing?.email || null,
+          billing_country: billing?.country || null,
+          billing_address: billing?.addressLine1 || null,
+          billing_city: billing?.city || null,
+          billing_state: billing?.state || null,
+          billing_postal_code: billing?.postalCode || null,
         })
         .eq('id', projectId);
 
