@@ -259,7 +259,7 @@ export default function SettingsPage() {
                 
                 <div className="space-y-4">
                   {[
-                    { name: 'Stripe', icon: '💳', description: 'Process payments', connected: true },
+                    { name: 'Square', icon: '💳', description: 'Process payments', connected: true },
                     { name: 'Shopify', icon: '🛒', description: 'E-commerce integration', connected: true },
                     { name: 'Slack', icon: '💬', description: 'Team notifications', connected: false },
                     { name: 'Google Analytics', icon: '📊', description: 'Website analytics', connected: false },
