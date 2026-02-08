@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/api-auth';
 
 export const maxDuration = 60;
 
@@ -765,6 +766,10 @@ async function generateMultiPageWebsite(project: any, requestedPages: string[]):
 // =============================================================================
 
 export async function POST(request: NextRequest) {
+  // Auth: only admins can trigger generation
+  const auth = await requireAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     const body = await request.json();
     const { projectId, pages } = body;
