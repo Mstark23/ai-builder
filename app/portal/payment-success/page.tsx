@@ -235,7 +235,7 @@ function PaymentSuccessContent() {
 
   const handleAddToOrder = async () => {
     setProcessing(true);
-    // In production: Create Stripe checkout with upsell items
+    // Growth packages coming soon
     // For now, simulate and redirect
     await new Promise(resolve => setTimeout(resolve, 1500));
     router.push(`/portal/project/${projectId}?upsell=success`);
