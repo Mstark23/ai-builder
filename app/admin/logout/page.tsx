@@ -3,16 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
 
-export default function CustomerLogoutPage() {
+export default function AdminLogoutPage() {
   const router = useRouter();
   const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
-    localStorage.removeItem('customerLoggedIn');
-    localStorage.removeItem('customerName');
-    localStorage.removeItem('customerEmail');
-    localStorage.removeItem('customerId');
+    // Sign out from Supabase
+    supabase.auth.signOut();
 
     const timer = setInterval(() => {
       setCountdown((prev) => {
@@ -59,7 +58,7 @@ export default function CustomerLogoutPage() {
           </p>
 
           <div className="flex gap-3">
-            <Link href="/customer/login" className="flex-1 px-4 py-3 border border-neutral-200 text-neutral-700 font-body text-sm font-medium rounded-xl hover:bg-neutral-50 transition-colors">
+            <Link href="/admin/login" className="flex-1 px-4 py-3 border border-neutral-200 text-neutral-700 font-body text-sm font-medium rounded-xl hover:bg-neutral-50 transition-colors">
               Sign In Again
             </Link>
             <Link href="/" className="flex-1 px-4 py-3 bg-black text-white font-body text-sm font-medium rounded-xl hover:bg-black/80 transition-colors">
