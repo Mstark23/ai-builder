@@ -466,9 +466,9 @@ export default function RegisterPage() {
           {/* TERMS */}
           <p className="slide-up text-center mt-6 font-body text-neutral-400 text-xs leading-relaxed" style={{ animationDelay: '0.5s' }}>
             By creating an account, you agree to our{' '}
-            <a href="#" className="text-black hover:underline">Terms of Service</a>
+            <a href="/terms" className="text-black hover:underline">Terms of Service</a>
             {' '}and{' '}
-            <a href="#" className="text-black hover:underline">Privacy Policy</a>
+            <a href="/privacy" className="text-black hover:underline">Privacy Policy</a>
           </p>
         </div>
       </div>
