@@ -285,27 +285,8 @@ export default function GrowthQuizPage() {
 
   const handleCheckout = async () => {
     if (selectedPackages.length === 0) return;
-    setProcessing(true);
-    
-    try {
-      const response = await fetch('/api/checkout/growth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: selectedProject,
-          packages: selectedPackages
-        })
-      });
-      
-      const { url } = await response.json();
-      if (url) {
-        window.location.href = url;
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-    } finally {
-      setProcessing(false);
-    }
+    // Growth packages payment — coming soon
+    alert('Growth packages are coming soon! Message us through your project page to learn more.');
   };
 
   const resetQuiz = () => {
