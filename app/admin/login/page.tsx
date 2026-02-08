@@ -1,184 +1,216 @@
-'use client';
+// app/api/square/checkout/route.ts
+// Square Payment Processing with Billing Info
+// Processes one-time payments for website builds
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'crypto';
+import { paymentsApi, customersApi, PLAN_PRICES, PLAN_NAMES } from '@/lib/square';
+import { requireAuth } from '@/lib/api-auth';
 
-export default function AdminLoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      setError('Please enter email and password');
-      return;
+export async function POST(request: NextRequest) {
+  // Auth: require logged-in user for payments
+  const auth = await requireAuth(request);
+  if (auth.error) return auth.error;
+
+  console.log('Square checkout API called');
+
+  try {
+    if (!process.env.SQUARE_ACCESS_TOKEN) {
+      console.error('Missing SQUARE_ACCESS_TOKEN');
+      return NextResponse.json(
+        { error: 'Square is not configured. Please add SQUARE_ACCESS_TOKEN to .env.local' },
+        { status: 500 }
+      );
     }
 
-    setLoading(true);
-    setError('');
+    const body = await request.json();
+    console.log('Request body:', body);
 
-    try {
-      // Sign in with Supabase Auth
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.toLowerCase().trim(),
-        password: password,
-      });
+    const { projectId, plan, businessName, sourceId, billing } = body;
 
-      if (authError) {
-        setError('Invalid email or password');
-        return;
-      }
+    if (!projectId || !plan) {
+      return NextResponse.json(
+        { error: 'Project ID and plan are required' },
+        { status: 400 }
+      );
+    }
 
-      if (data.user) {
-        // Check if user is admin (optional: check admin_users table)
-        const { data: adminUser } = await supabase
-          .from('admin_users')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .single();
+    if (!sourceId) {
+      return NextResponse.json(
+        { error: 'Payment source (sourceId) is required' },
+        { status: 400 }
+      );
+    }
 
-        if (adminUser) {
-          // Store admin info
-          localStorage.setItem('adminLoggedIn', 'true');
-          localStorage.setItem('adminId', adminUser.id);
-          localStorage.setItem('adminName', adminUser.name || 'Admin');
-          localStorage.setItem('adminEmail', data.user.email || '');
-          
-          // Redirect to admin dashboard
-          router.push('/admin/dashboard');
+    // Verify project exists
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('*, customers(email, name)')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError) {
+      console.error('Project fetch error:', projectError);
+      return NextResponse.json(
+        { error: 'Project not found', details: projectError.message },
+        { status: 404 }
+      );
+    }
+
+    if (project.paid) {
+      return NextResponse.json(
+        { error: 'Project is already paid' },
+        { status: 400 }
+      );
+    }
+
+    const priceInCents = PLAN_PRICES[plan] || PLAN_PRICES['starter'];
+    const planName = PLAN_NAMES[plan] || 'Website';
+
+    // ── 1. Create or find customer in Square ──────────────
+    let squareCustomerId: string | undefined;
+    const customerEmail = billing?.email || project.customers?.email;
+    const customerName = billing?.fullName || project.customers?.name || '';
+
+    if (customerEmail) {
+      try {
+        const searchResult = await customersApi.searchCustomers({
+          query: {
+            filter: {
+              emailAddress: {
+                exact: customerEmail,
+              },
+            },
+          },
+        });
+
+        if (searchResult.result.customers && searchResult.result.customers.length > 0) {
+          squareCustomerId = searchResult.result.customers[0].id;
+
+          // Update customer with billing address
+          if (billing) {
+            await customersApi.updateCustomer(squareCustomerId!, {
+              address: {
+                addressLine1: billing.addressLine1 || undefined,
+                addressLine2: billing.addressLine2 || undefined,
+                locality: billing.city || undefined,
+                administrativeDistrictLevel1: billing.state || undefined,
+                postalCode: billing.postalCode || undefined,
+                country: billing.country || undefined,
+              },
+            });
+          }
         } else {
-          // If no admin_users table, just check if login worked
-          localStorage.setItem('adminLoggedIn', 'true');
-          localStorage.setItem('adminEmail', data.user.email || '');
-          router.push('/admin/dashboard');
+          const [givenName, ...familyParts] = customerName.split(' ');
+          const familyName = familyParts.join(' ');
+
+          const createResult = await customersApi.createCustomer({
+            givenName: givenName || undefined,
+            familyName: familyName || undefined,
+            emailAddress: customerEmail,
+            address: billing ? {
+              addressLine1: billing.addressLine1 || undefined,
+              addressLine2: billing.addressLine2 || undefined,
+              locality: billing.city || undefined,
+              administrativeDistrictLevel1: billing.state || undefined,
+              postalCode: billing.postalCode || undefined,
+              country: billing.country || undefined,
+            } : undefined,
+            idempotencyKey: randomUUID(),
+          });
+
+          squareCustomerId = createResult.result.customer?.id;
         }
+      } catch (err) {
+        console.warn('Could not create/find Square customer:', err);
       }
-    } catch (err) {
-      console.error('Error:', err);
-      setError('Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
     }
-  };
 
-  // Quick login for development/demo
-  const handleQuickLogin = () => {
-    setEmail('admin@verktorlabs.com');
-    setPassword('admin123');
-  };
+    // ── 2. Process the payment ────────────────────────────
+    console.log('Processing Square payment...');
+    console.log('Amount (cents):', priceInCents);
 
-  return (
-    <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-4">
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
-        .font-display { font-family: 'Playfair Display', Georgia, serif; }
-        .font-body { font-family: 'Inter', -apple-system, sans-serif; }
-      `}</style>
+    const { result } = await paymentsApi.createPayment({
+      idempotencyKey: randomUUID(),
+      sourceId,
+      amountMoney: {
+        currency: 'CAD',
+        amount: BigInt(priceInCents),
+      },
+      customerId: squareCustomerId,
+      autocomplete: true,
+      locationId: process.env.SQUARE_LOCATION_ID!,
+      referenceId: projectId,
+      buyerEmailAddress: customerEmail || undefined,
+      billingAddress: billing ? {
+        addressLine1: billing.addressLine1 || undefined,
+        addressLine2: billing.addressLine2 || undefined,
+        locality: billing.city || undefined,
+        administrativeDistrictLevel1: billing.state || undefined,
+        postalCode: billing.postalCode || undefined,
+        country: billing.country || undefined,
+      } : undefined,
+      note: `VektorLabs — ${planName} - ${businessName || project.business_name || 'Website'}`,
+    });
 
-      <div className="w-full max-w-md">
-        {/* LOGO */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center transition-transform group-hover:rotate-6">
-              <span className="text-white font-display text-2xl font-semibold">V</span>
-            </div>
-            <span className="font-body text-black text-xl font-semibold tracking-wide">VERKTORLABS</span>
-          </Link>
-        </div>
+    console.log('Square payment result:', result.payment?.id, result.payment?.status);
 
-        {/* LOGIN CARD */}
-        <div className="bg-white rounded-2xl border border-neutral-200 p-8">
-          <div className="text-center mb-8">
-            <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </div>
-            <h1 className="font-display text-2xl font-medium text-black mb-2">Admin Dashboard</h1>
-            <p className="font-body text-neutral-500">Sign in to manage your business</p>
-          </div>
+    // ── 3. Update project in Supabase ─────────────────────
+    if (result.payment?.status === 'COMPLETED') {
+      const { error: updateError } = await supabase
+        .from('projects')
+        .update({
+          paid: true,
+          status: 'PAID',
+          square_payment_id: result.payment.id,
+          paid_at: new Date().toISOString(),
+          // Store billing info
+          billing_name: billing?.fullName || null,
+          billing_email: billing?.email || null,
+          billing_country: billing?.country || null,
+          billing_address: billing?.addressLine1 || null,
+          billing_city: billing?.city || null,
+          billing_state: billing?.state || null,
+          billing_postal_code: billing?.postalCode || null,
+        })
+        .eq('id', projectId);
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-              <p className="font-body text-sm text-red-700">{error}</p>
-            </div>
-          )}
+      if (updateError) {
+        console.error('Failed to update project:', updateError);
+      } else {
+        console.log('✅ Project marked as paid:', projectId);
+      }
+    }
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            {/* EMAIL */}
-            <div>
-              <label className="block font-body text-sm font-medium text-black mb-2">Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@verktorlabs.com"
-                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black transition-colors"
-                autoFocus
-              />
-            </div>
+    // ── 4. Return result ──────────────────────────────────
+    return NextResponse.json({
+      success: true,
+      payment: {
+        id: result.payment?.id,
+        status: result.payment?.status,
+        receiptUrl: result.payment?.receiptUrl,
+      },
+    });
 
-            {/* PASSWORD */}
-            <div>
-              <label className="block font-body text-sm font-medium text-black mb-2">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black transition-colors"
-              />
-            </div>
+  } catch (error: any) {
+    console.error('Square Checkout Error:', error);
 
-            {/* SUBMIT */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full px-4 py-3 bg-black text-white font-body text-sm font-medium rounded-xl hover:bg-black/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </button>
-          </form>
+    const errorMessage =
+      error?.errors?.[0]?.detail || error.message || 'Payment processing failed';
 
-          {/* DIVIDER */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-neutral-200"></div>
-            </div>
-            <div className="relative flex justify-center">
-              <span className="px-4 bg-white font-body text-sm text-neutral-500">or</span>
-            </div>
-          </div>
-
-          {/* QUICK LOGIN (for demo/dev) */}
-          <button
-            onClick={handleQuickLogin}
-            type="button"
-            className="w-full px-4 py-3 border border-neutral-200 text-neutral-700 font-body text-sm font-medium rounded-xl hover:bg-neutral-50 transition-colors"
-          >
-            Use Demo Credentials
-          </button>
-        </div>
-
-        {/* FOOTER */}
-        <div className="text-center mt-6">
-          <p className="font-body text-sm text-neutral-500">
-            <Link href="/" className="text-black font-medium hover:underline">← Back to website</Link>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+    return NextResponse.json(
+      {
+        error: 'Failed to process payment',
+        details: errorMessage,
+        type: error?.errors?.[0]?.code || 'unknown',
+      },
+      { status: error?.statusCode || 500 }
+    );
+  }
 }
