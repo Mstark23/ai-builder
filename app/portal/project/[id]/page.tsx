@@ -791,13 +791,13 @@ export default function DynamicProjectPage() {
           <div className="space-y-4">
             {/* Designer Card */}
             <div className={`${theme.card} rounded-2xl border p-5`}>
-              <h3 className={`font-bold ${theme.text} mb-4`}>Your Designer</h3>
+              <h3 className={`font-bold ${theme.text} mb-4`}>Your Team</h3>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold">
-                  SM
+                <div className="w-12 h-12 bg-gradient-to-br from-black to-gray-700 rounded-full flex items-center justify-center text-white font-bold">
+                  VL
                 </div>
                 <div>
-                  <p className={`font-semibold ${theme.text}`}>Sarah M.</p>
+                  <p className={`font-semibold ${theme.text}`}>VektorLabs</p>
                   <div className="flex items-center gap-1">
                     {[1,2,3,4,5].map((s) => (
                       <span key={s} className="text-amber-400 text-sm">★</span>
@@ -810,7 +810,7 @@ export default function DynamicProjectPage() {
                 onClick={() => setShowChat(!showChat)}
                 className="w-full py-2.5 bg-black text-white text-sm rounded-xl font-medium hover:bg-gray-800 transition"
               >
-                {showChat ? 'Hide Chat' : 'Message Sarah'}
+                {showChat ? 'Hide Chat' : 'Message Us'}
               </button>
             </div>
 
