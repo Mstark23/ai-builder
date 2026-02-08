@@ -610,23 +610,58 @@ export default function DynamicProjectPage() {
             {/* STATUS: PAID (Setup Required) */}
             {/* ============================================ */}
             {project?.status === 'PAID' && !project?.setup_completed && (
-              <div className={`${theme.card} rounded-2xl border p-8 text-center`}>
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Icons.CheckCircle />
+              <div className={`${theme.card} rounded-2xl border p-8`}>
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Icons.CheckCircle />
+                  </div>
+                  <h2 className={`text-xl font-bold ${theme.text} mb-2`}>Payment Successful!</h2>
+                  <p className={`${theme.muted} text-sm max-w-md mx-auto`}>
+                    Thank you! We need a few things from you before we can build and deploy your website.
+                  </p>
                 </div>
-                <h2 className={`text-xl font-bold ${theme.text} mb-2`}>Payment Successful!</h2>
-                <p className={`${theme.muted} text-sm mb-6 max-w-md mx-auto`}>
-                  Thank you! Now let's collect the content for your website - logo, images, and information.
-                </p>
-                <Link
-                  href={`/portal/project/${projectId}/setup`}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition"
-                >
-                  Complete Setup
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
+
+                {project?.platform && (
+                  <div className={`flex items-center justify-center gap-2 mb-6 py-3 px-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-neutral-50'}`}>
+                    <span className="text-lg">
+                      {project.platform === 'shopify' ? '🛒' : project.platform === 'wordpress' ? '📝' : project.platform === 'squarespace' ? '⬛' : project.platform === 'wix' ? '✨' : project.platform === 'webflow' ? '🎨' : project.platform === 'custom' ? '🌐' : '🤔'}
+                    </span>
+                    <span className={`text-sm font-medium ${theme.text} capitalize`}>{project.platform === 'custom' ? 'We handle hosting' : `Deploying to ${project.platform}`}</span>
+                    {project.platform !== 'custom' && project.platform !== 'undecided' && (
+                      <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">Credentials needed</span>
+                    )}
+                  </div>
+                )}
+
+                <div className={`space-y-3 mb-6 max-w-sm mx-auto text-left ${theme.text}`}>
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 bg-black rounded-full flex items-center justify-center text-white text-xs font-bold">1</span>
+                    <span className="text-sm">Your logo & brand images</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 bg-black rounded-full flex items-center justify-center text-white text-xs font-bold">2</span>
+                    <span className="text-sm">Business content (about, services, etc.)</span>
+                  </div>
+                  {project?.platform && project.platform !== 'custom' && project.platform !== 'undecided' && (
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</span>
+                      <span className="text-sm font-medium">Platform access credentials</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-center">
+                  <Link
+                    href={`/portal/project/${projectId}/setup`}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition"
+                  >
+                    Complete Setup & Send Credentials
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                  <p className={`${theme.muted} text-xs mt-3`}>Takes about 5 minutes</p>
+                </div>
               </div>
             )}
 
