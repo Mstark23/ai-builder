@@ -206,7 +206,7 @@ class ShoppingCart {
       this.closeCartDrawer();
     } else {
       // Simple alert if no modal
-      alert(\`Order Summary:\\n\\n\${this.items.map(i => \`\${i.name} x\${i.quantity} - $\${(i.price * i.quantity).toFixed(2)}\`).join('\\n')}\\n\\nTotal: $\${this.getTotal().toFixed(2)}\\n\\nThis is a demo. In production, this would redirect to Stripe checkout.\`);
+      alert(\`Order Summary:\\n\\n\${this.items.map(i => \`\${i.name} x\${i.quantity} - $\${(i.price * i.quantity).toFixed(2)}\`).join('\\n')}\\n\\nTotal: $\${this.getTotal().toFixed(2)}\\n\\nThis is a demo. In production, this would redirect to checkout.\`);
     }
   }
 }
