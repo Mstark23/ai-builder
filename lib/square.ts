@@ -1,7 +1,7 @@
 // lib/square.ts
 // Square client initialization — matches existing supabaseAdmin.ts pattern
 
-import { Client, Environment } from 'square';
+import { Client, Environment } from 'square/legacy';
 
 const accessToken = process.env.SQUARE_ACCESS_TOKEN!;
 const environment =
