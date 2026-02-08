@@ -13,6 +13,8 @@ export async function middleware(request: NextRequest) {
     '/reset-password',
     '/auth/callback',
     '/preview',
+    '/terms',
+    '/privacy',
     '/api/square/webhook',
     '/api/webhook',
     '/api/reports',
