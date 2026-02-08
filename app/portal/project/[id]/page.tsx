@@ -306,20 +306,8 @@ export default function DynamicProjectPage() {
   };
 
   const handleGrowthUpsell = async (packages: string[]) => {
-    // Redirect to Stripe checkout with selected packages
-    try {
-      const response = await fetch('/api/checkout/growth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: project.id, packages })
-      });
-      const { url } = await response.json();
-      if (url) {
-        window.location.href = url;
-      }
-    } catch (error) {
-      console.error('Error creating checkout:', error);
-    }
+    // Growth packages payment - coming soon
+    alert('Growth packages coming soon! Message us to learn more.');
   };
 
   const getStatus = () => statusConfig[project?.status as keyof typeof statusConfig] || statusConfig.QUEUED;
@@ -733,21 +721,19 @@ export default function DynamicProjectPage() {
                   </div>
                 )}
 
-                {/* Analytics */}
+                {/* What's Included */}
                 <div className={`${theme.card} rounded-2xl border p-6`}>
-                  <h3 className={`font-bold ${theme.text} mb-4`}>Analytics (Last 7 days)</h3>
-                  <div className="grid grid-cols-3 gap-4">
+                  <h3 className={`font-bold ${theme.text} mb-4`}>What&apos;s Included</h3>
+                  <div className="space-y-3">
                     {[
-                      { label: 'Visitors', value: '1,247', change: '+12%' },
-                      { label: 'Page Views', value: '3,891', change: '+8%' },
-                      { label: 'Avg. Time', value: '2m 34s', change: '+5%' }
-                    ].map((stat) => (
-                      <div key={stat.label} className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4`}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-xs ${theme.muted}`}>{stat.label}</span>
-                          <span className="text-xs text-emerald-500 font-medium">{stat.change}</span>
-                        </div>
-                        <p className={`text-2xl font-bold ${theme.text}`}>{stat.value}</p>
+                      { icon: '✓', text: 'Complete website files (HTML, CSS, JS)' },
+                      { icon: '✓', text: 'Mobile-responsive design' },
+                      { icon: '✓', text: 'SEO-optimized structure' },
+                      { icon: '✓', text: 'All images and assets' },
+                    ].map((item) => (
+                      <div key={item.text} className="flex items-center gap-3">
+                        <span className="w-6 h-6 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold">{item.icon}</span>
+                        <span className={`text-sm ${theme.muted}`}>{item.text}</span>
                       </div>
                     ))}
                   </div>
@@ -755,13 +741,13 @@ export default function DynamicProjectPage() {
 
                 {/* Quick Actions */}
                 <div className="grid sm:grid-cols-3 gap-4">
-                  <button className={`${theme.card} rounded-2xl border p-6 text-center hover:shadow-lg transition`}>
+                  <Link href={`/portal/messages?project=${projectId}`} className={`${theme.card} rounded-2xl border p-6 text-center hover:shadow-lg transition`}>
                     <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Icons.Download />
                     </div>
-                    <h4 className={`font-semibold ${theme.text} mb-1`}>Download Files</h4>
-                    <p className={`text-xs ${theme.muted}`}>Get all your website files</p>
-                  </button>
+                    <h4 className={`font-semibold ${theme.text} mb-1`}>Get Your Files</h4>
+                    <p className={`text-xs ${theme.muted}`}>Message us for your website files</p>
+                  </Link>
 
                   <Link href={`/portal/messages?project=${projectId}`} className={`${theme.card} rounded-2xl border p-6 text-center hover:shadow-lg transition`}>
                     <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3">
