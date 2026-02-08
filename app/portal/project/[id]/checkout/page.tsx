@@ -775,7 +775,7 @@ export default function CheckoutPage() {
           </div>
 
           <p className="text-center text-xs text-neutral-400 mt-4">
-            By completing this purchase, you agree to VektorLabs&apos; terms of service.
+            By completing this purchase, you agree to VektorLabs&apos; <a href="/terms" target="_blank" className="underline">terms of service</a>.
             Your website build will begin immediately after payment.
           </p>
         </div>
