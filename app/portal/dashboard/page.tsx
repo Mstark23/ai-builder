@@ -144,7 +144,7 @@ export default function CustomerDashboard() {
           <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
             <div className="p-5 border-b border-neutral-100 flex items-center justify-between">
               <h2 className="font-body font-semibold text-black">Your Projects</h2>
-              <Link href="/customer/projects" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">
+              <Link href="/portal" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">
                 View all →
               </Link>
             </div>
@@ -170,7 +170,7 @@ export default function CustomerDashboard() {
                 {projects.slice(0, 3).map((project) => {
                   const config = getStatusConfig(project.status);
                   return (
-                    <Link key={project.id} href={`/customer/projects/${project.id}`} className="p-4 flex items-center gap-4 hover:bg-neutral-50 transition-colors block">
+                    <Link key={project.id} href={`/portal/project/${project.id}`} className="p-4 flex items-center gap-4 hover:bg-neutral-50 transition-colors block">
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-body font-bold text-lg">
                         {project.business_name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
@@ -223,7 +223,7 @@ export default function CustomerDashboard() {
             ) : (
               <div className="divide-y divide-neutral-100">
                 {messages.slice(0, 3).map((msg) => (
-                  <Link key={msg.id} href={`/customer/messages?project=${msg.project_id}`} className="p-4 block hover:bg-neutral-50 transition-colors">
+                  <Link key={msg.id} href={`/portal/messages?project=${msg.project_id}`} className="p-4 block hover:bg-neutral-50 transition-colors">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-body text-sm font-medium text-black">VerktorLabs Team</span>
                       <span className="font-body text-xs text-neutral-400">{getTimeAgo(msg.created_at)}</span>
@@ -234,7 +234,7 @@ export default function CustomerDashboard() {
               </div>
             )}
             <div className="p-4 border-t border-neutral-100">
-              <Link href="/customer/messages" className="block text-center font-body text-sm text-neutral-500 hover:text-black transition-colors">
+              <Link href="/portal/messages" className="block text-center font-body text-sm text-neutral-500 hover:text-black transition-colors">
                 View all messages →
               </Link>
             </div>
@@ -250,13 +250,13 @@ export default function CustomerDashboard() {
                 </svg>
                 <span className="font-body text-sm font-medium">Start New Project</span>
               </Link>
-              <Link href="/customer/messages" className="flex items-center gap-3 p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-colors">
+              <Link href="/portal/messages" className="flex items-center gap-3 p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 <span className="font-body text-sm font-medium">Contact Support</span>
               </Link>
-              <Link href="/customer/settings" className="flex items-center gap-3 p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-colors">
+              <Link href="/portal/settings" className="flex items-center gap-3 p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <circle cx="12" cy="12" r="3" />
