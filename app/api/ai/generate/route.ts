@@ -594,7 +594,7 @@ function industryToBuilderProfile(industry: IndustryProfile, businessName: strin
     },
     integrations: {
       chatWidget: null, analytics: ['Google Analytics'], socialProofWidgets: [],
-      paymentProviders: ['Stripe'], newsletterService: 'Mailchimp', reviewPlatform: null,
+      paymentProviders: ['Square'], newsletterService: 'Mailchimp', reviewPlatform: null,
       bookingSystem: null, ecommercePlatform: 'Shopify', socialMedia: ['Instagram', 'TikTok'],
       customIntegrations: [],
     },
