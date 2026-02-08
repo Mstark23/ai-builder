@@ -5,7 +5,7 @@ import { Client, Environment } from 'square/legacy';
 
 const accessToken = process.env.SQUARE_ACCESS_TOKEN!;
 const environment =
-  process.env.NODE_ENV === 'production'
+  process.env.NEXT_PUBLIC_SQUARE_ENVIRONMENT === 'production'
     ? Environment.Production
     : Environment.Sandbox;
 
