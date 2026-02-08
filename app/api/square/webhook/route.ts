@@ -1,6 +1,6 @@
 // app/api/square/webhook/route.ts
 // Square Webhook Handler with Email Notifications
-// Mirrors the existing Stripe webhook at /api/stripe/webhook
+// Square Webhook Handler
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -26,7 +26,7 @@ function verifySignature(
   return signature === expectedSignature;
 }
 
-// ── Send payment notification emails (matches existing Stripe webhook) ──
+// ── Send payment notification emails ──
 async function sendPaymentEmails(project: any) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const FROM_EMAIL = process.env.FROM_EMAIL || 'Verktorlabs <noreply@verktorlabs.com>';
