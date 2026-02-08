@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
 
 const NAV_ITEMS = [
   {
@@ -85,24 +86,51 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem('adminLoggedIn');
-    const email = localStorage.getItem('adminEmail');
-    
-    if (!isLoggedIn) {
-      router.push('/admin/login');
-      return;
-    }
-    
-    setAdminEmail(email || 'admin@verktorlabs.com');
+    const checkAdmin = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.push('/admin/login');
+          return;
+        }
+
+        // Verify admin access
+        const { data: adminUser } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (!adminUser) {
+          // Logged in but not an admin
+          router.push('/admin/login');
+          return;
+        }
+
+        setAdminEmail(session.user.email || '');
+        setLoading(false);
+      } catch {
+        router.push('/admin/login');
+      }
+    };
+    checkAdmin();
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminLoggedIn');
-    localStorage.removeItem('adminEmail');
-    router.push('/admin/logout');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/admin/login');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa] flex">
