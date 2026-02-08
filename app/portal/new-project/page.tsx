@@ -24,6 +24,7 @@ type FormData = {
   description: string;
   websiteGoal: string;
   targetCustomer: string;
+  hostingPlatform: string;
   
   // Step 2: Brand & Voice (NEW)
   brandVoice: string;              // NEW: formal, conversational, playful, authoritative
@@ -90,6 +91,16 @@ const websiteGoals = [
   { id: 'showcase', name: 'Showcase Work', desc: 'Display portfolio & attract clients', icon: '🖼️' },
   { id: 'inform', name: 'Inform & Educate', desc: 'Share information about services', icon: '📖' },
   { id: 'brand', name: 'Build Brand', desc: 'Establish online presence', icon: '⭐' },
+];
+
+const hostingPlatforms = [
+  { id: 'shopify', name: 'Shopify', icon: '🛒', desc: 'Best for e-commerce stores' },
+  { id: 'wordpress', name: 'WordPress', icon: '📝', desc: 'Most flexible option' },
+  { id: 'squarespace', name: 'Squarespace', icon: '⬛', desc: 'Beautiful & easy to manage' },
+  { id: 'wix', name: 'Wix', icon: '✨', desc: 'Easy drag-and-drop' },
+  { id: 'webflow', name: 'Webflow', icon: '🎨', desc: 'Advanced design control' },
+  { id: 'custom', name: 'Host it for me', icon: '🌐', desc: 'We handle everything', recommended: true },
+  { id: 'undecided', name: 'Not sure yet', icon: '🤔', desc: "We'll help you choose" },
 ];
 
 // NEW: Brand voice options
@@ -249,6 +260,7 @@ export default function NewProjectPage() {
     description: '',
     websiteGoal: '',
     targetCustomer: '',
+    hostingPlatform: '',
     // Step 2 (NEW)
     brandVoice: '',
     existingLogo: false,
@@ -400,6 +412,7 @@ export default function NewProjectPage() {
       if (formData.description.trim()) projectData.description = formData.description.trim();
       if (formData.websiteGoal) projectData.website_goal = formData.websiteGoal;
       if (formData.targetCustomer.trim()) projectData.target_customer = formData.targetCustomer.trim();
+      if (formData.hostingPlatform) projectData.platform = formData.hostingPlatform;
       
       // NEW: Brand & Voice fields
       if (formData.brandVoice) projectData.brand_voice = formData.brandVoice;
@@ -651,6 +664,42 @@ export default function NewProjectPage() {
                 />
                 <p className="font-body text-xs text-amber-700 mt-2">
                   This helps us write copy that speaks directly to your audience
+                </p>
+              </div>
+
+              {/* Hosting Platform */}
+              <div>
+                <label className="block font-body text-sm font-medium text-black mb-3">
+                  Where do you want your website hosted?
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {hostingPlatforms.map(hp => (
+                    <button
+                      key={hp.id}
+                      onClick={() => updateForm('hostingPlatform', hp.id)}
+                      className={`p-3 rounded-xl font-body text-left transition-all relative ${
+                        formData.hostingPlatform === hp.id
+                          ? 'bg-black text-white'
+                          : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                      }`}
+                    >
+                      {'recommended' in hp && hp.recommended && (
+                        <span className={`absolute -top-2 -right-2 px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                          formData.hostingPlatform === hp.id ? 'bg-white text-black' : 'bg-emerald-500 text-white'
+                        }`}>
+                          POPULAR
+                        </span>
+                      )}
+                      <span className="text-lg block mb-1">{hp.icon}</span>
+                      <span className="text-sm font-medium block">{hp.name}</span>
+                      <span className={`text-xs block mt-0.5 ${formData.hostingPlatform === hp.id ? 'text-white/70' : 'text-neutral-400'}`}>
+                        {hp.desc}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <p className="font-body text-xs text-neutral-400 mt-2">
+                  After payment, we&apos;ll ask for your platform credentials to deploy your website.
                 </p>
               </div>
             </div>
@@ -1233,6 +1282,12 @@ export default function NewProjectPage() {
                     <span className="font-body text-neutral-500">Plan</span>
                     <span className="font-body font-medium text-black">
                       {plans.find(p => p.id === formData.plan)?.name} — ${plans.find(p => p.id === formData.plan)?.price}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-3 border-b border-neutral-100">
+                    <span className="font-body text-neutral-500">Hosting</span>
+                    <span className="font-body font-medium text-black">
+                      {hostingPlatforms.find(p => p.id === formData.hostingPlatform)?.name || 'Not selected'}
                     </span>
                   </div>
                   {formData.primaryServices.length > 0 && (
