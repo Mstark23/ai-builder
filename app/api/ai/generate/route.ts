@@ -15,6 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/api-auth';
 
 export const maxDuration = 60;
 
@@ -708,6 +709,10 @@ async function legacyRevise(currentHtml: string, editRequest: string): Promise<s
 // =============================================================================
 
 export async function POST(request: NextRequest) {
+  // Auth: only admins can trigger generation
+  const auth = await requireAdmin(request);
+  if (auth.error) return auth.error;
+
   const startTime = Date.now();
   const debugLog: string[] = [];
 
