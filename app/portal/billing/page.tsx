@@ -297,7 +297,7 @@ export default function BillingPage() {
           </div>
 
           <p className="font-body text-xs text-neutral-400 mt-4">
-            Payments are processed securely via Stripe. Your card information is never stored on our servers.
+            Payments are processed securely via Square. Your card information is never stored on our servers.
           </p>
         </div>
 
