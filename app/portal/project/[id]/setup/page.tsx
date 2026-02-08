@@ -10,10 +10,28 @@ import { supabase } from '@/lib/supabaseClient';
 // ============================================
 type Platform = 'shopify' | 'wordpress' | 'squarespace' | 'wix' | 'webflow' | 'custom' | '';
 
+type PlatformCredentials = {
+  shopify_store_url?: string;
+  shopify_collaborator_email?: string;
+  wp_admin_url?: string;
+  wp_username?: string;
+  wp_password?: string;
+  wp_hosting_provider?: string;
+  squarespace_email?: string;
+  squarespace_password?: string;
+  squarespace_site_url?: string;
+  wix_email?: string;
+  wix_password?: string;
+  wix_site_url?: string;
+  webflow_email?: string;
+  webflow_site_url?: string;
+  notes?: string;
+};
+
 type SetupData = {
   // Platform
   platform: Platform;
-  platformCredentials: string;
+  platformCredentials: PlatformCredentials;
   
   // Logo
   logoUrl: string;
@@ -58,7 +76,7 @@ type SetupData = {
 
 const initialSetupData: SetupData = {
   platform: '',
-  platformCredentials: '',
+  platformCredentials: {},
   logoUrl: '',
   images: [],
   businessName: '',
@@ -208,6 +226,7 @@ export default function PostPaymentSetupWizard() {
         phone: projectData.contact_phone || prev.phone,
         description: projectData.description || prev.description,
         platform: projectData.platform || prev.platform,
+        platformCredentials: projectData.platform_credentials || prev.platformCredentials,
         logoUrl: projectData.logo_url || prev.logoUrl,
         images: projectData.images || prev.images,
       }));
@@ -228,6 +247,13 @@ export default function PostPaymentSetupWizard() {
     setSetupData(prev => ({ ...prev, [field]: value }));
   };
 
+  const updateCredential = (key: string, value: string) => {
+    setSetupData(prev => ({
+      ...prev,
+      platformCredentials: { ...prev.platformCredentials, [key]: value }
+    }));
+  };
+
   const saveProgress = async () => {
     try {
       await supabase
@@ -235,6 +261,7 @@ export default function PostPaymentSetupWizard() {
         .update({
           setup_data: setupData,
           platform: setupData.platform,
+          platform_credentials: setupData.platformCredentials,
           logo_url: setupData.logoUrl,
           images: setupData.images,
           business_name: setupData.businessName,
@@ -354,6 +381,7 @@ export default function PostPaymentSetupWizard() {
           setup_completed: true,
           status: 'BUILDING',
           platform: setupData.platform,
+          platform_credentials: setupData.platformCredentials,
           logo_url: setupData.logoUrl,
           images: setupData.images,
           business_name: setupData.businessName,
@@ -362,10 +390,10 @@ export default function PostPaymentSetupWizard() {
         })
         .eq('id', projectId);
 
-      // Send notification message
+      const platformName = platforms.find(p => p.id === setupData.platform)?.name || setupData.platform;
       await supabase.from('messages').insert({
         project_id: projectId,
-        content: '✅ Customer has completed the setup wizard and submitted all content. Ready to build!',
+        content: `✅ Customer has completed the setup wizard and submitted all content.\n\n📋 Platform: ${platformName}\n${setupData.platform !== 'custom' ? '🔑 Credentials submitted — check project details to view.\n' : '🌐 Customer chose "Host it for me" — no credentials needed.\n'}\nReady to build!`,
         sender_type: 'system',
         read: false,
       });
@@ -576,10 +604,146 @@ export default function PostPaymentSetupWizard() {
             </div>
 
             {setupData.platform && setupData.platform !== 'custom' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                <p className="font-body text-sm text-amber-800">
-                  <strong>Note:</strong> You'll need to provide access to your {platforms.find(p => p.id === setupData.platform)?.name} account. We'll send instructions after you complete this setup.
-                </p>
+              <div className="mt-6 space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4">
+                  <p className="font-body text-sm text-blue-800">
+                    <strong>🔒 Your credentials are encrypted</strong> and only used by our team to deploy your website. We never share or store them after delivery.
+                  </p>
+                </div>
+
+                {/* SHOPIFY */}
+                {setupData.platform === 'shopify' && (
+                  <div className="space-y-4">
+                    <h3 className="font-body font-semibold text-black">Shopify Access</h3>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">Store URL *</label>
+                      <div className="flex items-center">
+                        <input type="text" placeholder="your-store" value={setupData.platformCredentials.shopify_store_url || ''} onChange={(e) => updateCredential('shopify_store_url', e.target.value)} className="flex-1 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-l-xl font-body text-sm focus:outline-none focus:border-black" />
+                        <span className="px-4 py-3 bg-neutral-100 border border-l-0 border-neutral-200 rounded-r-xl font-body text-sm text-neutral-500">.myshopify.com</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">Staff Account Email</label>
+                      <input type="email" placeholder="The email you'll use to invite us as a collaborator" value={setupData.platformCredentials.shopify_collaborator_email || ''} onChange={(e) => updateCredential('shopify_collaborator_email', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                    </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                      <p className="font-body text-sm text-amber-800 font-medium mb-2">How to give us access:</p>
+                      <ol className="font-body text-sm text-amber-700 space-y-1 list-decimal list-inside">
+                        <li>Go to your Shopify Admin → Settings → Users and permissions</li>
+                        <li>Click &quot;Add staff&quot; or &quot;Send collaborator request&quot;</li>
+                        <li>Invite <strong>deploy@verktorlabs.com</strong> with &quot;Themes&quot; access</li>
+                        <li>We&apos;ll accept the invite and deploy your new theme</li>
+                      </ol>
+                    </div>
+                  </div>
+                )}
+
+                {/* WORDPRESS */}
+                {setupData.platform === 'wordpress' && (
+                  <div className="space-y-4">
+                    <h3 className="font-body font-semibold text-black">WordPress Access</h3>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">WordPress Admin URL *</label>
+                      <input type="url" placeholder="https://yoursite.com/wp-admin" value={setupData.platformCredentials.wp_admin_url || ''} onChange={(e) => updateCredential('wp_admin_url', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-body text-sm font-medium text-black mb-2">Admin Username *</label>
+                        <input type="text" placeholder="admin" value={setupData.platformCredentials.wp_username || ''} onChange={(e) => updateCredential('wp_username', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                      </div>
+                      <div>
+                        <label className="block font-body text-sm font-medium text-black mb-2">Admin Password *</label>
+                        <input type="password" placeholder="••••••••" value={setupData.platformCredentials.wp_password || ''} onChange={(e) => updateCredential('wp_password', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">Hosting Provider</label>
+                      <select value={setupData.platformCredentials.wp_hosting_provider || ''} onChange={(e) => updateCredential('wp_hosting_provider', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black">
+                        <option value="">Select hosting provider</option>
+                        <option value="bluehost">Bluehost</option>
+                        <option value="siteground">SiteGround</option>
+                        <option value="godaddy">GoDaddy</option>
+                        <option value="hostinger">Hostinger</option>
+                        <option value="namecheap">Namecheap</option>
+                        <option value="wpengine">WP Engine</option>
+                        <option value="cloudways">Cloudways</option>
+                        <option value="other">Other</option>
+                        <option value="unknown">I&apos;m not sure</option>
+                      </select>
+                    </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                      <p className="font-body text-sm text-amber-800"><strong>Tip:</strong> Create a temporary admin account for us instead of sharing your main credentials. You can delete it after we&apos;re done.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* SQUARESPACE */}
+                {setupData.platform === 'squarespace' && (
+                  <div className="space-y-4">
+                    <h3 className="font-body font-semibold text-black">Squarespace Access</h3>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">Site URL *</label>
+                      <input type="url" placeholder="https://yoursite.squarespace.com" value={setupData.platformCredentials.squarespace_site_url || ''} onChange={(e) => updateCredential('squarespace_site_url', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                    </div>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">Account Email *</label>
+                      <input type="email" placeholder="your@email.com" value={setupData.platformCredentials.squarespace_email || ''} onChange={(e) => updateCredential('squarespace_email', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                    </div>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">Account Password *</label>
+                      <input type="password" placeholder="••••••••" value={setupData.platformCredentials.squarespace_password || ''} onChange={(e) => updateCredential('squarespace_password', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                    </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                      <p className="font-body text-sm text-amber-800"><strong>Alternative:</strong> You can invite us as a contributor instead. Go to Settings → Permissions → Invite Contributor and add <strong>deploy@verktorlabs.com</strong>.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* WIX */}
+                {setupData.platform === 'wix' && (
+                  <div className="space-y-4">
+                    <h3 className="font-body font-semibold text-black">Wix Access</h3>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">Wix Site URL *</label>
+                      <input type="url" placeholder="https://yoursite.wixsite.com/mysite" value={setupData.platformCredentials.wix_site_url || ''} onChange={(e) => updateCredential('wix_site_url', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                    </div>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">Wix Account Email *</label>
+                      <input type="email" placeholder="your@email.com" value={setupData.platformCredentials.wix_email || ''} onChange={(e) => updateCredential('wix_email', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                    </div>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">Wix Password *</label>
+                      <input type="password" placeholder="••••••••" value={setupData.platformCredentials.wix_password || ''} onChange={(e) => updateCredential('wix_password', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                    </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                      <p className="font-body text-sm text-amber-800"><strong>Alternative:</strong> Add us as a Site Collaborator. Go to Dashboard → Settings → Roles & Permissions → Invite People and add <strong>deploy@verktorlabs.com</strong> as Admin.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* WEBFLOW */}
+                {setupData.platform === 'webflow' && (
+                  <div className="space-y-4">
+                    <h3 className="font-body font-semibold text-black">Webflow Access</h3>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">Webflow Site URL</label>
+                      <input type="url" placeholder="https://yoursite.webflow.io" value={setupData.platformCredentials.webflow_site_url || ''} onChange={(e) => updateCredential('webflow_site_url', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                    </div>
+                    <div>
+                      <label className="block font-body text-sm font-medium text-black mb-2">Webflow Account Email *</label>
+                      <input type="email" placeholder="your@email.com" value={setupData.platformCredentials.webflow_email || ''} onChange={(e) => updateCredential('webflow_email', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
+                    </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                      <p className="font-body text-sm text-amber-800"><strong>How to invite us:</strong> Go to Workspace Settings → Members → Invite and add <strong>deploy@verktorlabs.com</strong> with &quot;Can Design&quot; permissions.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* NOTES */}
+                <div className="mt-4">
+                  <label className="block font-body text-sm font-medium text-black mb-2">Additional Notes (optional)</label>
+                  <textarea placeholder="Any special instructions about accessing your platform..." value={setupData.platformCredentials.notes || ''} onChange={(e) => updateCredential('notes', e.target.value)} rows={3} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black resize-none" />
+                </div>
               </div>
             )}
 
@@ -1080,6 +1244,16 @@ export default function PostPaymentSetupWizard() {
                       <p className="font-body font-medium text-black">Platform</p>
                       <p className="font-body text-sm text-neutral-500">
                         {platforms.find(p => p.id === setupData.platform)?.name || 'Not selected'}
+                        {setupData.platform && setupData.platform !== 'custom' && (
+                          <span className="ml-2">
+                            {Object.values(setupData.platformCredentials).some(v => v && String(v).trim())
+                              ? '• 🔑 Credentials provided'
+                              : '• ⚠️ No credentials yet'}
+                          </span>
+                        )}
+                        {setupData.platform === 'custom' && (
+                          <span className="ml-2">• We handle hosting</span>
+                        )}
                       </p>
                     </div>
                   </div>
