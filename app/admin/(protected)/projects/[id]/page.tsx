@@ -40,6 +40,9 @@ type Project = {
   review_score: number | null;
   review_details: any | null;
   reviewed_at: string | null;
+  platform: string | null;
+  platform_credentials: Record<string, string> | null;
+  setup_completed: boolean | null;
   customers?: { id: string; name: string; email: string; phone: string | null } | null;
 };
 
