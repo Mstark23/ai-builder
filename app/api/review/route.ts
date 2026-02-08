@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/api-auth';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -82,6 +83,10 @@ const reviewWeights = {
 // MAIN REVIEW FUNCTION
 // ============================================
 export async function POST(request: NextRequest) {
+  // Auth: only admins can trigger reviews
+  const auth = await requireAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     const { projectId, generatedHtml } = await request.json();
 
