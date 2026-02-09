@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     template: '%s | VektorLabs',
   },
   description:
-    'Strategic AI website builder that generates conversion-optimized websites using intelligence from billion-dollar brands. Custom websites in 72 hours.',
+    'Strategic AI website builder that generates conversion-optimized websites using intelligence from billion-dollar brands.',
   keywords: [
     'AI website builder',
     'custom website',
