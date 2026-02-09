@@ -164,7 +164,7 @@ function MultiPageManager({
     try {
       const response = await fetch('/api/generate-multipage', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.NEXT_PUBLIC_ADMIN_SECRET || '' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectId, pages: selectedPages }),
       });
       const data = await response.json();
@@ -327,7 +327,7 @@ function SectionEditor({ projectId, html, onUpdate }: { projectId: string; html:
     try {
       const response = await fetch('/api/regenerate-section', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.NEXT_PUBLIC_ADMIN_SECRET || '' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectId, section: selectedSection.id, feedback: feedback.trim() }),
       });
       const data = await response.json();
@@ -543,7 +543,7 @@ function DesignReview({ project, onReviewComplete }: { project: Project; onRevie
     try {
       const response = await fetch('/api/review', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.NEXT_PUBLIC_ADMIN_SECRET || '' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectId: project.id, generatedHtml: project.generated_html })
       });
       if (!response.ok) throw new Error('Review failed');
@@ -798,7 +798,7 @@ export default function ProjectDetailPage() {
       const startTime = Date.now();
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.NEXT_PUBLIC_ADMIN_SECRET || '' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectId: project.id, action: 'generate' }),
       });
 
