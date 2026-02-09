@@ -851,7 +851,7 @@ export default function CheckoutPage() {
             <h3 className="font-semibold text-blue-900 text-sm">What happens next?</h3>
             <ul className="mt-2 space-y-1.5 text-sm text-blue-800">
               <li>→ Your website build begins immediately</li>
-              <li>→ You&apos;ll receive a preview within 72 hours</li>
+              <li>→ You&apos;ll receive a preview soon</li>
               <li>→ Complete your setup to customize your site</li>
             </ul>
           </div>
