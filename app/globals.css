@@ -39,10 +39,10 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #9333ea;
+  background: #000000;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #7c3aed;
+  background: #333333;
 }
