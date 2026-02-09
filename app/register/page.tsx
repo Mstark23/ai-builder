@@ -178,7 +178,7 @@ export default function RegisterPage() {
                 <span className="text-black font-display text-2xl font-semibold">V</span>
               </div>
             </div>
-            <span className="font-body text-white text-lg font-semibold tracking-wide">VERKTORLABS</span>
+            <span className="font-body text-white text-lg font-semibold tracking-wide">VEKTORLABS</span>
           </Link>
 
           {/* CENTER CONTENT */}
@@ -236,7 +236,7 @@ export default function RegisterPage() {
               <div className="w-11 h-11 bg-black rounded-xl flex items-center justify-center">
                 <span className="text-white font-display text-xl font-semibold">V</span>
               </div>
-              <span className="font-body text-black text-lg font-semibold tracking-wide">VERKTORLABS</span>
+              <span className="font-body text-black text-lg font-semibold tracking-wide">VEKTORLABS</span>
             </Link>
           </div>
 
