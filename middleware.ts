@@ -56,11 +56,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  // Refresh session - getUser() triggers token refresh, getSession() does not
+  const { data: { user } } = await supabase.auth.getUser();
 
   // ── Portal routes: require logged-in user ──
   if (pathname.startsWith('/portal')) {
-    if (!session) {
+    if (!user) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
@@ -70,7 +71,7 @@ export async function middleware(request: NextRequest) {
 
   // ── Admin routes (except /admin/login): require session + admin check ──
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
-    if (!session) {
+    if (!user) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
 
@@ -78,7 +79,7 @@ export async function middleware(request: NextRequest) {
     const { data: adminUser } = await supabase
       .from('admin_users')
       .select('id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single();
 
     if (!adminUser) {
