@@ -886,7 +886,6 @@ export default function DynamicProjectPage() {
                 {[
                   { l: 'Plan', v: project?.plan?.charAt(0).toUpperCase() + project?.plan?.slice(1) },
                   { l: 'Created', v: new Date(project?.created_at).toLocaleDateString() },
-                  { l: 'Est. Delivery', v: project?.estimated_delivery || 'TBD' },
                   { l: 'Platform', v: project?.platform || 'Not set' }
                 ].map((item) => (
                   <div key={item.l} className="flex justify-between">
@@ -896,6 +895,33 @@ export default function DynamicProjectPage() {
                 ))}
               </div>
             </div>
+
+            {/* Credentials / Setup Button - Show for relevant statuses */}
+            {['PREVIEW_READY', 'PAID', 'BUILDING'].includes(project?.status) && (
+              <Link
+                href={`/portal/project/${projectId}/setup`}
+                className={`${theme.card} rounded-2xl border p-5 block hover:shadow-md transition group`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${project?.setup_completed ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+                    <span className="text-lg">{project?.setup_completed ? '✅' : '🔑'}</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className={`text-sm font-semibold ${theme.text}`}>
+                      {project?.setup_completed ? 'Credentials Submitted' : 'Submit Credentials'}
+                    </p>
+                    <p className={`text-xs ${theme.muted}`}>
+                      {project?.setup_completed 
+                        ? 'View or update your setup details' 
+                        : 'Logo, content & platform access'}
+                    </p>
+                  </div>
+                  <svg className={`w-4 h-4 ${theme.muted} group-hover:translate-x-1 transition-transform`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </Link>
+            )}
 
             {/* Growth Tools Quick Access - Show for delivered projects */}
             {project?.status === 'DELIVERED' && (
