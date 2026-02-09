@@ -25,3 +25,32 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ success: true });
 }
+
+export async function DELETE(req: NextRequest) {
+  // Auth: only admins can delete projects
+  const auth = await requireAdmin(req);
+  if (auth.error) return auth.error;
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  // Delete related data first
+  await supabaseAdmin.from("messages").delete().eq("project_id", id);
+  await supabaseAdmin.from("tracking_events").delete().eq("project_id", id);
+
+  // Delete the project
+  const { error } = await supabaseAdmin
+    .from("projects")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
