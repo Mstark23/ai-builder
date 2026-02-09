@@ -205,8 +205,9 @@ export default function PostPaymentSetupWizard() {
         return;
       }
 
-      // Check if project is paid
-      if (!projectData.paid) {
+      // Check if project is paid (allow access if paid column is true OR status indicates payment)
+      const paidStatuses = ['PAID', 'BUILDING', 'DELIVERED', 'PREVIEW_READY'];
+      if (!projectData.paid && !paidStatuses.includes(projectData.status)) {
         router.push(`/portal/project/${projectId}`);
         return;
       }
@@ -631,7 +632,7 @@ export default function PostPaymentSetupWizard() {
                       <ol className="font-body text-sm text-amber-700 space-y-1 list-decimal list-inside">
                         <li>Go to your Shopify Admin → Settings → Users and permissions</li>
                         <li>Click &quot;Add staff&quot; or &quot;Send collaborator request&quot;</li>
-                        <li>Invite <strong>deploy@verktorlabs.com</strong> with &quot;Themes&quot; access</li>
+                        <li>Invite <strong>deploy@vektorlabs.com</strong> with &quot;Themes&quot; access</li>
                         <li>We&apos;ll accept the invite and deploy your new theme</li>
                       </ol>
                     </div>
@@ -694,7 +695,7 @@ export default function PostPaymentSetupWizard() {
                       <input type="password" placeholder="••••••••" value={setupData.platformCredentials.squarespace_password || ''} onChange={(e) => updateCredential('squarespace_password', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
                     </div>
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                      <p className="font-body text-sm text-amber-800"><strong>Alternative:</strong> You can invite us as a contributor instead. Go to Settings → Permissions → Invite Contributor and add <strong>deploy@verktorlabs.com</strong>.</p>
+                      <p className="font-body text-sm text-amber-800"><strong>Alternative:</strong> You can invite us as a contributor instead. Go to Settings → Permissions → Invite Contributor and add <strong>deploy@vektorlabs.com</strong>.</p>
                     </div>
                   </div>
                 )}
@@ -716,7 +717,7 @@ export default function PostPaymentSetupWizard() {
                       <input type="password" placeholder="••••••••" value={setupData.platformCredentials.wix_password || ''} onChange={(e) => updateCredential('wix_password', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
                     </div>
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                      <p className="font-body text-sm text-amber-800"><strong>Alternative:</strong> Add us as a Site Collaborator. Go to Dashboard → Settings → Roles & Permissions → Invite People and add <strong>deploy@verktorlabs.com</strong> as Admin.</p>
+                      <p className="font-body text-sm text-amber-800"><strong>Alternative:</strong> Add us as a Site Collaborator. Go to Dashboard → Settings → Roles & Permissions → Invite People and add <strong>deploy@vektorlabs.com</strong> as Admin.</p>
                     </div>
                   </div>
                 )}
@@ -734,7 +735,7 @@ export default function PostPaymentSetupWizard() {
                       <input type="email" placeholder="your@email.com" value={setupData.platformCredentials.webflow_email || ''} onChange={(e) => updateCredential('webflow_email', e.target.value)} className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl font-body text-sm focus:outline-none focus:border-black" />
                     </div>
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                      <p className="font-body text-sm text-amber-800"><strong>How to invite us:</strong> Go to Workspace Settings → Members → Invite and add <strong>deploy@verktorlabs.com</strong> with &quot;Can Design&quot; permissions.</p>
+                      <p className="font-body text-sm text-amber-800"><strong>How to invite us:</strong> Go to Workspace Settings → Members → Invite and add <strong>deploy@vektorlabs.com</strong> with &quot;Can Design&quot; permissions.</p>
                     </div>
                   </div>
                 )}
