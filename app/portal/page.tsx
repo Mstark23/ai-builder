@@ -256,7 +256,7 @@ export default function PortalDashboard() {
               <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center transition-transform group-hover:rotate-6">
                 <span className="text-white font-display text-lg font-semibold">V</span>
               </div>
-              <span className="font-body text-black font-semibold tracking-wide hidden sm:block">VERKTORLABS</span>
+              <span className="font-body text-black font-semibold tracking-wide hidden sm:block">VEKTORLABS</span>
             </Link>
 
             {/* NAV - DESKTOP */}
@@ -453,7 +453,7 @@ export default function PortalDashboard() {
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
               <div className="relative z-10">
                 <h2 className="font-display text-2xl font-medium mb-2">Ready for a new website?</h2>
-                <p className="font-body text-white/70 mb-6">Get your custom website designed in 72 hours.</p>
+                <p className="font-body text-white/70 mb-6">Get your custom website designed by our team.</p>
                 <Link
                   href="/portal/new-project"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-body font-medium rounded-full hover:bg-white/90 transition-all"
@@ -677,7 +677,7 @@ export default function PortalDashboard() {
               <h3 className="font-body font-semibold text-emerald-900 mb-1">Need Help?</h3>
               <p className="font-body text-sm text-emerald-700 mb-4">Our team is here to assist you.</p>
               <a
-                href="mailto:support@verktorlabs.com"
+                href="mailto:support@vektorlabs.com"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-body text-sm font-medium rounded-full hover:bg-emerald-700 transition-colors"
               >
                 <span>Contact Support</span>
@@ -695,7 +695,7 @@ export default function PortalDashboard() {
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="font-body text-sm text-neutral-500">
-              © 2024 Verktorlabs. All rights reserved.
+              © 2024 Vektorlabs. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <Link href="/privacy" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">
@@ -704,7 +704,7 @@ export default function PortalDashboard() {
               <Link href="/terms" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">
                 Terms
               </Link>
-              <a href="mailto:support@verktorlabs.com" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">
+              <a href="mailto:support@vektorlabs.com" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">
                 Support
               </a>
             </div>
