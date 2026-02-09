@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import { tracker } from '@/lib/tracker';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -86,6 +87,9 @@ export default function RegisterPage() {
           console.error('Customer creation error:', customerError);
         }
 
+        // Link anonymous visitor to new account
+        tracker.identify(authData.user.id, formData.email);
+        
         router.push('/portal/new-project');
       }
     } catch (err) {
