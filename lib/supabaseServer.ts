@@ -13,6 +13,21 @@ export async function createSupabaseServer() {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
+        set(name: string, value: string, options: any) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch {
+            // set() may fail in Server Components, which is fine
+            // since middleware handles the refresh
+          }
+        },
+        remove(name: string, options: any) {
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch {
+            // Same as above
+          }
+        },
       },
     }
   );
