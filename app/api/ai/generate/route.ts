@@ -1,5 +1,5 @@
 // app/api/ai/generate/route.ts
-// VERKTORLABS - AI Website Generation with Industry Intelligence
+// VEKTORLABS - AI Website Generation with Industry Intelligence
 //
 // NEW APPROACH: Instead of scraping a "King" website (which gets blocked by Cloudflare),
 // we use pre-built industry intelligence from 44 researched industries.
@@ -709,9 +709,12 @@ async function legacyRevise(currentHtml: string, editRequest: string): Promise<s
 // =============================================================================
 
 export async function POST(request: NextRequest) {
-  // Auth: only admins can trigger generation
-  const auth = await requireAdmin(request);
-  if (auth.error) return auth.error;
+  // Auth: admin check via token OR admin secret
+  const adminSecret = request.headers.get('x-admin-secret');
+  if (adminSecret !== process.env.NEXT_PUBLIC_ADMIN_SECRET) {
+    const auth = await requireAdmin(request);
+    if (auth.error) return auth.error;
+  }
 
   const startTime = Date.now();
   const debugLog: string[] = [];
