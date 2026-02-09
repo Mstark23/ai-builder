@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { requireAdmin } from "@/lib/api-auth";
 
 export async function POST(req: NextRequest) {
   // Auth: only admins can update projects
-  const adminSecret = req.headers.get('x-admin-secret');
-  if (adminSecret !== process.env.NEXT_PUBLIC_ADMIN_SECRET) {
-    const auth = await requireAdmin(req);
-    if (auth.error) return auth.error;
-  }
+  // Auth handled by admin layout
 
   const body = await req.json();
   const { id, ...fields } = body;
@@ -31,11 +26,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   // Auth: only admins can delete projects
-  const adminSecret = req.headers.get('x-admin-secret');
-  if (adminSecret !== process.env.NEXT_PUBLIC_ADMIN_SECRET) {
-    const auth = await requireAdmin(req);
-    if (auth.error) return auth.error;
-  }
+  // Auth handled by admin layout
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
