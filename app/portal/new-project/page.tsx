@@ -215,14 +215,14 @@ const plans = [
     name: 'Starter',
     price: 299,
     desc: 'Perfect for landing pages',
-    features: ['1 page design', 'Mobile responsive', '2 revisions', '72h delivery'],
+    features: ['1 page design', 'Mobile responsive', '2 revisions', 'Dedicated support'],
   },
   {
     id: 'professional',
     name: 'Professional',
     price: 599,
     desc: 'Best for service businesses',
-    features: ['Up to 5 pages', 'Mobile responsive', 'Unlimited revisions', '48h delivery', 'Contact form'],
+    features: ['Up to 5 pages', 'Mobile responsive', 'Unlimited revisions', 'Priority support', 'Contact form'],
     popular: true,
   },
   {
@@ -230,7 +230,7 @@ const plans = [
     name: 'Enterprise',
     price: 999,
     desc: 'Full website experience',
-    features: ['Up to 10 pages', 'Mobile responsive', 'Unlimited revisions', '24h delivery', 'Advanced features', 'Priority support'],
+    features: ['Up to 10 pages', 'Mobile responsive', 'Unlimited revisions', 'Top priority', 'Advanced features', 'Priority support'],
   },
 ];
 
