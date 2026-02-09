@@ -18,6 +18,7 @@ export async function middleware(request: NextRequest) {
     '/api/square/webhook',
     '/api/webhook',
     '/api/reports',
+    '/api/track',
   ];
 
   const isPublic =
