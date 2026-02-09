@@ -1,227 +1,105 @@
-// /app/portal/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import { tracker } from '@/lib/tracker';
 
-type Project = {
-  id: string;
-  business_name: string;
-  status: string;
-  plan: string;
-  paid: boolean;
-  created_at: string;
-  preview_url: string | null;
-};
-
-type Activity = {
-  id: string;
-  type: string;
-  message: string;
-  created_at: string;
-  project_name?: string;
-};
-
-type Customer = {
-  id: string;
-  name: string;
-  email: string;
-  business_name: string;
-  phone: string;
-};
-
-export default function PortalDashboard() {
+export default function RegisterPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    total: 0,
-    inProgress: 0,
-    completed: 0,
-    totalSpent: 0,
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    phone: '',
+    businessName: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState(1);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Check if user has any paid/delivered project (unlocks Growth)
-  const hasGrowthAccess = projects.some(p => p.paid || p.status === 'DELIVERED');
-  
-  // Check if user has delivered projects but no growth packages
-  const hasDeliveredProject = projects.some(p => p.status === 'DELIVERED' || p.paid);
-  const [hasGrowthPackages, setHasGrowthPackages] = useState(false);
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push('/login');
-      return;
+  const handleGoogleSignup = async () => {
+    setGoogleLoading(true);
+    setError('');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) { setError(error.message); setGoogleLoading(false); }
+    } catch (err) {
+      console.error('Google signup error:', err);
+      setError('Failed to sign in with Google');
+      setGoogleLoading(false);
     }
-    setUser(user);
-    await loadData(user.id);
   };
 
-  const loadData = async (userId: string) => {
-    try {
-      // Load customer
-      const { data: customerData } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-      if (customerData) {
-        setCustomer(customerData);
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
       }
 
-      // Load projects
-      const { data: projectsData } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('customer_id', userId)
-        .order('created_at', { ascending: false });
+      if (authData.user) {
+        // Create customer record
+        const { error: customerError } = await supabase
+          .from('customers')
+          .insert({
+            id: authData.user.id,
+            email: formData.email,
+            name: formData.name,
+            phone: formData.phone || null,
+            business_name: formData.businessName || null,
+          });
 
-      if (projectsData) {
-        setProjects(projectsData);
+        if (customerError) {
+          console.error('Customer creation error:', customerError);
+        }
 
-        // Calculate stats
-        const planPrices: Record<string, number> = {
-          starter: 299, landing: 299,
-          professional: 599, service: 599,
-          premium: 799,
-          enterprise: 999, ecommerce: 999,
-        };
-
-        const totalSpent = projectsData
-          .filter(p => p.paid)
-          .reduce((sum, p) => sum + (planPrices[p.plan] || 0), 0);
-
-        setStats({
-          total: projectsData.length,
-          inProgress: projectsData.filter(p => !['DELIVERED'].includes(p.status)).length,
-          completed: projectsData.filter(p => p.status === 'DELIVERED').length,
-          totalSpent,
-        });
-
-        // Generate activities from projects
-        const generatedActivities: Activity[] = projectsData.slice(0, 5).map(p => ({
-          id: p.id,
-          type: getActivityType(p.status),
-          message: getActivityMessage(p.status, p.business_name),
-          created_at: p.created_at,
-          project_name: p.business_name,
-        }));
-        setActivities(generatedActivities);
-
-        // Check if user has growth packages
-        // TODO: Replace with actual database check when growth_packages table exists
-        const { data: growthData } = await supabase
-          .from('growth_packages')
-          .select('id')
-          .eq('customer_id', userId)
-          .limit(1);
+        // Link anonymous visitor to new account
+        tracker.identify(authData.user.id, formData.email);
         
-        // FIX: Ensure boolean value (not null)
-        setHasGrowthPackages(!!(growthData && growthData.length > 0));
+        router.push('/portal/new-project');
       }
     } catch (err) {
-      console.error('Error loading data:', err);
-    } finally {
+      setError('An unexpected error occurred');
       setLoading(false);
     }
   };
 
-  const getActivityType = (status: string) => {
-    const types: Record<string, string> = {
-      QUEUED: 'queued',
-      IN_PROGRESS: 'progress',
-      PREVIEW_READY: 'preview',
-      REVISION_REQUESTED: 'revision',
-      PAID: 'paid',
-      DELIVERED: 'delivered',
-    };
-    return types[status] || 'update';
-  };
-
-  const getActivityMessage = (status: string, name: string) => {
-    const messages: Record<string, string> = {
-      QUEUED: `${name} is in the queue`,
-      IN_PROGRESS: `Designer started working on ${name}`,
-      PREVIEW_READY: `Preview ready for ${name}`,
-      REVISION_REQUESTED: `Revision requested for ${name}`,
-      PAID: `Payment received for ${name}`,
-      DELIVERED: `${name} has been delivered`,
-    };
-    return messages[status] || `Update for ${name}`;
-  };
-
-  const getActivityIcon = (type: string) => {
-    const icons: Record<string, { icon: string; bg: string }> = {
-      queued: { icon: '⏳', bg: 'bg-amber-100' },
-      progress: { icon: '🎨', bg: 'bg-blue-100' },
-      preview: { icon: '👁️', bg: 'bg-purple-100' },
-      revision: { icon: '✏️', bg: 'bg-orange-100' },
-      paid: { icon: '💰', bg: 'bg-emerald-100' },
-      delivered: { icon: '🚀', bg: 'bg-emerald-100' },
-      update: { icon: '📌', bg: 'bg-neutral-100' },
-    };
-    return icons[type] || icons.update;
-  };
-
-  const getStatusConfig = (status: string) => {
-    const configs: Record<string, { label: string; color: string; bg: string; progress: number }> = {
-      QUEUED: { label: 'In Queue', color: 'text-amber-700', bg: 'bg-amber-100', progress: 20 },
-      IN_PROGRESS: { label: 'In Progress', color: 'text-blue-700', bg: 'bg-blue-100', progress: 50 },
-      PREVIEW_READY: { label: 'Preview Ready', color: 'text-purple-700', bg: 'bg-purple-100', progress: 75 },
-      REVISION_REQUESTED: { label: 'Revising', color: 'text-orange-700', bg: 'bg-orange-100', progress: 60 },
-      PAID: { label: 'Paid', color: 'text-emerald-700', bg: 'bg-emerald-100', progress: 90 },
-      DELIVERED: { label: 'Delivered', color: 'text-emerald-700', bg: 'bg-emerald-100', progress: 100 },
-    };
-    return configs[status] || { label: status, color: 'text-neutral-700', bg: 'bg-neutral-100', progress: 0 };
-  };
-
-  const getPlanPrice = (plan: string) => {
-    const prices: Record<string, number> = {
-      starter: 299, landing: 299,
-      professional: 599, service: 599,
-      premium: 799,
-      enterprise: 999, ecommerce: 999,
-    };
-    return prices[plan] || 0;
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
-
-  const timeAgo = (date: string) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return 'Just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return `${Math.floor(seconds / 86400)}d ago`;
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="font-body text-neutral-500">Loading your portal...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#fafafa] antialiased">
+    <div className="min-h-screen bg-[#fafafa] flex antialiased">
       {/* CUSTOM STYLES */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
@@ -234,483 +112,391 @@ export default function PortalDashboard() {
           opacity: 0.03;
         }
 
-        .card-hover {
+        .input-focus {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .card-hover:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        .input-focus:focus {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .btn-hover {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-hover:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .slide-up {
+          animation: slideUp 0.6s ease-out forwards;
+          opacity: 0;
+          transform: translateY(20px);
+        }
+
+        @keyframes slideUp {
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .float {
+          animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
         }
       `}</style>
 
       {/* NOISE OVERLAY */}
       <div className="fixed inset-0 pointer-events-none noise z-50"></div>
 
-      {/* HEADER */}
-      <header className="bg-white border-b border-neutral-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-20">
-            {/* LOGO */}
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center transition-transform group-hover:rotate-6">
-                <span className="text-white font-display text-lg font-semibold">V</span>
+      {/* LEFT SIDE - BRANDING */}
+      <div className="hidden lg:flex lg:w-1/2 bg-black relative overflow-hidden">
+        {/* BACKGROUND PATTERN */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/3 -left-32 w-[500px] h-[500px] bg-white/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/3 -right-32 w-[400px] h-[400px] bg-white/5 rounded-full blur-3xl"></div>
+        </div>
+
+        {/* GRID PATTERN */}
+        <div className="absolute inset-0 opacity-[0.02]" style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                           linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundSize: '50px 50px'
+        }}></div>
+
+        {/* CONTENT */}
+        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+          {/* LOGO */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="relative w-12 h-12">
+              <div className="absolute inset-0 bg-white rounded-xl transition-transform duration-300 group-hover:rotate-6"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-black font-display text-2xl font-semibold">V</span>
               </div>
-              <span className="font-body text-black font-semibold tracking-wide hidden sm:block">VEKTORLABS</span>
-            </Link>
+            </div>
+            <span className="font-body text-white text-lg font-semibold tracking-wide">VEKTORLABS</span>
+          </Link>
 
-            {/* NAV - DESKTOP */}
-            <nav className="hidden md:flex items-center gap-1">
-              <Link href="/portal" className="px-4 py-2 bg-black text-white rounded-full font-body text-sm font-medium">
-                Dashboard
-              </Link>
-              <Link href="/portal/messages" className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-full font-body text-sm font-medium transition-colors">
-                Messages
-              </Link>
-              <Link href="/portal/billing" className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-full font-body text-sm font-medium transition-colors">
-                Billing
-              </Link>
-              {/* GROWTH NAV LINK */}
-              <Link 
-                href="/portal/growth" 
-                className={`px-4 py-2 rounded-full font-body text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                  hasGrowthAccess 
-                    ? 'text-neutral-600 hover:bg-neutral-100' 
-                    : 'text-neutral-400 hover:bg-neutral-100'
-                }`}
-              >
-                {!hasGrowthAccess && (
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                )}
-                <span>Growth</span>
-                {hasGrowthAccess && (
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                )}
-              </Link>
-              <Link href="/portal/settings" className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-full font-body text-sm font-medium transition-colors">
-                Settings
-              </Link>
-            </nav>
+          {/* CENTER CONTENT */}
+          <div className="max-w-lg">
+            <h2 className="font-display text-5xl text-white leading-tight mb-6">
+              Build your dream website today
+            </h2>
+            <p className="font-body text-white/60 text-lg leading-relaxed mb-12">
+              Join hundreds of businesses that have transformed their digital presence. 
+              No risk, pay only when you love it.
+            </p>
 
-            {/* USER */}
-            <div className="flex items-center gap-4">
-              <button className="relative p-2 text-neutral-500 hover:bg-neutral-100 rounded-full transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-              
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-black rounded-full flex items-center justify-center">
-                  <span className="text-white font-body text-sm font-medium">
-                    {customer?.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
+            {/* FEATURES */}
+            <div className="space-y-6">
+              {[
+                { icon: '⚡', title: 'Fast Delivery', desc: 'Quick turnaround on your project' },
+                { icon: '🎨', title: 'Custom Design', desc: 'No templates, 100% unique' },
+                { icon: '🛡️', title: 'Risk Free', desc: 'Pay only if you love it' },
+              ].map((feature, i) => (
+                <div key={i} className="flex items-start gap-4 float" style={{ animationDelay: `${i * 0.5}s` }}>
+                  <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+                    {feature.icon}
+                  </div>
+                  <div>
+                    <p className="font-body text-white font-medium">{feature.title}</p>
+                    <p className="font-body text-white/50 text-sm">{feature.desc}</p>
+                  </div>
                 </div>
-                <div className="hidden lg:block">
-                  <p className="font-body text-sm font-medium text-black">{customer?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</p>
-                  <p className="font-body text-xs text-neutral-500">{user?.email}</p>
-                </div>
-              </div>
-
-              <button
-                onClick={handleLogout}
-                className="p-2 text-neutral-500 hover:bg-neutral-100 rounded-full transition-colors"
-                title="Sign out"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
+              ))}
             </div>
           </div>
-        </div>
-      </header>
 
-      {/* MOBILE NAV */}
-      <div className="md:hidden bg-white border-b border-neutral-200 px-4 py-3 sticky top-20 z-30">
-        <div className="flex gap-2 overflow-x-auto">
-          <Link href="/portal" className="px-4 py-2 bg-black text-white rounded-full font-body text-sm font-medium whitespace-nowrap">
-            Dashboard
-          </Link>
-          <Link href="/portal/messages" className="px-4 py-2 bg-neutral-100 text-neutral-600 rounded-full font-body text-sm font-medium whitespace-nowrap">
-            Messages
-          </Link>
-          <Link href="/portal/billing" className="px-4 py-2 bg-neutral-100 text-neutral-600 rounded-full font-body text-sm font-medium whitespace-nowrap">
-            Billing
-          </Link>
-          {/* GROWTH NAV LINK - MOBILE */}
-          <Link 
-            href="/portal/growth" 
-            className={`px-4 py-2 rounded-full font-body text-sm font-medium whitespace-nowrap flex items-center gap-1.5 ${
-              hasGrowthAccess 
-                ? 'bg-neutral-100 text-neutral-600' 
-                : 'bg-neutral-100 text-neutral-400'
-            }`}
-          >
-            {!hasGrowthAccess && (
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            )}
-            <span>Growth</span>
-          </Link>
-          <Link href="/portal/settings" className="px-4 py-2 bg-neutral-100 text-neutral-600 rounded-full font-body text-sm font-medium whitespace-nowrap">
-            Settings
-          </Link>
+          {/* BOTTOM */}
+          <div className="flex items-center gap-8">
+            <div className="flex -space-x-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="w-10 h-10 bg-white/20 rounded-full border-2 border-black flex items-center justify-center">
+                  <span className="font-body text-white text-xs font-medium">{String.fromCharCode(64 + i)}</span>
+                </div>
+              ))}
+            </div>
+            <p className="font-body text-white/60 text-sm">
+              <span className="text-white font-medium">500+</span> happy clients
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* MAIN */}
-      <main className="max-w-7xl mx-auto px-6 py-10">
-        {/* WELCOME */}
-        <div className="mb-10">
-          <h1 className="font-display text-4xl font-medium text-black mb-2">
-            Welcome back, {customer?.name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'there'}! 👋
-          </h1>
-          <p className="font-body text-neutral-500 text-lg">
-            Here is what is happening with your projects.
-          </p>
-        </div>
-
-        {/* STATS */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-            <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center mb-4">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </div>
-            <p className="font-display text-3xl font-semibold text-black">{stats.total}</p>
-            <p className="font-body text-sm text-neutral-500 mt-1">Total Projects</p>
-          </div>
-
-          <div className="bg-blue-50 rounded-2xl border border-blue-200 p-6">
-            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center mb-4">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="font-display text-3xl font-semibold text-blue-700">{stats.inProgress}</p>
-            <p className="font-body text-sm text-blue-600 mt-1">In Progress</p>
-          </div>
-
-          <div className="bg-emerald-50 rounded-2xl border border-emerald-200 p-6">
-            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center mb-4">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="font-display text-3xl font-semibold text-emerald-700">{stats.completed}</p>
-            <p className="font-body text-sm text-emerald-600 mt-1">Completed</p>
-          </div>
-
-          <div className="bg-purple-50 rounded-2xl border border-purple-200 p-6">
-            <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center mb-4">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="font-display text-3xl font-semibold text-purple-700">${stats.totalSpent}</p>
-            <p className="font-body text-sm text-purple-600 mt-1">Total Invested</p>
-          </div>
-        </div>
-
-        {/* ============================================ */}
-        {/* GROWTH BANNER - ACTION NEEDED */}
-        {/* Shows for users with delivered/paid projects who don't have growth packages */}
-        {/* ============================================ */}
-        {hasDeliveredProject && !hasGrowthPackages && (
-          <Link href="/portal/growth" className="block mb-8">
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative overflow-hidden group hover:shadow-lg transition-all">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-              <div className="relative z-10 flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xl">⚠️</span>
-                    <span className="font-body text-sm font-semibold uppercase tracking-wide text-white/90">Action Needed</span>
-                  </div>
-                  <h3 className="font-display text-xl font-medium mb-1">Your website needs customers</h3>
-                  <p className="font-body text-sm text-white/80">Find out what's blocking your growth →</p>
-                </div>
-                <div className="bg-white/20 rounded-full p-3 group-hover:bg-white/30 transition-colors">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
+      {/* RIGHT SIDE - FORM */}
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-12 overflow-y-auto">
+        <div className="w-full max-w-md">
+          {/* MOBILE LOGO */}
+          <div className="lg:hidden mb-8 text-center">
+            <Link href="/" className="inline-flex items-center gap-3">
+              <div className="w-11 h-11 bg-black rounded-xl flex items-center justify-center">
+                <span className="text-white font-display text-xl font-semibold">V</span>
               </div>
-            </div>
-          </Link>
-        )}
+              <span className="font-body text-black text-lg font-semibold tracking-wide">VEKTORLABS</span>
+            </Link>
+          </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* LEFT - PROJECTS */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* NEW PROJECT CTA */}
-            <div className="bg-black rounded-3xl p-8 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-              <div className="relative z-10">
-                <h2 className="font-display text-2xl font-medium mb-2">Ready for a new website?</h2>
-                <p className="font-body text-white/70 mb-6">Get your custom website designed by our team.</p>
-                <Link
-                  href="/portal/new-project"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-body font-medium rounded-full hover:bg-white/90 transition-all"
-                >
-                  <span>Start New Project</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </Link>
-              </div>
+          {/* PROGRESS INDICATOR */}
+          <div className="slide-up mb-8">
+            <div className="flex items-center gap-2">
+              <div className={`h-1 flex-1 rounded-full ${step >= 1 ? 'bg-black' : 'bg-neutral-200'}`}></div>
+              <div className={`h-1 flex-1 rounded-full ${step >= 2 ? 'bg-black' : 'bg-neutral-200'}`}></div>
             </div>
+            <p className="font-body text-sm text-neutral-400 mt-2">Step {step} of 2</p>
+          </div>
 
-            {/* GROWTH UPSELL BANNER - Shows when user has paid projects */}
-            {hasGrowthAccess && !hasGrowthPackages && (
-              <Link href="/portal/growth" className="block">
-                <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 text-white relative overflow-hidden group hover:shadow-lg transition-all">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                  <div className="relative z-10 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
+          {/* HEADER */}
+          <div className="slide-up mb-8">
+            <h1 className="font-display text-4xl lg:text-5xl font-medium text-black mb-3">
+              {step === 1 ? 'Get started' : 'Almost there'}
+            </h1>
+            <p className="font-body text-neutral-500 text-lg">
+              {step === 1 ? 'Create your account in seconds' : 'Tell us about your business'}
+            </p>
+          </div>
+
+          {/* ERROR MESSAGE */}
+          {error && (
+            <div className="slide-up mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl">
+              <p className="font-body text-sm text-red-600 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {error}
+              </p>
+            </div>
+          )}
+
+          {/* FORM */}
+          <form onSubmit={handleRegister} className="space-y-5">
+            {step === 1 && (
+              <>
+                {/* NAME */}
+                <div className="slide-up" style={{ animationDelay: '0.1s' }}>
+                  <label className="block font-body text-sm font-medium text-black mb-2">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    placeholder="John Smith"
+                    className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                  />
+                </div>
+
+                {/* EMAIL */}
+                <div className="slide-up" style={{ animationDelay: '0.15s' }}>
+                  <label className="block font-body text-sm font-medium text-black mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    placeholder="you@company.com"
+                    className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                  />
+                </div>
+
+                {/* PASSWORD */}
+                <div className="slide-up" style={{ animationDelay: '0.2s' }}>
+                  <label className="block font-body text-sm font-medium text-black mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      placeholder="Min. 6 characters"
+                      className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black transition-colors"
+                    >
+                      {showPassword ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                         </svg>
-                        <span className="font-body text-sm font-semibold uppercase tracking-wide text-white/90">New</span>
-                      </div>
-                      <h3 className="font-display text-xl font-medium mb-1">Grow Your Business</h3>
-                      <p className="font-body text-sm text-white/80">SEO, Reviews, Ads & more — all in one place</p>
-                    </div>
-                    <div className="bg-white/20 rounded-full p-3 group-hover:bg-white/30 transition-colors">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
                 </div>
-              </Link>
-            )}
 
-            {/* PROJECTS */}
-            <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
-              <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between">
-                <h2 className="font-display text-xl font-medium text-black">Your Projects</h2>
-                <span className="font-body text-sm text-neutral-500">{projects.length} total</span>
-              </div>
+                {/* CONFIRM PASSWORD */}
+                <div className="slide-up" style={{ animationDelay: '0.25s' }}>
+                  <label className="block font-body text-sm font-medium text-black mb-2">
+                    Confirm Password
+                  </label>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                    placeholder="Confirm your password"
+                    className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                  />
+                </div>
 
-              {projects.length === 0 ? (
-                <div className="p-12 text-center">
-                  <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  </div>
-                  <h3 className="font-display text-xl font-medium text-black mb-2">No projects yet</h3>
-                  <p className="font-body text-neutral-500 mb-6">Create your first project to get started!</p>
-                  <Link
-                    href="/portal/new-project"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white font-body font-medium rounded-full hover:bg-black/80 transition-all"
+                {/* NEXT BUTTON */}
+                <div className="slide-up pt-2" style={{ animationDelay: '0.3s' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+                        setError('Please fill in all fields');
+                        return;
+                      }
+                      if (formData.password !== formData.confirmPassword) {
+                        setError('Passwords do not match');
+                        return;
+                      }
+                      setError('');
+                      setStep(2);
+                    }}
+                    className="btn-hover w-full py-4 bg-black text-white font-body font-medium rounded-full flex items-center justify-center gap-3"
                   >
-                    <span>Create First Project</span>
+                    <span>Continue</span>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
-                  </Link>
+                  </button>
                 </div>
-              ) : (
-                <div className="divide-y divide-neutral-100">
-                  {projects.map((project) => {
-                    const statusConfig = getStatusConfig(project.status);
-                    
-                    return (
-                      <Link
-                        key={project.id}
-                        href={`/portal/project/${project.id}`}
-                        className="block p-6 hover:bg-neutral-50 transition-colors"
-                      >
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center flex-shrink-0">
-                              <span className="text-white font-display text-lg font-semibold">
-                                {project.business_name?.charAt(0)?.toUpperCase() || '?'}
-                              </span>
-                            </div>
-                            <div>
-                              <h3 className="font-body font-semibold text-black">{project.business_name}</h3>
-                              <p className="font-body text-sm text-neutral-500">
-                                {project.plan?.charAt(0).toUpperCase() + project.plan?.slice(1)} · ${getPlanPrice(project.plan)}
-                              </p>
-                            </div>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full font-body text-xs font-medium ${statusConfig.bg} ${statusConfig.color}`}>
-                            {statusConfig.label}
-                          </span>
-                        </div>
+              </>
+            )}
 
-                        {/* PROGRESS BAR */}
-                        <div className="mb-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-body text-xs text-neutral-500">Progress</span>
-                            <span className="font-body text-xs font-medium text-black">{statusConfig.progress}%</span>
-                          </div>
-                          <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-black rounded-full transition-all duration-500"
-                              style={{ width: `${statusConfig.progress}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* ACTIONS */}
-                        <div className="flex items-center justify-between">
-                          <span className="font-body text-xs text-neutral-400">
-                            Created {new Date(project.created_at).toLocaleDateString()}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {project.status === 'PREVIEW_READY' && !project.paid && (
-                              <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-body text-xs font-medium">
-                                Preview Available
-                              </span>
-                            )}
-                            <svg className="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
+            {step === 2 && (
+              <>
+                {/* BUSINESS NAME */}
+                <div className="slide-up" style={{ animationDelay: '0.1s' }}>
+                  <label className="block font-body text-sm font-medium text-black mb-2">
+                    Business Name
+                  </label>
+                  <input
+                    type="text"
+                    name="businessName"
+                    value={formData.businessName}
+                    onChange={handleChange}
+                    placeholder="Your company name"
+                    className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                  />
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* RIGHT - SIDEBAR */}
-          <div className="space-y-6">
-            {/* ACTIVITY FEED */}
-            <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
-              <div className="px-6 py-5 border-b border-neutral-100">
-                <h2 className="font-display text-xl font-medium text-black">Recent Activity</h2>
-              </div>
-
-              {activities.length === 0 ? (
-                <div className="p-8 text-center">
-                  <p className="font-body text-neutral-500">No activity yet</p>
+                {/* PHONE */}
+                <div className="slide-up" style={{ animationDelay: '0.15s' }}>
+                  <label className="block font-body text-sm font-medium text-black mb-2">
+                    Phone Number <span className="text-neutral-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="(555) 123-4567"
+                    className="input-focus w-full px-5 py-4 bg-white border border-neutral-200 rounded-2xl font-body text-black placeholder-neutral-400 focus:outline-none focus:border-black"
+                  />
                 </div>
-              ) : (
-                <div className="divide-y divide-neutral-100">
-                  {activities.map((activity) => {
-                    const iconConfig = getActivityIcon(activity.type);
-                    
-                    return (
-                      <div key={activity.id} className="p-4 flex items-start gap-3">
-                        <div className={`w-8 h-8 ${iconConfig.bg} rounded-full flex items-center justify-center flex-shrink-0`}>
-                          <span className="text-sm">{iconConfig.icon}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-body text-sm text-black">{activity.message}</p>
-                          <p className="font-body text-xs text-neutral-400 mt-1">{timeAgo(activity.created_at)}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
 
-            {/* QUICK LINKS */}
-            <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-              <h2 className="font-display text-lg font-medium text-black mb-4">Quick Links</h2>
-              <div className="space-y-2">
-                <Link href="/portal/new-project" className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl hover:bg-neutral-100 transition-colors">
-                  <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                {/* BUTTONS */}
+                <div className="slide-up flex gap-3 pt-2" style={{ animationDelay: '0.2s' }}>
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="flex-1 py-4 bg-white border border-neutral-200 text-black font-body font-medium rounded-full hover:bg-neutral-50 transition-all flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
                     </svg>
-                  </div>
-                  <span className="font-body text-sm font-medium text-black">New Project</span>
-                </Link>
-                <Link href="/portal/messages" className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl hover:bg-neutral-100 transition-colors">
-                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                  </div>
-                  <span className="font-body text-sm font-medium text-black">Messages</span>
-                </Link>
-                {/* GROWTH QUICK LINK */}
-                <Link href="/portal/growth" className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl hover:bg-neutral-100 transition-colors">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasGrowthAccess ? 'bg-emerald-500' : 'bg-neutral-300'}`}>
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-body text-sm font-medium text-black">Growth Tools</span>
-                    {!hasGrowthAccess && (
-                      <svg className="w-3.5 h-3.5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
+                    <span>Back</span>
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-hover flex-1 py-4 bg-black text-white font-body font-medium rounded-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Creating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Create Account</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </>
                     )}
-                  </div>
-                </Link>
-                <Link href="/portal/settings" className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl hover:bg-neutral-100 transition-colors">
-                  <div className="w-8 h-8 bg-neutral-500 rounded-lg flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <span className="font-body text-sm font-medium text-black">Settings</span>
-                </Link>
-              </div>
-            </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </form>
 
-            {/* HELP */}
-            <div className="bg-emerald-50 rounded-2xl border border-emerald-200 p-6">
-              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center mb-4">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+          {/* DIVIDER */}
+          {step === 1 && (
+            <>
+              <div className="slide-up my-8 flex items-center gap-4" style={{ animationDelay: '0.35s' }}>
+                <div className="flex-1 h-px bg-neutral-200"></div>
+                <span className="font-body text-sm text-neutral-400">or</span>
+                <div className="flex-1 h-px bg-neutral-200"></div>
               </div>
-              <h3 className="font-body font-semibold text-emerald-900 mb-1">Need Help?</h3>
-              <p className="font-body text-sm text-emerald-700 mb-4">Our team is here to assist you.</p>
-              <a
-                href="mailto:support@vektorlabs.com"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-body text-sm font-medium rounded-full hover:bg-emerald-700 transition-colors"
-              >
-                <span>Contact Support</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-      </main>
 
-      {/* FOOTER */}
-      <footer className="bg-white border-t border-neutral-200 mt-16">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="font-body text-sm text-neutral-500">
-              © 2024 Vektorlabs. All rights reserved.
-            </p>
-            <div className="flex items-center gap-6">
-              <Link href="/privacy" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">
-                Privacy
-              </Link>
-              <Link href="/terms" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">
-                Terms
-              </Link>
-              <a href="mailto:support@vektorlabs.com" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">
-                Support
-              </a>
-            </div>
-          </div>
+              {/* SOCIAL SIGNUP */}
+              <div className="slide-up space-y-3" style={{ animationDelay: '0.4s' }}>
+                <button
+                  onClick={handleGoogleSignup}
+                  disabled={googleLoading}
+                  className="w-full py-4 bg-white border border-neutral-200 rounded-full font-body font-medium text-black hover:bg-neutral-50 hover:border-neutral-300 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  <span>{googleLoading ? 'Connecting...' : 'Continue with Google'}</span>
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* LOGIN LINK */}
+          <p className="slide-up text-center mt-8 font-body text-neutral-500" style={{ animationDelay: '0.45s' }}>
+            Already have an account?{' '}
+            <Link href="/login" className="text-black font-medium hover:underline">
+              Sign in
+            </Link>
+          </p>
+
+          {/* TERMS */}
+          <p className="slide-up text-center mt-6 font-body text-neutral-400 text-xs leading-relaxed" style={{ animationDelay: '0.5s' }}>
+            By creating an account, you agree to our{' '}
+            <a href="/terms" className="text-black hover:underline">Terms of Service</a>
+            {' '}and{' '}
+            <a href="/privacy" className="text-black hover:underline">Privacy Policy</a>
+          </p>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
