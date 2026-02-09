@@ -128,7 +128,7 @@ function HomeContent() {
                 </div>
               </div>
               <div className="hidden sm:block">
-                <span className="font-body text-[15px] font-semibold tracking-wide text-black">VERKTORLABS</span>
+                <span className="font-body text-[15px] font-semibold tracking-wide text-black">VEKTORLABS</span>
               </div>
             </Link>
 
@@ -572,7 +572,7 @@ function HomeContent() {
             </h2>
             
             <p className="font-body text-xl text-neutral-400 max-w-xl mx-auto mb-12">
-              Join hundreds of ambitious brands that have elevated their online presence with Verktorlabs.
+              Join hundreds of ambitious brands that have elevated their online presence with VektorLabs.
             </p>
             
             <Link href="/register" className="group inline-flex items-center gap-3 px-10 py-5 bg-white text-black font-body text-sm font-medium tracking-wide rounded-full transition-all duration-300 hover:gap-5 hover:shadow-xl hover:shadow-white/20">
@@ -595,7 +595,7 @@ function HomeContent() {
                 <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center">
                   <span className="text-black font-display text-xl font-semibold">V</span>
                 </div>
-                <span className="font-body text-[15px] font-semibold tracking-wide">VERKTORLABS</span>
+                <span className="font-body text-[15px] font-semibold tracking-wide">VEKTORLABS</span>
               </div>
               <p className="font-body text-neutral-400 max-w-md leading-relaxed">
                 Premium web design agency crafting high-converting digital experiences for ambitious brands worldwide.
@@ -636,7 +636,7 @@ function HomeContent() {
 
           {/* BOTTOM */}
           <div className="pt-8 border-t border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="font-body text-sm text-neutral-500">© 2024 Verktorlabs. All rights reserved.</p>
+            <p className="font-body text-sm text-neutral-500">&copy; 2024 VektorLabs. All rights reserved.</p>
             <div className="flex items-center gap-6">
               {['Twitter', 'LinkedIn', 'Instagram'].map((social) => (
                 <a key={social} href="#" className="font-body text-sm text-neutral-500 hover:text-white transition-colors">
