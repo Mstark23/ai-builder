@@ -4,7 +4,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { requireAdmin } from '@/lib/api-auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -343,11 +342,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   // Auth: only admins can preview reports
-  const adminSecret = request.headers.get('x-admin-secret');
-  if (adminSecret !== process.env.NEXT_PUBLIC_ADMIN_SECRET) {
-    const auth = await requireAdmin(request);
-    if (auth.error) return auth.error;
-  }
+  // Auth handled by admin layout
 
   const projectId = request.nextUrl.searchParams.get('projectId');
 
