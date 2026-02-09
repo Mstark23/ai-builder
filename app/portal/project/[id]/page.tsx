@@ -421,7 +421,7 @@ export default function DynamicProjectPage() {
                 <h2 className={`text-xl font-bold ${theme.text} mb-2`}>You're in the Queue!</h2>
                 <p className={`${theme.muted} text-sm mb-6`}>Our team will start your preview soon.</p>
                 <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
-                  {[{ l: 'Position', v: '#3' }, { l: 'Wait', v: '24-48h' }, { l: 'On-time', v: '98%' }].map((s) => (
+                  {[{ l: 'Position', v: '#3' }, { l: 'Status', v: 'Queued' }, { l: 'On-time', v: '98%' }].map((s) => (
                     <div key={s.l} className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-3`}>
                       <p className={`text-xl font-bold ${theme.text}`}>{s.v}</p>
                       <p className={`text-xs ${theme.muted}`}>{s.l}</p>
