@@ -47,11 +47,11 @@ function MessagesContent() {
   useEffect(() => { scrollToBottom(); }, [messages]);
 
   const loadProjects = async () => {
-    const customerId = localStorage.getItem('customerId');
-    if (!customerId || customerId === 'demo') { setLoading(false); return; }
-
     try {
-      const { data } = await supabase.from('projects').select('id, business_name, status').eq('customer_id', customerId).order('created_at', { ascending: false });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+
+      const { data } = await supabase.from('projects').select('id, business_name, status').eq('customer_id', user.id).order('created_at', { ascending: false });
       if (data) {
         setProjects(data);
         const projectId = searchParams.get('project');
@@ -131,7 +131,7 @@ function MessagesContent() {
       <div className="w-80 border-r border-neutral-200 bg-white flex flex-col">
         <div className="p-4 border-b border-neutral-200">
           <h1 className="font-display text-xl font-medium text-black">Messages</h1>
-          <p className="font-body text-sm text-neutral-500">Chat with VerktorLabs team</p>
+          <p className="font-body text-sm text-neutral-500">Chat with VektorLabs team</p>
         </div>
         <div className="flex-1 overflow-y-auto">
           {projects.map((project) => {
@@ -163,10 +163,10 @@ function MessagesContent() {
               </div>
               <div>
                 <div className="font-body font-medium text-black">{selectedProject.business_name}</div>
-                <div className="font-body text-xs text-neutral-500">VerktorLabs Support</div>
+                <div className="font-body text-xs text-neutral-500">VektorLabs Support</div>
               </div>
             </div>
-            <Link href={`/customer/projects/${selectedProject.id}`} className="px-3 py-1.5 bg-neutral-100 text-neutral-700 font-body text-sm rounded-lg hover:bg-neutral-200 transition-colors">View Project</Link>
+            <Link href={`/portal/project/${selectedProject.id}`} className="px-3 py-1.5 bg-neutral-100 text-neutral-700 font-body text-sm rounded-lg hover:bg-neutral-200 transition-colors">View Project</Link>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -195,7 +195,7 @@ function MessagesContent() {
                           {!isCustomer && (
                             <div className="flex items-center gap-2 mb-1">
                               <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center text-white text-xs font-body font-bold">V</div>
-                              <span className="font-body text-xs text-neutral-500">VerktorLabs</span>
+                              <span className="font-body text-xs text-neutral-500">VektorLabs</span>
                             </div>
                           )}
                           <div className={`px-4 py-3 rounded-2xl ${isCustomer ? 'bg-black text-white rounded-br-sm' : 'bg-white text-black rounded-bl-sm shadow-sm'}`}>
