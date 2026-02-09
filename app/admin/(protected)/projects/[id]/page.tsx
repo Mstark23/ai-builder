@@ -164,7 +164,7 @@ function MultiPageManager({
     try {
       const response = await fetch('/api/generate-multipage', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authSession?.access_token || ''}` },
         body: JSON.stringify({ projectId, pages: selectedPages }),
       });
       const data = await response.json();
@@ -327,7 +327,7 @@ function SectionEditor({ projectId, html, onUpdate }: { projectId: string; html:
     try {
       const response = await fetch('/api/regenerate-section', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authSession?.access_token || ''}` },
         body: JSON.stringify({ projectId, section: selectedSection.id, feedback: feedback.trim() }),
       });
       const data = await response.json();
@@ -543,7 +543,7 @@ function DesignReview({ project, onReviewComplete }: { project: Project; onRevie
     try {
       const response = await fetch('/api/review', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authSession?.access_token || ''}` },
         body: JSON.stringify({ projectId: project.id, generatedHtml: project.generated_html })
       });
       if (!response.ok) throw new Error('Review failed');
@@ -796,9 +796,10 @@ export default function ProjectDetailPage() {
       setFormData(prev => ({ ...prev, status: 'GENERATING' }));
 
       const startTime = Date.now();
+      const { data: { session: authSession } } = await supabase.auth.getSession();
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authSession?.access_token || ''}` },
         body: JSON.stringify({ projectId: project.id, action: 'generate' }),
       });
 
