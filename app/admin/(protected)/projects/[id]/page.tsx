@@ -161,6 +161,7 @@ function MultiPageManager({
   const generatePages = async () => {
     setGenerating(true);
     setError(null);
+      const { data: { session: authSession } } = await supabase.auth.getSession();
     try {
       const response = await fetch('/api/generate-multipage', {
         method: 'POST',
@@ -324,6 +325,7 @@ function SectionEditor({ projectId, html, onUpdate }: { projectId: string; html:
     if (!selectedSection) return;
     setRegenerating(true);
     setError(null);
+      const { data: { session: authSession } } = await supabase.auth.getSession();
     try {
       const response = await fetch('/api/regenerate-section', {
         method: 'POST',
@@ -540,6 +542,7 @@ function DesignReview({ project, onReviewComplete }: { project: Project; onRevie
   const runReview = async () => {
     if (!project.generated_html) { setError('No HTML to review'); return; }
     setLoading(true); setError(null);
+      const { data: { session: authSession } } = await supabase.auth.getSession();
     try {
       const response = await fetch('/api/review', {
         method: 'POST',
