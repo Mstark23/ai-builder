@@ -515,6 +515,17 @@ export default function DynamicProjectPage() {
                         }`}
                         title="Website Preview"
                       />
+                    ) : project?.generated_html ? (
+                      <iframe
+                        srcDoc={project.generated_html}
+                        className={`bg-white rounded-lg shadow-xl transition-all duration-300 ${
+                          deviceView === 'desktop' ? 'w-full h-[500px]' : 
+                          deviceView === 'tablet' ? 'w-[70%] h-[500px]' : 
+                          'w-[375px] h-[667px]'
+                        }`}
+                        title="Website Preview"
+                        sandbox="allow-scripts allow-same-origin"
+                      />
                     ) : (
                       <div 
                         className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl transition-all duration-300 flex flex-col items-center justify-center p-8`}
