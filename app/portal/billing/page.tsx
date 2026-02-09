@@ -129,7 +129,7 @@ export default function BillingPage() {
               <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center transition-transform group-hover:rotate-6">
                 <span className="text-white font-display text-lg font-semibold">V</span>
               </div>
-              <span className="font-body text-black font-semibold tracking-wide hidden sm:block">VERKTORLABS</span>
+              <span className="font-body text-black font-semibold tracking-wide hidden sm:block">VEKTORLABS</span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-1">
@@ -272,32 +272,26 @@ export default function BillingPage() {
           )}
         </div>
 
-        {/* PAYMENT METHODS */}
+        {/* PAYMENT INFO */}
         <div className="mt-8 bg-white rounded-2xl border border-neutral-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display text-xl font-medium text-black">Payment Methods</h2>
-            <button className="px-4 py-2 bg-neutral-100 text-black font-body text-sm font-medium rounded-full hover:bg-neutral-200 transition-colors">
-              + Add New
-            </button>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-xl font-medium text-black">Payment Info</h2>
           </div>
 
-          <div className="p-4 bg-neutral-50 rounded-xl flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-8 bg-gradient-to-r from-blue-600 to-blue-800 rounded-md flex items-center justify-center">
-                <span className="text-white font-body text-xs font-bold">VISA</span>
-              </div>
-              <div>
-                <p className="font-body font-medium text-black">•••• •••• •••• 4242</p>
-                <p className="font-body text-sm text-neutral-500">Expires 12/25</p>
-              </div>
+          <div className="p-4 bg-neutral-50 rounded-xl flex items-center gap-4">
+            <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
             </div>
-            <span className="px-3 py-1 bg-emerald-100 text-emerald-700 font-body text-xs font-medium rounded-full">
-              Default
-            </span>
+            <div>
+              <p className="font-body font-medium text-black">Secure Checkout via Square</p>
+              <p className="font-body text-sm text-neutral-500">Payment is collected when you approve your website preview. No card is stored on file.</p>
+            </div>
           </div>
 
           <p className="font-body text-xs text-neutral-400 mt-4">
-            Payments are processed securely via Square. Your card information is never stored on our servers.
+            All payments are processed securely via Square. Your card information is never stored on our servers.
           </p>
         </div>
 
@@ -308,7 +302,7 @@ export default function BillingPage() {
             <p className="font-body text-sm text-blue-700">Our support team is here to help with any questions.</p>
           </div>
           <a
-            href="mailto:billing@verktorlabs.com"
+            href="mailto:billing@vektorlabs.com"
             className="px-5 py-2.5 bg-blue-600 text-white font-body text-sm font-medium rounded-full hover:bg-blue-700 transition-colors"
           >
             Contact Support
