@@ -1,5 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { TrackerProvider } from '@/components/TrackerProvider';
+import { ExitIntentPopup } from '@/components/ExitIntentPopup';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://verktorlabs.com';
 const baseUrl = appUrl.startsWith('http') ? appUrl : `https://${appUrl}`;
@@ -47,7 +49,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <TrackerProvider>
+          {children}
+          <ExitIntentPopup />
+        </TrackerProvider>
+      </body>
     </html>
   );
 }
