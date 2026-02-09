@@ -216,7 +216,7 @@ function HomeContent() {
                 {[
                   { value: '200+', label: 'Projects Delivered' },
                   { value: '98%', label: 'Client Satisfaction' },
-                  { value: '72h', label: 'Average Turnaround' },
+                  { value: '24/7', label: 'Dedicated Support' },
                 ].map((stat) => (
                   <div key={stat.label}>
                     <div className="font-display text-3xl sm:text-4xl font-semibold text-black">{stat.value}</div>
@@ -281,7 +281,7 @@ function HomeContent() {
                     </div>
                     <div>
                       <div className="font-body text-xs font-medium text-black">Site Live!</div>
-                      <div className="font-body text-xs text-neutral-400">72h delivery</div>
+                      <div className="font-body text-xs text-neutral-400">Ready for you</div>
                     </div>
                   </div>
                 </div>
@@ -452,7 +452,7 @@ function HomeContent() {
               </div>
               
               <ul className="space-y-4 mb-10">
-                {['Single page website', 'Mobile responsive design', 'Contact form integration', '2 rounds of revisions', '48-hour turnaround'].map((feature, i) => (
+                {['Single page website', 'Mobile responsive design', 'Contact form integration', '2 rounds of revisions', 'Dedicated support'].map((feature, i) => (
                   <li key={i} className="flex items-start gap-3">
                     <div className="w-5 h-5 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -484,7 +484,7 @@ function HomeContent() {
               </div>
               
               <ul className="space-y-4 mb-10">
-                {['Up to 5 pages', 'Custom UI/UX design', 'SEO optimization', 'Analytics integration', '72-hour delivery'].map((feature, i) => (
+                {['Up to 5 pages', 'Custom UI/UX design', 'SEO optimization', 'Analytics integration', 'Priority support'].map((feature, i) => (
                   <li key={i} className="flex items-start gap-3">
                     <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -572,7 +572,7 @@ function HomeContent() {
             </h2>
             
             <p className="font-body text-xl text-neutral-400 max-w-xl mx-auto mb-12">
-              Join hundreds of ambitious brands that have elevated their online presence with VektorLabs.
+              Join hundreds of ambitious brands that have elevated their online presence with Vektorlabs.
             </p>
             
             <Link href="/register" className="group inline-flex items-center gap-3 px-10 py-5 bg-white text-black font-body text-sm font-medium tracking-wide rounded-full transition-all duration-300 hover:gap-5 hover:shadow-xl hover:shadow-white/20">
@@ -636,7 +636,7 @@ function HomeContent() {
 
           {/* BOTTOM */}
           <div className="pt-8 border-t border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="font-body text-sm text-neutral-500">&copy; 2024 VektorLabs. All rights reserved.</p>
+            <p className="font-body text-sm text-neutral-500">© 2024 Vektorlabs. All rights reserved.</p>
             <div className="flex items-center gap-6">
               {['Twitter', 'LinkedIn', 'Instagram'].map((social) => (
                 <a key={social} href="#" className="font-body text-sm text-neutral-500 hover:text-white transition-colors">
