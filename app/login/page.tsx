@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/portal';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ export default function LoginPage() {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { setError(error.message); setLoading(false); return; }
-      if (data.user) { router.push('/portal'); }
+      if (data.user) { router.push(redirectTo); }
     } catch (err) { setError('An unexpected error occurred'); setLoading(false); }
   };
 
@@ -62,10 +64,10 @@ export default function LoginPage() {
                 <span className="text-black font-display text-2xl font-semibold">V</span>
               </div>
             </div>
-            <span className="font-body text-white text-lg font-semibold tracking-wide">VERKTORLABS</span>
+            <span className="font-body text-white text-lg font-semibold tracking-wide">VEKTORLABS</span>
           </Link>
           <div className="max-w-md">
-            <p className="font-display text-3xl text-white leading-relaxed mb-8">Verktorlabs transformed our online presence. The results exceeded all expectations.</p>
+            <p className="font-display text-3xl text-white leading-relaxed mb-8">Vektorlabs transformed our online presence. The results exceeded all expectations.</p>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
                 <span className="font-body text-white font-semibold">JD</span>
@@ -91,7 +93,7 @@ export default function LoginPage() {
               <div className="w-11 h-11 bg-black rounded-xl flex items-center justify-center">
                 <span className="text-white font-display text-xl font-semibold">V</span>
               </div>
-              <span className="font-body text-black text-lg font-semibold tracking-wide">VERKTORLABS</span>
+              <span className="font-body text-black text-lg font-semibold tracking-wide">VEKTORLABS</span>
             </Link>
           </div>
 
@@ -153,5 +155,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+        <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }
