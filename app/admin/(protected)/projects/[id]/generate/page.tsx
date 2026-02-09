@@ -76,7 +76,7 @@ export default function AIGeneratePage() {
     try {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}` },
         body: JSON.stringify({
           projectId: project.id,
           action: 'generate',
@@ -113,7 +113,7 @@ export default function AIGeneratePage() {
     try {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}` },
         body: JSON.stringify({
           projectId: project.id,
           action: 'quick-edit',
@@ -153,7 +153,7 @@ export default function AIGeneratePage() {
     try {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}` },
         body: JSON.stringify({
           projectId: project.id,
           action: 'revise',
