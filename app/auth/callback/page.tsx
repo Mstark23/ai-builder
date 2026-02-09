@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { tracker } from '@/lib/tracker';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -43,6 +44,7 @@ function AuthCallbackContent() {
             });
           }
 
+          tracker.identify(session.user.id, session.user.email || '');
           router.push('/portal');
         } else {
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -63,6 +65,7 @@ function AuthCallbackContent() {
               }
               
               subscription.unsubscribe();
+              tracker.identify(session.user.id, session.user.email || '');
               router.push('/portal');
             }
           });
