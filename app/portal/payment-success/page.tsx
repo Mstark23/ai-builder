@@ -271,7 +271,7 @@ function PaymentSuccessContent() {
               <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
                 <span className="text-white font-display text-sm font-semibold">V</span>
               </div>
-              <span className="font-body text-black font-semibold text-sm">VERKTORLABS</span>
+              <span className="font-body text-black font-semibold text-sm">VEKTORLABS</span>
             </div>
             
             {/* URGENCY TIMER */}
@@ -302,7 +302,7 @@ function PaymentSuccessContent() {
             Your website for <span className="font-semibold">{project?.business_name || 'your business'}</span> is now being built.
           </p>
           <p className="font-body text-neutral-500">
-            You'll receive a preview in your inbox within 72 hours.
+            You'll receive a preview in your inbox soon.
           </p>
         </div>
 
