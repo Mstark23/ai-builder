@@ -77,7 +77,7 @@ export default function AddonsPage() {
     {
       id: 'rush',
       name: 'Rush Delivery',
-      description: 'Get your website delivered in 24 hours instead of 72 hours.',
+      description: 'Get your website delivered with top priority.',
       price: 99,
       priceType: 'one-time',
       icon: '⚡',
@@ -188,7 +188,7 @@ export default function AddonsPage() {
                 <span className="text-white font-bold text-lg">V</span>
               </div>
               <div>
-                <span className="font-bold text-slate-900 block">Verktorlabs</span>
+                <span className="font-bold text-slate-900 block">Vektorlabs</span>
                 <span className="text-xs text-slate-500">Customer Portal</span>
               </div>
             </Link>
