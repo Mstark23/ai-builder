@@ -134,7 +134,7 @@ function HomeContent() {
 
             {/* NAV LINKS */}
             <div className="hidden lg:flex items-center gap-12">
-              {['Services', 'Process', 'Pricing', 'About'].map((item) => (
+              {['Services', 'Process', 'Pricing', 'About', 'Contact'].map((item) => (
                 <a 
                   key={item} 
                   href={`#${item.toLowerCase()}`} 
@@ -585,6 +585,91 @@ function HomeContent() {
         </div>
       </section>
 
+      {/* ABOUT */}
+      <section id="about" className="py-24 lg:py-32 bg-white">
+        <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+          <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+            <div>
+              <p className="font-body text-xs font-semibold tracking-[0.2em] text-neutral-400 uppercase mb-4">About Us</p>
+              <h2 className="font-display text-4xl sm:text-5xl font-medium leading-tight mb-8">
+                We build websites that
+                <br />
+                <span className="text-neutral-400">drive real results</span>
+              </h2>
+              <div className="space-y-6 font-body text-neutral-600 leading-relaxed">
+                <p>
+                  VektorLabs was founded on a simple idea: every business deserves a world-class website without the world-class price tag or months of waiting.
+                </p>
+                <p>
+                  We study what makes billion-dollar brands convert, then apply those same strategies to businesses of every size. Our AI-powered platform combined with human design expertise means you get a website built on proven conversion patterns, not guesswork.
+                </p>
+                <p>
+                  Our promise is simple: we build your website before you pay. If you love it, it is yours. If not, you owe nothing. Zero risk, zero commitment.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              {[
+                { num: '500+', label: 'Websites Delivered' },
+                { num: '98%', label: 'Client Satisfaction' },
+                { num: '48hr', label: 'Average Turnaround' },
+                { num: '$0', label: 'Upfront Cost' },
+              ].map((stat) => (
+                <div key={stat.label} className="bg-neutral-50 rounded-2xl p-6 text-center">
+                  <p className="font-display text-3xl font-semibold text-black mb-2">{stat.num}</p>
+                  <p className="font-body text-sm text-neutral-500">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CONTACT */}
+      <section id="contact" className="py-24 lg:py-32 bg-neutral-50">
+        <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+          <div className="max-w-2xl mx-auto text-center mb-16">
+            <p className="font-body text-xs font-semibold tracking-[0.2em] text-neutral-400 uppercase mb-4">Get In Touch</p>
+            <h2 className="font-display text-4xl sm:text-5xl font-medium leading-tight mb-6">
+              Ready to start?
+            </h2>
+            <p className="font-body text-neutral-500 text-lg">
+              Have questions or want to discuss your project? Reach out and we will get back to you within 24 hours.
+            </p>
+          </div>
+          <div className="max-w-xl mx-auto">
+            <div className="grid sm:grid-cols-2 gap-6 mb-8">
+              <div className="bg-white rounded-2xl p-6 border border-neutral-200 text-center">
+                <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                  </svg>
+                </div>
+                <p className="font-body text-sm font-semibold text-black mb-1">Email Us</p>
+                <a href="mailto:hello@tryvektorlabs.com" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">hello@tryvektorlabs.com</a>
+              </div>
+              <div className="bg-white rounded-2xl p-6 border border-neutral-200 text-center">
+                <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="font-body text-sm font-semibold text-black mb-1">Response Time</p>
+                <p className="font-body text-sm text-neutral-500">Within 24 hours</p>
+              </div>
+            </div>
+            <div className="text-center">
+              <Link href="/register" className="group inline-flex items-center gap-3 px-8 py-4 bg-black text-white font-body text-sm font-medium tracking-wide rounded-full transition-all duration-300 hover:gap-5 hover:shadow-xl hover:shadow-black/20">
+                <span>Start Your Free Preview</span>
+                <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FOOTER */}
       <footer className="py-16 bg-neutral-950 text-white">
         <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
@@ -636,7 +721,7 @@ function HomeContent() {
 
           {/* BOTTOM */}
           <div className="pt-8 border-t border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="font-body text-sm text-neutral-500">© 2024 Vektorlabs. All rights reserved.</p>
+            <p className="font-body text-sm text-neutral-500">© 2025 VektorLabs. All rights reserved.</p>
             <div className="flex items-center gap-6">
               {['Twitter', 'LinkedIn', 'Instagram'].map((social) => (
                 <a key={social} href="#" className="font-body text-sm text-neutral-500 hover:text-white transition-colors">
