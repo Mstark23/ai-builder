@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { tracker } from '@/lib/tracker';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const claimProjectId = searchParams.get('project');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -95,7 +97,20 @@ export default function RegisterPage() {
         // Link anonymous visitor to new account
         tracker.identify(authData.user.id, formData.email);
         
-        router.push('/portal/new-project');
+        // If coming from a preview link, claim the project
+        if (claimProjectId) {
+          await fetch('/api/preview/claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              project_id: claimProjectId,
+              customer_id: authData.user.id,
+            }),
+          });
+          router.push('/portal');
+        } else {
+          router.push('/portal/new-project');
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -254,13 +269,23 @@ export default function RegisterPage() {
             <p className="font-body text-sm text-neutral-400 mt-2">Step {step} of 2</p>
           </div>
 
+          {/* CLAIM BANNER */}
+          {claimProjectId && (
+            <div className="slide-up mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
+              <p className="font-body text-sm text-emerald-700 flex items-center gap-2">
+                <span className="text-lg">🎉</span>
+                <span><strong>Your website preview is ready!</strong> Create an account to claim it.</span>
+              </p>
+            </div>
+          )}
+
           {/* HEADER */}
           <div className="slide-up mb-8">
             <h1 className="font-display text-4xl lg:text-5xl font-medium text-black mb-3">
-              {step === 1 ? 'Get started' : 'Almost there'}
+              {step === 1 ? (claimProjectId ? 'Claim your website' : 'Get started') : 'Almost there'}
             </h1>
             <p className="font-body text-neutral-500 text-lg">
-              {step === 1 ? 'Create your account in seconds' : 'Tell us about your business'}
+              {step === 1 ? (claimProjectId ? 'Create an account to access your preview' : 'Create your account in seconds') : 'Tell us about your business'}
             </p>
           </div>
 
@@ -503,5 +528,17 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-neutral-200 border-t-black rounded-full animate-spin" />
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   );
 }
