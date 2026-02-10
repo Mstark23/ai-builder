@@ -1,29 +1,31 @@
-// app/api/preview/[id]/route.ts
-// Public endpoint - serves preview data without auth
-// Used by the customer preview page
+// app/api/preview/feedback/route.ts
+// Public endpoint - allows customers to submit feedback without auth
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const projectId = params.id;
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { project_id, content, sender_type } = body;
 
-  if (!projectId) {
-    return NextResponse.json({ error: 'Missing project ID' }, { status: 400 });
+    if (!project_id || !content) {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    }
+
+    const { error } = await supabaseAdmin.from('messages').insert({
+      project_id,
+      content,
+      sender_type: sender_type || 'customer',
+      read: false,
+    });
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to save feedback' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
-
-  const { data: project, error } = await supabaseAdmin
-    .from('projects')
-    .select('id, business_name, generated_html, generated_pages, requested_pages, status, plan')
-    .eq('id', projectId)
-    .single();
-
-  if (error || !project) {
-    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-  }
-
-  return NextResponse.json({ project });
 }
