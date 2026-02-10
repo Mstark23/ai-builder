@@ -1,28 +1,67 @@
-// app/api/project-html/[id]/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// SIMPLE TEST VERSION - No database required
+// Use this first to verify the API route works
+
+export async function POST(request: Request) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const admin = createClient(supabaseUrl, serviceKey);
+    console.log('🔵 API route hit!')
+    
+    const body = await request.json()
+    console.log('📦 Received data:', body)
+    
+    const {
+      businessName,
+      industry,
+      description,
+      targetAudience,
+      brandVibe,
+      colors
+    } = body
 
-    const { data, error } = await admin
-      .from('projects')
-      .select('id, business_name, generated_html, status, plan, preview_url, generated_pages, requested_pages, platform, created_at, revision_notes, setup_completed, live_url, paid')
-      .eq('id', params.id)
-      .single();
-
-    if (error || !data) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    // Validate required fields
+    if (!businessName || !industry || !description || !brandVibe) {
+      console.log('❌ Validation failed - missing fields')
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      )
     }
 
-    return NextResponse.json({ project: data });
-  } catch (err) {
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    // Generate a unique preview ID
+    const previewId = `preview_${Date.now()}_${Math.random().toString(36).substring(7)}`
+
+    console.log('✅ Preview ID generated:', previewId)
+
+    // Return success (without database for now)
+    return NextResponse.json({
+      success: true,
+      previewId: previewId,
+      message: 'Preview request created successfully (test mode)',
+      data: {
+        businessName,
+        industry,
+        description,
+        targetAudience,
+        brandVibe,
+        colors
+      }
+    }, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+
+  } catch (error) {
+    console.error('❌ API error:', error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Internal server error', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      },
+      { status: 500 }
+    )
   }
 }
