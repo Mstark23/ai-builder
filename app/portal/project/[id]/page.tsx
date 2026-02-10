@@ -200,6 +200,23 @@ export default function DynamicProjectPage() {
 
       setProject(projectData);
 
+      // If status indicates HTML should exist but it's missing (RLS may block large columns),
+      // fetch via API route which uses service role
+      if (projectData.status === 'PREVIEW_READY' && !projectData.generated_html) {
+        try {
+          const previewRes = await fetch(`/api/preview/${projectId}`);
+          if (previewRes.ok) {
+            const previewData = await previewRes.json();
+            if (previewData.project?.generated_html) {
+              projectData.generated_html = previewData.project.generated_html;
+              setProject({ ...projectData });
+            }
+          }
+        } catch (e) {
+          console.error('Fallback preview fetch failed:', e);
+        }
+      }
+
       // Check if project has growth packages
       // TODO: Replace with actual database check
       const { data: growthData } = await supabase
@@ -524,7 +541,7 @@ export default function DynamicProjectPage() {
                           'w-[375px] h-[667px]'
                         }`}
                         title="Website Preview"
-                        sandbox="allow-scripts allow-same-origin"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-top-navigation-by-user-activation"
                       />
                     ) : (
                       <div 
