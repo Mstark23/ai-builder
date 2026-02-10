@@ -719,6 +719,9 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState<'details' | 'preview' | 'review' | 'messages'>('details');
   const [newMessage, setNewMessage] = useState('');
   const [formData, setFormData] = useState({ status: '', plan: '', notes: '', paid: false });
+  const [showPasteHtml, setShowPasteHtml] = useState(false);
+  const [pasteHtml, setPasteHtml] = useState('');
+  const [savingHtml, setSavingHtml] = useState(false);
 
   useEffect(() => {
     if (projectId) {
@@ -869,6 +872,36 @@ export default function ProjectDetailPage() {
     const d = debugData;
     const r = d.response || {};
     const log = r.debugLog || [];
+
+  // Save custom HTML to project
+  const saveCustomHtml = async () => {
+    if (!pasteHtml.trim()) return;
+    setSavingHtml(true);
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ 
+          generated_html: pasteHtml,
+          status: 'PREVIEW_READY'
+        })
+        .eq('id', projectId);
+      
+      if (error) throw error;
+      
+      setShowPasteHtml(false);
+      setPasteHtml('');
+      await loadProject();
+      setActiveTab('preview');
+      alert('HTML saved! Preview is now live.');
+    } catch (err) {
+      console.error('Error saving HTML:', err);
+      alert('Failed to save HTML');
+    } finally {
+      setSavingHtml(false);
+    }
+  };
+
+
     return (
       <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, backgroundColor:'rgba(0,0,0,0.85)', zIndex:99999, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
         <div style={{ background:'#1a1a2e', color:'#e0e0e0', borderRadius:'16px', maxWidth:'800px', width:'100%', maxHeight:'90vh', overflow:'auto', fontFamily:'monospace', fontSize:'13px', padding:'24px', border:'1px solid #333' }}>
@@ -1154,6 +1187,19 @@ export default function ProjectDetailPage() {
                       Live Preview
                     </a>
                     <button
+                      onClick={() => {
+                        const link = window.location.origin + '/preview/' + project.id;
+                        navigator.clipboard.writeText(link);
+                        alert('Preview link copied! Send this to your customer:\n\n' + link);
+                      }}
+                      className="px-5 py-2.5 bg-amber-500 text-white text-sm font-medium rounded-full hover:bg-amber-600 transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                      </svg>
+                      📋 Copy Customer Link
+                    </button>
+                    <button
                       onClick={() => setActiveTab('preview')}
                       className="px-5 py-2.5 bg-violet-600 text-white text-sm font-medium rounded-full hover:bg-violet-700 transition-colors flex items-center gap-2"
                     >
@@ -1283,7 +1329,17 @@ export default function ProjectDetailPage() {
       {activeTab === 'preview' && (
         <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
           {project.generated_html ? (
-            <SectionEditor projectId={project.id} html={project.generated_html} onUpdate={loadProject} />
+            <div>
+              <div className="p-3 bg-neutral-50 border-b border-neutral-200 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => { setPasteHtml(project.generated_html || ''); setShowPasteHtml(true); }}
+                  className="px-4 py-2 bg-amber-500 text-white text-xs font-medium rounded-full hover:bg-amber-600 transition-colors"
+                >
+                  📋 Replace HTML
+                </button>
+              </div>
+              <SectionEditor projectId={project.id} html={project.generated_html} onUpdate={loadProject} />
+            </div>
           ) : (
             <div className="p-12 text-center">
               <div className="w-20 h-20 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1292,14 +1348,22 @@ export default function ProjectDetailPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-medium text-black mb-2">No Preview Available</h3>
-              <p className="text-neutral-500 mb-6">Generate a website to see the preview</p>
-              <button
-                onClick={generateWebsite}
-                disabled={generating}
-                className="px-5 py-2.5 bg-purple-600 text-white text-sm font-medium rounded-full hover:bg-purple-700 transition-colors disabled:opacity-50"
-              >
-                {generating ? 'Generating...' : 'Generate Website'}
-              </button>
+              <p className="text-neutral-500 mb-6">Generate a website or paste custom HTML</p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={generateWebsite}
+                  disabled={generating}
+                  className="px-5 py-2.5 bg-purple-600 text-white text-sm font-medium rounded-full hover:bg-purple-700 transition-colors disabled:opacity-50"
+                >
+                  {generating ? 'Generating...' : 'Generate Website'}
+                </button>
+                <button
+                  onClick={() => setShowPasteHtml(true)}
+                  className="px-5 py-2.5 bg-amber-500 text-white text-sm font-medium rounded-full hover:bg-amber-600 transition-colors"
+                >
+                  📋 Paste HTML
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -1345,6 +1409,42 @@ export default function ProjectDetailPage() {
             >
               Send
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* PASTE HTML MODAL */}
+      {showPasteHtml && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b border-neutral-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-black">Paste Custom HTML</h2>
+                <p className="text-sm text-neutral-500 mt-1">Paste the full HTML code for this project</p>
+              </div>
+              <button onClick={() => { setShowPasteHtml(false); setPasteHtml(''); }} className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center hover:bg-neutral-200">✕</button>
+            </div>
+            <div className="flex-1 p-6 overflow-hidden">
+              <textarea
+                value={pasteHtml}
+                onChange={(e) => setPasteHtml(e.target.value)}
+                placeholder={"Paste your HTML here...\n\n<!DOCTYPE html>\n<html>\n..."}
+                className="w-full h-[50vh] px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+              />
+              <p className="text-xs text-neutral-400 mt-2">{pasteHtml.length > 0 ? `${pasteHtml.length.toLocaleString()} characters` : 'No HTML pasted yet'}</p>
+            </div>
+            <div className="p-6 border-t border-neutral-200 flex items-center justify-between">
+              <label className="px-5 py-2.5 bg-neutral-100 text-neutral-700 text-sm font-medium rounded-full hover:bg-neutral-200 transition-colors cursor-pointer">
+                📁 Upload HTML File
+                <input type="file" accept=".html,.htm" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (ev) => setPasteHtml(ev.target?.result as string || ''); reader.readAsText(file); } }} />
+              </label>
+              <div className="flex items-center gap-3">
+                <button onClick={() => { setShowPasteHtml(false); setPasteHtml(''); }} className="px-5 py-2.5 bg-neutral-100 text-neutral-700 text-sm font-medium rounded-full hover:bg-neutral-200 transition-colors">Cancel</button>
+                <button onClick={saveCustomHtml} disabled={savingHtml || !pasteHtml.trim()} className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-full hover:bg-neutral-800 transition-colors disabled:opacity-50 flex items-center gap-2">
+                  {savingHtml ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</>) : (<>✓ Save &amp; Publish Preview</>)}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
