@@ -867,12 +867,6 @@ export default function ProjectDetailPage() {
   // ==========================================================================
   // DEBUG MODAL — Shows generation pipeline details
   // ==========================================================================
-  const DebugModal = () => {
-    if (!showDebug || !debugData) return null;
-    const d = debugData;
-    const r = d.response || {};
-    const log = r.debugLog || [];
-
   // Save custom HTML to project
   const saveCustomHtml = async () => {
     if (!pasteHtml.trim()) return;
@@ -900,6 +894,12 @@ export default function ProjectDetailPage() {
       setSavingHtml(false);
     }
   };
+
+  const DebugModal = () => {
+    if (!showDebug || !debugData) return null;
+    const d = debugData;
+    const r = d.response || {};
+    const log = r.debugLog || [];
 
 
     return (
