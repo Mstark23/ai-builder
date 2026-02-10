@@ -187,13 +187,32 @@ export default function DynamicProjectPage() {
         return;
       }
 
-      // Fetch project via API route (uses service role key, bypasses RLS)
-      const res = await fetch(`/api/project-html/${projectId}`);
-      if (!res.ok) {
-        router.push('/portal');
-        return;
+      let projectData = null;
+
+      // Try API route first (bypasses RLS, gets generated_html)
+      try {
+        const res = await fetch('/api/project-html', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectId }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          projectData = json.project;
+        }
+      } catch (e) {
+        console.error('API route failed, falling back to supabase:', e);
       }
-      const { project: projectData } = await res.json();
+
+      // Fallback to regular supabase client if API route failed
+      if (!projectData) {
+        const { data } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single();
+        projectData = data;
+      }
 
       if (!projectData) {
         router.push('/portal');
@@ -202,16 +221,17 @@ export default function DynamicProjectPage() {
 
       setProject(projectData);
 
-      // Check if project has growth packages
-      // TODO: Replace with actual database check
-      const { data: growthData } = await supabase
-        .from('growth_packages')
-        .select('id')
-        .eq('project_id', projectId)
-        .limit(1);
-      
-      // FIX: Ensure boolean value (not null)
-      setHasGrowthPackages(!!(growthData && growthData.length > 0));
+      // Check if project has growth packages (table may not exist yet)
+      try {
+        const { data: growthData } = await supabase
+          .from('growth_packages')
+          .select('id')
+          .eq('project_id', projectId)
+          .limit(1);
+        setHasGrowthPackages(!!(growthData && growthData.length > 0));
+      } catch {
+        setHasGrowthPackages(false);
+      }
 
       const { data: messagesData } = await supabase
         .from('messages')
