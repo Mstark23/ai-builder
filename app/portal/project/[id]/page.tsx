@@ -187,11 +187,13 @@ export default function DynamicProjectPage() {
         return;
       }
 
-      const { data: projectData } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single();
+      // Fetch project via API route (uses service role key, bypasses RLS)
+      const res = await fetch(`/api/project-html/${projectId}`);
+      if (!res.ok) {
+        router.push('/portal');
+        return;
+      }
+      const { project: projectData } = await res.json();
 
       if (!projectData) {
         router.push('/portal');
@@ -199,23 +201,6 @@ export default function DynamicProjectPage() {
       }
 
       setProject(projectData);
-
-      // If status indicates HTML should exist but it's missing (RLS may block large columns),
-      // fetch via API route which uses service role
-      if (projectData.status === 'PREVIEW_READY' && !projectData.generated_html) {
-        try {
-          const previewRes = await fetch(`/api/preview/${projectId}`);
-          if (previewRes.ok) {
-            const previewData = await previewRes.json();
-            if (previewData.project?.generated_html) {
-              projectData.generated_html = previewData.project.generated_html;
-              setProject({ ...projectData });
-            }
-          }
-        } catch (e) {
-          console.error('Fallback preview fetch failed:', e);
-        }
-      }
 
       // Check if project has growth packages
       // TODO: Replace with actual database check
