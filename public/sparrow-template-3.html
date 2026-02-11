@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPARROW — Fly Different</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --white: #ffffff;
+  --off-white: #f8f7f4;
+  --black: #111111;
+  --gray: #666666;
+  --gray-light: #e8e6e1;
+  --red: #e63946;
+  --olive: #6b7c3e;
+  --gold: #d4a843;
+  --blue: #2a6496;
+  --peach: #f4a261;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Work Sans', sans-serif;
+  background: var(--white);
+  color: var(--black);
+  overflow-x: hidden;
+}
+
+/* ============ MARQUEE BAR ============ */
+.marquee-bar {
+  background: var(--black);
+  color: var(--white);
+  overflow: hidden;
+  padding: 10px 0;
+  white-space: nowrap;
+}
+
+.marquee-content {
+  display: inline-block;
+  animation: marquee 20s linear infinite;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 4px;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--red);
+  border-radius: 50%;
+  margin: 0 24px;
+  vertical-align: middle;
+}
+
+/* ============ NAVIGATION ============ */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--white);
+  padding: 0 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 72px;
+  border-bottom: 2px solid var(--black);
+}
+
+.nav-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  letter-spacing: 4px;
+  color: var(--black);
+  text-decoration: none;
+  position: relative;
+}
+
+.nav-logo-script {
+  font-family: 'Work Sans', sans-serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: 12px;
+  letter-spacing: 2px;
+  position: absolute;
+  bottom: -2px;
+  right: -60px;
+  color: var(--red);
+}
+
+.nav-links {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+  align-items: center;
+}
+
+.nav-links a {
+  color: var(--black);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: color 0.2s;
+  position: relative;
+}
+
+.nav-links a:hover { color: var(--red); }
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--red);
+  transition: width 0.3s;
+}
+
+.nav-links a:hover::after { width: 100%; }
+
+.nav-right {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.nav-right a {
+  color: var(--black);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cart-badge {
+  display: inline-block;
+  background: var(--red);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 600;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 18px;
+  margin-left: 4px;
+}
+
+/* ============ HERO ============ */
+.hero {
+  min-height: 90vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px 60px;
+  position: relative;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--off-white);
+  border: 1px solid var(--gray-light);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 30px;
+  width: fit-content;
+  animation: fadeRight 0.8s ease;
+}
+
+@keyframes fadeRight {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.hero-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(56px, 7vw, 96px);
+  line-height: 0.95;
+  letter-spacing: 2px;
+  margin-bottom: 24px;
+  animation: fadeRight 0.8s ease 0.1s both;
+}
+
+.hero-title .highlight {
+  color: var(--red);
+  position: relative;
+  display: inline-block;
+}
+
+.hero-title .outline {
+  -webkit-text-stroke: 2px var(--black);
+  color: transparent;
+}
+
+.hero-desc {
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--gray);
+  max-width: 420px;
+  margin-bottom: 36px;
+  animation: fadeRight 0.8s ease 0.2s both;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 16px;
+  animation: fadeRight 0.8s ease 0.3s both;
+}
+
+.btn-primary {
+  display: inline-block;
+  background: var(--black);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 16px 40px;
+  text-decoration: none;
+  transition: all 0.3s;
+  border: 2px solid var(--black);
+}
+
+.btn-primary:hover {
+  background: var(--red);
+  border-color: var(--red);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  display: inline-block;
+  background: transparent;
+  color: var(--black);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 16px 40px;
+  text-decoration: none;
+  border: 2px solid var(--black);
+  transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+  background: var(--black);
+  color: var(--white);
+}
+
+.hero-right {
+  position: relative;
+  background: linear-gradient(135deg, #e8e6e1 0%, #d4d0c8 50%, #c9c4ba 100%);
+  overflow: hidden;
+}
+
+.hero-graphic {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-logo-watermark {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 300px;
+  color: rgba(0,0,0,0.04);
+  line-height: 1;
+  transform: rotate(-15deg);
+}
+
+.hero-sticker {
+  position: absolute;
+  background: var(--red);
+  color: var(--white);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 2px;
+  padding: 10px 20px;
+  transform: rotate(12deg);
+  top: 40px;
+  right: 40px;
+}
+
+.hero-sticker-2 {
+  position: absolute;
+  background: var(--gold);
+  color: var(--black);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 12px;
+  letter-spacing: 2px;
+  padding: 8px 16px;
+  transform: rotate(-8deg);
+  bottom: 80px;
+  left: 40px;
+  border-radius: 4px;
+}
+
+/* ============ CATEGORY BLOCKS ============ */
+.categories {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 2px solid var(--black);
+}
+
+.category-block {
+  padding: 40px 24px;
+  text-align: center;
+  border-right: 2px solid var(--black);
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.category-block:last-child { border-right: none; }
+
+.category-block:hover { background: var(--black); color: var(--white); }
+
+.category-block:nth-child(1):hover { background: var(--red); }
+.category-block:nth-child(2):hover { background: var(--olive); color: var(--white); }
+.category-block:nth-child(3):hover { background: var(--blue); color: var(--white); }
+.category-block:nth-child(4):hover { background: var(--gold); color: var(--black); }
+
+.category-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.category-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+}
+
+.category-count {
+  font-size: 11px;
+  color: var(--gray);
+  letter-spacing: 1px;
+}
+
+.category-block:hover .category-count { color: inherit; opacity: 0.7; }
+
+/* ============ PRODUCTS ============ */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 60px 40px 30px;
+  border-bottom: 2px solid var(--black);
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 52px;
+  letter-spacing: 3px;
+  line-height: 1;
+}
+
+.section-title .accent { color: var(--red); }
+
+.section-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--black);
+  text-decoration: none;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--red);
+  padding-bottom: 2px;
+  transition: color 0.2s;
+}
+
+.section-link:hover { color: var(--red); }
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 2px solid var(--black);
+}
+
+.product-card {
+  border-right: 2px solid var(--black);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.product-card:nth-child(4n) { border-right: none; }
+.product-card:nth-child(n+5) { border-top: 2px solid var(--black); }
+
+.product-img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  transition: transform 0.4s ease;
+  position: relative;
+}
+
+.product-card:hover .product-img { transform: scale(1.03); }
+
+.pimg-1 { background: linear-gradient(145deg, #dcd7ce, #c9c4ba); }
+.pimg-2 { background: linear-gradient(145deg, #c9d4c2, #b5c4ab); }
+.pimg-3 { background: linear-gradient(145deg, #d4cec9, #c4bab5); }
+.pimg-4 { background: linear-gradient(145deg, #c9ccd4, #b5b8c4); }
+.pimg-5 { background: linear-gradient(145deg, #d4d0c2, #c4bfab); }
+.pimg-6 { background: linear-gradient(145deg, #d4c9c9, #c4b5b5); }
+.pimg-7 { background: linear-gradient(145deg, #ced4c9, #bac4b5); }
+.pimg-8 { background: linear-gradient(145deg, #d2cdd4, #c0b8c4); }
+
+.product-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 12px;
+  letter-spacing: 2px;
+  padding: 4px 12px;
+  z-index: 2;
+}
+
+.tag-new { background: var(--red); color: var(--white); }
+.tag-hot { background: var(--gold); color: var(--black); }
+.tag-limited { background: var(--olive); color: var(--white); }
+.tag-collab { background: var(--blue); color: var(--white); }
+
+.product-hover-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--black);
+  color: var(--white);
+  text-align: center;
+  padding: 14px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-hover-bar { transform: translateY(0); }
+
+.product-details {
+  padding: 16px 16px 20px;
+}
+
+.product-name {
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.product-sub {
+  font-size: 12px;
+  color: var(--gray);
+  margin-bottom: 8px;
+}
+
+.product-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.product-price {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 1px;
+}
+
+.product-colors {
+  display: flex;
+  gap: 5px;
+}
+
+.color-circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gray-light);
+}
+
+/* ============ CULTURE BANNER ============ */
+.culture-banner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 2px solid var(--black);
+}
+
+.culture-visual {
+  background: linear-gradient(135deg, var(--red), #c12d38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+  position: relative;
+  overflow: hidden;
+}
+
+.culture-stamp {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 140px;
+  color: rgba(255,255,255,0.12);
+  transform: rotate(-10deg);
+  letter-spacing: 10px;
+}
+
+.culture-badge {
+  position: absolute;
+  bottom: 40px;
+  left: 40px;
+  background: var(--white);
+  color: var(--black);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  padding: 10px 20px;
+}
+
+.culture-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 60px;
+  background: var(--off-white);
+}
+
+.culture-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: var(--red);
+  margin-bottom: 20px;
+}
+
+.culture-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 52px;
+  line-height: 1;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.culture-desc {
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.8;
+  color: var(--gray);
+  max-width: 400px;
+  margin-bottom: 32px;
+}
+
+.culture-cta {
+  display: inline-block;
+  background: var(--black);
+  color: var(--white);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 3px;
+  padding: 14px 36px;
+  text-decoration: none;
+  transition: background 0.3s;
+  align-self: flex-start;
+}
+
+.culture-cta:hover { background: var(--red); }
+
+/* ============ REVIEWS ============ */
+.reviews {
+  padding: 80px 40px;
+  background: var(--off-white);
+  border-bottom: 2px solid var(--black);
+}
+
+.reviews-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.reviews-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  letter-spacing: 3px;
+}
+
+.reviews-rating {
+  font-size: 14px;
+  color: var(--gray);
+  margin-top: 8px;
+}
+
+.reviews-rating span { color: var(--gold); font-size: 18px; }
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.review-card {
+  background: var(--white);
+  padding: 32px;
+  border: 2px solid var(--black);
+  position: relative;
+}
+
+.review-stars {
+  color: var(--gold);
+  font-size: 16px;
+  margin-bottom: 16px;
+  letter-spacing: 2px;
+}
+
+.review-text {
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--gray);
+  margin-bottom: 20px;
+}
+
+.review-author {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.review-verified {
+  font-size: 11px;
+  color: var(--olive);
+  margin-top: 2px;
+}
+
+/* ============ NEWSLETTER ============ */
+.newsletter {
+  background: var(--black);
+  color: var(--white);
+  padding: 80px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.newsletter::before {
+  content: 'SPARROW';
+  position: absolute;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 200px;
+  color: rgba(255,255,255,0.02);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  letter-spacing: 30px;
+  white-space: nowrap;
+}
+
+.newsletter-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  letter-spacing: 4px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.newsletter-title .accent { color: var(--red); }
+
+.newsletter-sub {
+  font-size: 14px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 36px;
+  position: relative;
+}
+
+.newsletter-form {
+  display: flex;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+.newsletter-input {
+  flex: 1;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  color: var(--white);
+  font-family: 'Work Sans', sans-serif;
+  font-size: 14px;
+  outline: none;
+  font-weight: 300;
+}
+
+.newsletter-input::placeholder { color: rgba(255,255,255,0.3); }
+
+.newsletter-btn {
+  padding: 16px 28px;
+  background: var(--red);
+  border: none;
+  color: var(--white);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.newsletter-btn:hover { background: #c12d38; }
+
+.newsletter-perks {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 24px;
+  position: relative;
+}
+
+.perk {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 1px;
+}
+
+/* ============ FOOTER ============ */
+.footer {
+  background: var(--white);
+  border-top: 2px solid var(--black);
+  padding: 50px 40px 24px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+.footer-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 4px;
+  margin-bottom: 12px;
+}
+
+.footer-tagline {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--gray);
+  line-height: 1.7;
+  max-width: 260px;
+}
+
+.footer-col-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 3px;
+  margin-bottom: 16px;
+}
+
+.footer-col ul { list-style: none; }
+.footer-col li { margin-bottom: 10px; }
+
+.footer-col a {
+  color: var(--gray);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 300;
+  transition: color 0.2s;
+}
+
+.footer-col a:hover { color: var(--red); }
+
+.footer-bottom {
+  border-top: 2px solid var(--black);
+  padding-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-copy {
+  font-size: 11px;
+  color: var(--gray);
+  font-weight: 300;
+}
+
+.footer-socials {
+  display: flex;
+  gap: 20px;
+}
+
+.footer-socials a {
+  color: var(--gray);
+  text-decoration: none;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 2px;
+  transition: color 0.2s;
+}
+
+.footer-socials a:hover { color: var(--red); }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+  .nav { padding: 0 20px; }
+  .nav-links { display: none; }
+  .hero { grid-template-columns: 1fr; }
+  .hero-right { min-height: 300px; }
+  .hero-left { padding: 40px 24px; }
+  .categories { grid-template-columns: repeat(2, 1fr); }
+  .category-block:nth-child(2) { border-right: none; }
+  .category-block:nth-child(n+3) { border-top: 2px solid var(--black); }
+  .products-grid { grid-template-columns: repeat(2, 1fr); }
+  .product-card:nth-child(2n) { border-right: none; }
+  .product-card:nth-child(n+3) { border-top: 2px solid var(--black); }
+  .culture-banner { grid-template-columns: 1fr; }
+  .reviews-grid { grid-template-columns: 1fr; }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- MARQUEE BAR -->
+<div class="marquee-bar">
+  <div class="marquee-content">
+    FREE SHIPPING OVER $75 <span class="marquee-dot"></span> NEW GRAPHIC TEES JUST DROPPED <span class="marquee-dot"></span> JOIN THE FLOCK — 10% OFF FIRST ORDER <span class="marquee-dot"></span> FREE SHIPPING OVER $75 <span class="marquee-dot"></span> NEW GRAPHIC TEES JUST DROPPED <span class="marquee-dot"></span> JOIN THE FLOCK — 10% OFF FIRST ORDER <span class="marquee-dot"></span> FREE SHIPPING OVER $75 <span class="marquee-dot"></span> NEW GRAPHIC TEES JUST DROPPED <span class="marquee-dot"></span> JOIN THE FLOCK — 10% OFF FIRST ORDER <span class="marquee-dot"></span>
+  </div>
+</div>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <a href="#" class="nav-logo">
+    SPARROW
+    <span class="nav-logo-script">est. '25</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#">New</a></li>
+    <li><a href="#">Men</a></li>
+    <li><a href="#">Women</a></li>
+    <li><a href="#">Graphics</a></li>
+    <li><a href="#">Collabs</a></li>
+    <li><a href="#">Sale</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="#">Search</a>
+    <a href="#">Account</a>
+    <a href="#">Cart <span class="cart-badge">0</span></a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-badge">● New Season Drop</div>
+    <h1 class="hero-title">
+      FLY<br>
+      <span class="highlight">DIFFERENT.</span><br>
+      <span class="outline">ALWAYS.</span>
+    </h1>
+    <p class="hero-desc">Born from the culture. Worn by the city. SPARROW is streetwear rooted in self-expression, bold graphics, and the energy of the streets since day one.</p>
+    <div class="hero-buttons">
+      <a href="#" class="btn-primary">Shop New</a>
+      <a href="#" class="btn-secondary">Lookbook</a>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="hero-graphic">
+      <div class="hero-logo-watermark">SP</div>
+    </div>
+    <div class="hero-sticker">NEW DROP</div>
+    <div class="hero-sticker-2">SINCE 2025</div>
+  </div>
+</section>
+
+<!-- CATEGORIES -->
+<div class="categories">
+  <div class="category-block">
+    <div class="category-icon">🔥</div>
+    <div class="category-name">New Arrivals</div>
+    <div class="category-count">24 items</div>
+  </div>
+  <div class="category-block">
+    <div class="category-icon">👕</div>
+    <div class="category-name">Graphic Tees</div>
+    <div class="category-count">36 items</div>
+  </div>
+  <div class="category-block">
+    <div class="category-icon">🧥</div>
+    <div class="category-name">Hoodies</div>
+    <div class="category-count">18 items</div>
+  </div>
+  <div class="category-block">
+    <div class="category-icon">🎯</div>
+    <div class="category-name">Accessories</div>
+    <div class="category-count">12 items</div>
+  </div>
+</div>
+
+<!-- PRODUCTS -->
+<div class="section-header">
+  <h2 class="section-title">JUST <span class="accent">DROPPED</span></h2>
+  <a href="#" class="section-link">View All →</a>
+</div>
+
+<div class="products-grid">
+  <div class="product-card">
+    <div class="product-img pimg-1">
+      <div class="product-tag tag-new">NEW</div>
+      <div class="product-hover-bar">QUICK ADD</div>
+    </div>
+    <div class="product-details">
+      <div class="product-name">Skyline Graphic Tee</div>
+      <div class="product-sub">Heavyweight cotton • Screen print</div>
+      <div class="product-price-row">
+        <div class="product-price">$48</div>
+        <div class="product-colors">
+          <div class="color-circle" style="background: #111;"></div>
+          <div class="color-circle" style="background: #e8e6e1;"></div>
+          <div class="color-circle" style="background: #6b7c3e;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <div class="product-img pimg-2">
+      <div class="product-tag tag-hot">HOT</div>
+      <div class="product-hover-bar">QUICK ADD</div>
+    </div>
+    <div class="product-details">
+      <div class="product-name">Flock Hoodie</div>
+      <div class="product-sub">Brushed fleece • Embroidered</div>
+      <div class="product-price-row">
+        <div class="product-price">$95</div>
+        <div class="product-colors">
+          <div class="color-circle" style="background: #6b7c3e;"></div>
+          <div class="color-circle" style="background: #111;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <div class="product-img pimg-3">
+      <div class="product-tag tag-limited">LIMITED</div>
+      <div class="product-hover-bar">QUICK ADD</div>
+    </div>
+    <div class="product-details">
+      <div class="product-name">City Cargo Pants</div>
+      <div class="product-sub">Ripstop • Utility pockets</div>
+      <div class="product-price-row">
+        <div class="product-price">$82</div>
+        <div class="product-colors">
+          <div class="color-circle" style="background: #c4bab5;"></div>
+          <div class="color-circle" style="background: #111;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <div class="product-img pimg-4">
+      <div class="product-tag tag-collab">COLLAB</div>
+      <div class="product-hover-bar">QUICK ADD</div>
+    </div>
+    <div class="product-details">
+      <div class="product-name">Sparrow x DTL Jacket</div>
+      <div class="product-sub">Coach jacket • Limited edition</div>
+      <div class="product-price-row">
+        <div class="product-price">$125</div>
+        <div class="product-colors">
+          <div class="color-circle" style="background: #2a6496;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <div class="product-img pimg-5">
+      <div class="product-hover-bar">QUICK ADD</div>
+    </div>
+    <div class="product-details">
+      <div class="product-name">Flight Logo Crewneck</div>
+      <div class="product-sub">French terry • Puff print</div>
+      <div class="product-price-row">
+        <div class="product-price">$72</div>
+        <div class="product-colors">
+          <div class="color-circle" style="background: #d4a843;"></div>
+          <div class="color-circle" style="background: #111;"></div>
+          <div class="color-circle" style="background: #e8e6e1;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <div class="product-img pimg-6">
+      <div class="product-tag tag-new">NEW</div>
+      <div class="product-hover-bar">QUICK ADD</div>
+    </div>
+    <div class="product-details">
+      <div class="product-name">Wings Mesh Shorts</div>
+      <div class="product-sub">Quick-dry • Side logo</div>
+      <div class="product-price-row">
+        <div class="product-price">$55</div>
+        <div class="product-colors">
+          <div class="color-circle" style="background: #e63946;"></div>
+          <div class="color-circle" style="background: #111;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <div class="product-img pimg-7">
+      <div class="product-hover-bar">QUICK ADD</div>
+    </div>
+    <div class="product-details">
+      <div class="product-name">Heritage 5-Panel Cap</div>
+      <div class="product-sub">Washed canvas • Strapback</div>
+      <div class="product-price-row">
+        <div class="product-price">$32</div>
+        <div class="product-colors">
+          <div class="color-circle" style="background: #6b7c3e;"></div>
+          <div class="color-circle" style="background: #d4a843;"></div>
+          <div class="color-circle" style="background: #111;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <div class="product-img pimg-8">
+      <div class="product-tag tag-hot">HOT</div>
+      <div class="product-hover-bar">QUICK ADD</div>
+    </div>
+    <div class="product-details">
+      <div class="product-name">Wingspan Track Jacket</div>
+      <div class="product-sub">Nylon shell • Zip front</div>
+      <div class="product-price-row">
+        <div class="product-price">$110</div>
+        <div class="product-colors">
+          <div class="color-circle" style="background: #2a6496;"></div>
+          <div class="color-circle" style="background: #111;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CULTURE BANNER -->
+<section class="culture-banner">
+  <div class="culture-visual">
+    <div class="culture-stamp">SPARROW</div>
+    <div class="culture-badge">SINCE 2025</div>
+  </div>
+  <div class="culture-content">
+    <div class="culture-label">THE CULTURE</div>
+    <h2 class="culture-title">BORN FROM<br>THE STREETS.</h2>
+    <p class="culture-desc">SPARROW isn't just a clothing brand. It's a movement built by skaters, artists, and creatives who believe style should be loud, authentic, and unapologetically yours. Every graphic tells a story. Every piece earns its place.</p>
+    <a href="#" class="culture-cta">Our Story</a>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section class="reviews">
+  <div class="reviews-header">
+    <h2 class="reviews-title">THE FLOCK SPEAKS</h2>
+    <div class="reviews-rating"><span>★★★★★</span> 4.8 / 5 from 1,200+ reviews</div>
+  </div>
+  <div class="reviews-grid">
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <div class="review-text">"The graphic quality on these tees is next level. Heavy cotton, prints that don't crack after washing. SPARROW gets it — this is real streetwear."</div>
+      <div class="review-author">Alex K.</div>
+      <div class="review-verified">✓ Verified Purchase — Skyline Graphic Tee</div>
+    </div>
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <div class="review-text">"Copped the Flock Hoodie in olive and it's the best hoodie I own. The embroidery is clean and the fleece is crazy soft. Already want the black one."</div>
+      <div class="review-author">Priya S.</div>
+      <div class="review-verified">✓ Verified Purchase — Flock Hoodie</div>
+    </div>
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <div class="review-text">"Finally a brand that understands the culture without trying too hard. The collab jacket sold out fast — glad I grabbed one. Fire piece."</div>
+      <div class="review-author">Damon R.</div>
+      <div class="review-verified">✓ Verified Purchase — Sparrow x DTL Jacket</div>
+    </div>
+  </div>
+</section>
+
+<!-- NEWSLETTER -->
+<section class="newsletter">
+  <h2 class="newsletter-title">JOIN THE <span class="accent">FLOCK</span></h2>
+  <p class="newsletter-sub">Get drop alerts, exclusive access, and 10% off your first order.</p>
+  <div class="newsletter-form">
+    <input type="email" class="newsletter-input" placeholder="Your email...">
+    <button class="newsletter-btn">JOIN →</button>
+  </div>
+  <div class="newsletter-perks">
+    <span class="perk">✓ Early access</span>
+    <span class="perk">✓ Exclusive drops</span>
+    <span class="perk">✓ No spam ever</span>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div>
+      <div class="footer-logo">SPARROW</div>
+      <div class="footer-tagline">Streetwear rooted in culture, creativity, and the energy of the streets. Fly different since 2025.</div>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">SHOP</div>
+      <ul>
+        <li><a href="#">New Arrivals</a></li>
+        <li><a href="#">Men</a></li>
+        <li><a href="#">Women</a></li>
+        <li><a href="#">Graphics</a></li>
+        <li><a href="#">Collabs</a></li>
+        <li><a href="#">Sale</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">HELP</div>
+      <ul>
+        <li><a href="#">Shipping</a></li>
+        <li><a href="#">Returns</a></li>
+        <li><a href="#">Size Guide</a></li>
+        <li><a href="#">Contact</a></li>
+        <li><a href="#">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">FOLLOW</div>
+      <ul>
+        <li><a href="#">Instagram</a></li>
+        <li><a href="#">TikTok</a></li>
+        <li><a href="#">Twitter / X</a></li>
+        <li><a href="#">YouTube</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2025 SPARROW. All rights reserved. Fly Different.™</div>
+    <div class="footer-socials">
+      <a href="#">IG</a>
+      <a href="#">TK</a>
+      <a href="#">X</a>
+      <a href="#">YT</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
