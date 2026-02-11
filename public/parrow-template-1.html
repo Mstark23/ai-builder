@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPARROW — Rules Everything</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --black: #0a0a0a;
+  --dark: #111111;
+  --gray-dark: #1a1a1a;
+  --gray-mid: #2a2a2a;
+  --white: #f0f0f0;
+  --accent: #ff3b3b;
+  --accent-dim: #cc2e2e;
+  --yellow: #e8d44d;
+  --green: #2ecc71;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Space Mono', monospace;
+  background: var(--black);
+  color: var(--white);
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* ============ ANNOUNCEMENT BAR ============ */
+.announcement-bar {
+  background: var(--accent);
+  color: var(--black);
+  text-align: center;
+  padding: 10px 20px;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  animation: pulse-bar 2s ease-in-out infinite;
+}
+
+@keyframes pulse-bar {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ============ NAVIGATION ============ */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--black);
+  border-bottom: 1px solid var(--gray-mid);
+  padding: 0 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 70px;
+}
+
+.nav-logo {
+  font-family: 'Oswald', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  color: var(--white);
+  text-decoration: none;
+  position: relative;
+}
+
+.nav-logo::after {
+  content: '®';
+  font-size: 10px;
+  position: absolute;
+  top: 2px;
+  right: -14px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+  align-items: center;
+}
+
+.nav-links a {
+  color: var(--white);
+  text-decoration: none;
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: color 0.2s;
+  position: relative;
+}
+
+.nav-links a:hover { color: var(--accent); }
+
+.nav-links a.hot::after {
+  content: '🔥';
+  font-size: 10px;
+  position: absolute;
+  top: -8px;
+  right: -16px;
+}
+
+.nav-icons {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.nav-icons a {
+  color: var(--white);
+  text-decoration: none;
+  font-size: 14px;
+  letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+.nav-icons a:hover { color: var(--accent); }
+
+.cart-count {
+  background: var(--accent);
+  color: var(--black);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 50%;
+  margin-left: 4px;
+}
+
+/* ============ HERO ============ */
+.hero {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  background: var(--black);
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255,59,59,0.03) 2px,
+      rgba(255,59,59,0.03) 4px
+    );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  animation: fadeUp 1s ease-out;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 24px;
+}
+
+.hero-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(60px, 12vw, 160px);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -2px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+
+.hero-title span {
+  display: block;
+  -webkit-text-stroke: 2px var(--white);
+  color: transparent;
+}
+
+.hero-subtitle {
+  font-size: 14px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(240,240,240,0.5);
+  margin-bottom: 40px;
+}
+
+.hero-cta {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--black);
+  font-family: 'Oswald', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 18px 50px;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.hero-cta:hover {
+  background: var(--white);
+  transform: scale(1.05);
+}
+
+.hero-cta::after {
+  content: '→';
+  margin-left: 12px;
+  transition: margin-left 0.3s;
+}
+
+.hero-cta:hover::after { margin-left: 20px; }
+
+.hero-scroll {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(240,240,240,0.3);
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  animation: bounce 2s infinite;
+  z-index: 2;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-10px); }
+}
+
+/* ============ DROP COUNTDOWN ============ */
+.drop-banner {
+  background: var(--gray-dark);
+  border-top: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  padding: 30px 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 60px;
+}
+
+.drop-banner-text {
+  font-family: 'Oswald', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.drop-banner-text span { color: var(--accent); }
+
+.countdown {
+  display: flex;
+  gap: 16px;
+}
+
+.countdown-item {
+  text-align: center;
+}
+
+.countdown-num {
+  font-family: 'Oswald', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.countdown-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(240,240,240,0.4);
+}
+
+/* ============ PRODUCTS ============ */
+.section-header {
+  text-align: center;
+  padding: 80px 40px 40px;
+}
+
+.section-tag {
+  font-size: 11px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 0 40px 80px;
+}
+
+.product-card {
+  background: var(--dark);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  group: true;
+}
+
+.product-card:hover .product-img {
+  transform: scale(1.05);
+}
+
+.product-img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  transition: transform 0.5s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: 80px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.03);
+}
+
+.product-img.img-1 { background: linear-gradient(135deg, #1a1a2e, #16213e); }
+.product-img.img-2 { background: linear-gradient(135deg, #2d132c, #1a1a2e); }
+.product-img.img-3 { background: linear-gradient(135deg, #1a1a1a, #2a2a2a); }
+.product-img.img-4 { background: linear-gradient(135deg, #0d1b2a, #1b2838); }
+.product-img.img-5 { background: linear-gradient(135deg, #2c1810, #1a1a1a); }
+.product-img.img-6 { background: linear-gradient(135deg, #1a2e1a, #1a1a2e); }
+.product-img.img-7 { background: linear-gradient(135deg, #2e1a2e, #1a1a1a); }
+.product-img.img-8 { background: linear-gradient(135deg, #1a1a1a, #2e2e1a); }
+
+.product-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--accent);
+  color: var(--black);
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+}
+
+.product-badge.sold-out {
+  background: var(--gray-mid);
+  color: rgba(240,240,240,0.5);
+}
+
+.product-badge.limited { background: var(--yellow); }
+
+.product-info {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.product-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.product-price {
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.product-quick-add {
+  position: absolute;
+  bottom: 50px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s;
+}
+
+.product-card:hover .product-quick-add {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.quick-add-btn {
+  background: var(--white);
+  color: var(--black);
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 12px 32px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.quick-add-btn:hover { background: var(--accent); color: var(--black); }
+
+/* ============ LOOKBOOK BANNER ============ */
+.lookbook {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 500px;
+}
+
+.lookbook-img {
+  background: linear-gradient(135deg, #1a1a2e, #0a0a0a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: 120px;
+  font-weight: 700;
+  color: rgba(255,59,59,0.08);
+  letter-spacing: 10px;
+}
+
+.lookbook-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 80px;
+  background: var(--dark);
+}
+
+.lookbook-tag {
+  font-size: 11px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+
+.lookbook-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1.1;
+  margin-bottom: 20px;
+}
+
+.lookbook-desc {
+  font-size: 13px;
+  line-height: 1.8;
+  color: rgba(240,240,240,0.6);
+  margin-bottom: 32px;
+  max-width: 400px;
+}
+
+.lookbook-cta {
+  display: inline-block;
+  border: 2px solid var(--white);
+  color: var(--white);
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 14px 40px;
+  text-decoration: none;
+  transition: all 0.3s;
+  align-self: flex-start;
+}
+
+.lookbook-cta:hover {
+  background: var(--white);
+  color: var(--black);
+}
+
+/* ============ TRUST/COMMUNITY BAR ============ */
+.trust-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--gray-mid);
+  border-bottom: 1px solid var(--gray-mid);
+}
+
+.trust-item {
+  text-align: center;
+  padding: 40px 20px;
+  border-right: 1px solid var(--gray-mid);
+}
+
+.trust-item:last-child { border-right: none; }
+
+.trust-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+
+.trust-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.trust-desc {
+  font-size: 11px;
+  color: rgba(240,240,240,0.4);
+  letter-spacing: 1px;
+}
+
+/* ============ SOCIAL PROOF / UGC ============ */
+.ugc-section {
+  padding: 80px 40px;
+}
+
+.ugc-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+  margin-top: 40px;
+}
+
+.ugc-item {
+  aspect-ratio: 1;
+  background: var(--gray-dark);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.ugc-item:nth-child(1) { background: linear-gradient(45deg, #2d132c, #1a1a2e); }
+.ugc-item:nth-child(2) { background: linear-gradient(45deg, #1a1a2e, #0d1b2a); }
+.ugc-item:nth-child(3) { background: linear-gradient(45deg, #1a2e1a, #1a1a1a); }
+.ugc-item:nth-child(4) { background: linear-gradient(45deg, #2e2e1a, #1a1a1a); }
+.ugc-item:nth-child(5) { background: linear-gradient(45deg, #1a1a1a, #2a1a1a); }
+.ugc-item:nth-child(6) { background: linear-gradient(45deg, #0d1b2a, #2d132c); }
+
+.ugc-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,59,59,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.ugc-item:hover .ugc-overlay { opacity: 1; }
+
+.ugc-handle {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--black);
+  font-weight: 700;
+}
+
+/* ============ NEWSLETTER ============ */
+.newsletter {
+  background: var(--accent);
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.newsletter-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--black);
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  margin-bottom: 12px;
+}
+
+.newsletter-sub {
+  font-size: 12px;
+  color: rgba(0,0,0,0.6);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+
+.newsletter-form {
+  display: flex;
+  max-width: 500px;
+  margin: 0 auto;
+  gap: 0;
+}
+
+.newsletter-input {
+  flex: 1;
+  padding: 16px 20px;
+  background: var(--black);
+  border: none;
+  color: var(--white);
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  outline: none;
+}
+
+.newsletter-input::placeholder { color: rgba(240,240,240,0.3); }
+
+.newsletter-btn {
+  padding: 16px 32px;
+  background: var(--white);
+  color: var(--black);
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.newsletter-btn:hover {
+  background: var(--black);
+  color: var(--white);
+}
+
+/* ============ FOOTER ============ */
+.footer {
+  background: var(--black);
+  border-top: 1px solid var(--gray-mid);
+  padding: 60px 40px 30px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+.footer-brand {
+  font-family: 'Oswald', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.footer-slogan {
+  font-size: 11px;
+  color: rgba(240,240,240,0.3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  line-height: 1.8;
+}
+
+.footer-col-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  color: var(--accent);
+}
+
+.footer-col ul { list-style: none; }
+
+.footer-col li { margin-bottom: 10px; }
+
+.footer-col a {
+  color: rgba(240,240,240,0.4);
+  text-decoration: none;
+  font-size: 12px;
+  letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+.footer-col a:hover { color: var(--white); }
+
+.footer-bottom {
+  border-top: 1px solid var(--gray-mid);
+  padding-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-copy {
+  font-size: 11px;
+  color: rgba(240,240,240,0.2);
+  letter-spacing: 1px;
+}
+
+.footer-socials {
+  display: flex;
+  gap: 20px;
+}
+
+.footer-socials a {
+  color: rgba(240,240,240,0.3);
+  text-decoration: none;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: color 0.2s;
+}
+
+.footer-socials a:hover { color: var(--accent); }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+  .nav { padding: 0 20px; }
+  .nav-links { display: none; }
+  .products-grid { grid-template-columns: repeat(2, 1fr); padding: 0 16px 40px; }
+  .lookbook { grid-template-columns: 1fr; }
+  .lookbook-content { padding: 40px 24px; }
+  .trust-bar { grid-template-columns: 1fr; }
+  .ugc-grid { grid-template-columns: repeat(3, 1fr); }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .drop-banner { flex-direction: column; gap: 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ANNOUNCEMENT BAR -->
+<div class="announcement-bar">
+  ⚡ NEW DROP FRIDAY 9PM — ONCE IT'S GONE, IT'S GONE ⚡
+</div>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <a href="#" class="nav-logo">SPARROW</a>
+  <ul class="nav-links">
+    <li><a href="#" class="hot">New Drop</a></li>
+    <li><a href="#">Men</a></li>
+    <li><a href="#">Women</a></li>
+    <li><a href="#">Collections</a></li>
+    <li><a href="#">Lookbook</a></li>
+  </ul>
+  <div class="nav-icons">
+    <a href="#">Search</a>
+    <a href="#">Account</a>
+    <a href="#">Cart <span class="cart-count">0</span></a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-tag">// Est. 2025 — Streetwear Redefined</div>
+    <h1 class="hero-title">
+      SPARROW
+      <span>RULES EVERYTHING</span>
+    </h1>
+    <p class="hero-subtitle">Limited drops. No restocks. Earn your piece.</p>
+    <a href="#" class="hero-cta">Shop the Drop</a>
+  </div>
+  <div class="hero-scroll">Scroll ↓</div>
+</section>
+
+<!-- DROP COUNTDOWN -->
+<div class="drop-banner">
+  <div class="drop-banner-text">Next Drop in <span>→</span></div>
+  <div class="countdown">
+    <div class="countdown-item">
+      <div class="countdown-num" id="days">03</div>
+      <div class="countdown-label">Days</div>
+    </div>
+    <div class="countdown-item">
+      <div class="countdown-num" id="hours">14</div>
+      <div class="countdown-label">Hours</div>
+    </div>
+    <div class="countdown-item">
+      <div class="countdown-num" id="mins">27</div>
+      <div class="countdown-label">Mins</div>
+    </div>
+    <div class="countdown-item">
+      <div class="countdown-num" id="secs">51</div>
+      <div class="countdown-label">Secs</div>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCTS -->
+<div class="section-header">
+  <div class="section-tag">// Latest Release</div>
+  <h2 class="section-title">DROP 007 — NIGHTFALL</h2>
+</div>
+
+<div class="products-grid">
+  <div class="product-card">
+    <div class="product-badge">New</div>
+    <div class="product-img img-1">SP</div>
+    <div class="product-quick-add"><button class="quick-add-btn">Quick Add</button></div>
+    <div class="product-info">
+      <div class="product-name">Shadow Ops Hoodie</div>
+      <div class="product-price">$120</div>
+    </div>
+  </div>
+  <div class="product-card">
+    <div class="product-badge limited">Limited</div>
+    <div class="product-img img-2">SP</div>
+    <div class="product-quick-add"><button class="quick-add-btn">Quick Add</button></div>
+    <div class="product-info">
+      <div class="product-name">Nightfall Cargo Pants</div>
+      <div class="product-price">$95</div>
+    </div>
+  </div>
+  <div class="product-card">
+    <div class="product-badge">New</div>
+    <div class="product-img img-3">SP</div>
+    <div class="product-quick-add"><button class="quick-add-btn">Quick Add</button></div>
+    <div class="product-info">
+      <div class="product-name">Concrete Jungle Tee</div>
+      <div class="product-price">$55</div>
+    </div>
+  </div>
+  <div class="product-card">
+    <div class="product-badge sold-out">Sold Out</div>
+    <div class="product-img img-4">SP</div>
+    <div class="product-info">
+      <div class="product-name">Ghost Protocol Jacket</div>
+      <div class="product-price">$185</div>
+    </div>
+  </div>
+  <div class="product-card">
+    <div class="product-badge limited">Limited</div>
+    <div class="product-img img-5">SP</div>
+    <div class="product-quick-add"><button class="quick-add-btn">Quick Add</button></div>
+    <div class="product-info">
+      <div class="product-name">Flight Risk Tracksuit</div>
+      <div class="product-price">$150</div>
+    </div>
+  </div>
+  <div class="product-card">
+    <div class="product-img img-6">SP</div>
+    <div class="product-quick-add"><button class="quick-add-btn">Quick Add</button></div>
+    <div class="product-info">
+      <div class="product-name">Midnight Mesh Shorts</div>
+      <div class="product-price">$65</div>
+    </div>
+  </div>
+  <div class="product-card">
+    <div class="product-badge">New</div>
+    <div class="product-img img-7">SP</div>
+    <div class="product-quick-add"><button class="quick-add-btn">Quick Add</button></div>
+    <div class="product-info">
+      <div class="product-name">Sparrow Crest Crewneck</div>
+      <div class="product-price">$85</div>
+    </div>
+  </div>
+  <div class="product-card">
+    <div class="product-img img-8">SP</div>
+    <div class="product-quick-add"><button class="quick-add-btn">Quick Add</button></div>
+    <div class="product-info">
+      <div class="product-name">Rooftop Beanie</div>
+      <div class="product-price">$35</div>
+    </div>
+  </div>
+</div>
+
+<!-- LOOKBOOK SECTION -->
+<section class="lookbook">
+  <div class="lookbook-img">SP</div>
+  <div class="lookbook-content">
+    <div class="lookbook-tag">// Collection</div>
+    <h2 class="lookbook-title">Nightfall<br>Lookbook</h2>
+    <p class="lookbook-desc">Shot in the streets at 3am. No studio. No script. Just the city and the clothes. This is SPARROW after dark — raw, uncut, real.</p>
+    <a href="#" class="lookbook-cta">View Lookbook</a>
+  </div>
+</section>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-item">
+    <div class="trust-icon">📦</div>
+    <div class="trust-title">Free Shipping 100+</div>
+    <div class="trust-desc">Worldwide on orders over $100</div>
+  </div>
+  <div class="trust-item">
+    <div class="trust-icon">🔒</div>
+    <div class="trust-title">Secure Checkout</div>
+    <div class="trust-desc">SSL encrypted payments</div>
+  </div>
+  <div class="trust-item">
+    <div class="trust-icon">↩️</div>
+    <div class="trust-title">14-Day Returns</div>
+    <div class="trust-desc">No questions asked</div>
+  </div>
+</div>
+
+<!-- UGC / SOCIAL -->
+<section class="ugc-section">
+  <div class="section-header" style="padding: 0 0 20px;">
+    <div class="section-tag">// The Community</div>
+    <h2 class="section-title">#SPARROWGANG</h2>
+  </div>
+  <div class="ugc-grid">
+    <div class="ugc-item">
+      <div class="ugc-overlay"><span class="ugc-handle">@streetking_</span></div>
+    </div>
+    <div class="ugc-item">
+      <div class="ugc-overlay"><span class="ugc-handle">@urbanmvp</span></div>
+    </div>
+    <div class="ugc-item">
+      <div class="ugc-overlay"><span class="ugc-handle">@layergod</span></div>
+    </div>
+    <div class="ugc-item">
+      <div class="ugc-overlay"><span class="ugc-handle">@fitcheck.daily</span></div>
+    </div>
+    <div class="ugc-item">
+      <div class="ugc-overlay"><span class="ugc-handle">@sparrow.fan</span></div>
+    </div>
+    <div class="ugc-item">
+      <div class="ugc-overlay"><span class="ugc-handle">@drip.szn</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- NEWSLETTER -->
+<section class="newsletter">
+  <h2 class="newsletter-title">Get Access</h2>
+  <p class="newsletter-sub">Join the list. Get drop passwords before anyone else.</p>
+  <div class="newsletter-form">
+    <input type="email" class="newsletter-input" placeholder="enter your email...">
+    <button class="newsletter-btn">Join</button>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">SPARROW</div>
+      <div class="footer-slogan">Rules everything.<br>Born on the streets.<br>Limited by design.</div>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Shop</div>
+      <ul>
+        <li><a href="#">New Drop</a></li>
+        <li><a href="#">Men</a></li>
+        <li><a href="#">Women</a></li>
+        <li><a href="#">Accessories</a></li>
+        <li><a href="#">Archive</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Info</div>
+      <ul>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Shipping</a></li>
+        <li><a href="#">Returns</a></li>
+        <li><a href="#">Size Guide</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Follow</div>
+      <ul>
+        <li><a href="#">Instagram</a></li>
+        <li><a href="#">TikTok</a></li>
+        <li><a href="#">Twitter / X</a></li>
+        <li><a href="#">YouTube</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2025 SPARROW. All rights reserved.</div>
+    <div class="footer-socials">
+      <a href="#">IG</a>
+      <a href="#">TK</a>
+      <a href="#">X</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Countdown Timer
+function updateCountdown() {
+  const now = new Date();
+  const target = new Date();
+  target.setDate(now.getDate() + 3);
+  target.setHours(21, 0, 0, 0);
+  const diff = target - now;
+  
+  const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const s = Math.floor((diff % (1000 * 60)) / 1000);
+  
+  document.getElementById('days').textContent = String(d).padStart(2, '0');
+  document.getElementById('hours').textContent = String(h).padStart(2, '0');
+  document.getElementById('mins').textContent = String(m).padStart(2, '0');
+  document.getElementById('secs').textContent = String(s).padStart(2, '0');
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+</script>
+
+</body>
+</html>
