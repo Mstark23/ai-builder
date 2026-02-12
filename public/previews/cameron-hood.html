@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cameron Hood — Feature Animation Director</title>
+<meta name="description" content="Cameron Hood is a feature animation director with 30+ years in Hollywood. Co-Director of Megamind. $2B+ combined box office. DreamWorks, Illumination, Warner Bros.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700&family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+--bg:#040406;
+--s1:#09090d;
+--s2:#0e0e14;
+--s3:#15151d;
+--gold:#c9a54c;
+--gold-h:#ddb960;
+--gold-d:#8a7234;
+--gold-ud:#3a2e18;
+--cream:#ede8db;
+--cream-m:#b0ab9f;
+--cream-d:#706c64;
+--white:#faf7f0;
+--t:#c4c0b6;
+--td:#4e4b44;
+--serif:'Playfair Display',Georgia,serif;
+--sans:'Syne',system-ui,sans-serif;
+--mono:'IBM Plex Mono',monospace;
+}
+
+html{scroll-behavior:auto;scrollbar-width:thin;scrollbar-color:var(--gold-d) var(--bg)}
+
+body{background:var(--bg);color:var(--t);font-family:var(--sans);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* ═══ SCROLL PROGRESS ═══ */
+.progress{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold-h));z-index:10001;width:0%;transition:none;pointer-events:none}
+
+/* ═══ CURSOR ═══ */
+.cur{position:fixed;width:10px;height:10px;border:1.5px solid var(--gold);border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:width .25s,height .25s,background .25s,opacity .25s;mix-blend-mode:difference}
+.cur.h{width:56px;height:56px;background:rgba(201,165,76,.06)}
+.cur.click{transform:translate(-50%,-50%) scale(.8)}
+
+/* ═══ GRAIN + VIGNETTE ═══ */
+.grain{position:fixed;inset:0;z-index:9998;pointer-events:none;opacity:.028;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px}
+.vig{position:fixed;inset:0;z-index:9997;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(4,4,6,.6)100%)}
+
+/* ═══ PARTICLES ═══ */
+.particles{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.particle{position:absolute;width:2px;height:2px;background:var(--gold);border-radius:50%;opacity:0;animation:particleFloat linear infinite}
+
+@keyframes particleFloat{
+0%{opacity:0;transform:translateY(100vh) scale(0)}
+10%{opacity:.4}
+90%{opacity:.15}
+100%{opacity:0;transform:translateY(-10vh) scale(1)}
+}
+
+/* ═══ FILM INTRO ═══ */
+.intro{position:fixed;inset:0;z-index:10000;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s ease,visibility .6s}
+.intro.out{opacity:0;visibility:hidden;pointer-events:none}
+
+.intro-countdown{
+font-family:var(--mono);font-size:13px;letter-spacing:.3em;color:var(--gold-d);
+position:relative;margin-bottom:48px;opacity:0;animation:iFade .5s .2s forwards
+}
+.intro-countdown::before,.intro-countdown::after{
+content:'';position:absolute;top:50%;width:24px;height:1px;background:var(--gold-d)
+}
+.intro-countdown::before{right:calc(100% + 12px)}
+.intro-countdown::after{left:calc(100% + 12px)}
+
+.intro-title{
+font-family:var(--serif);font-size:clamp(32px,5vw,64px);font-weight:400;
+letter-spacing:.04em;color:var(--cream);opacity:0;animation:iFadeUp .8s .5s forwards
+}
+.intro-title em{font-style:italic;color:var(--gold)}
+
+.intro-sub{
+font-family:var(--mono);font-size:10px;letter-spacing:.4em;text-transform:uppercase;
+color:var(--gold-d);margin-top:16px;opacity:0;animation:iFadeUp .6s .9s forwards
+}
+
+.intro-line{
+width:80px;height:1px;background:var(--gold);margin-top:32px;
+transform:scaleX(0);animation:iScale .5s 1.2s cubic-bezier(.16,1,.3,1) forwards
+}
+
+@keyframes iFade{to{opacity:1}}
+@keyframes iFadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes iScale{to{transform:scaleX(1)}}
+
+/* ═══ NAV ═══ */
+.nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:24px 48px;display:flex;justify-content:space-between;align-items:center;transition:all .5s cubic-bezier(.16,1,.3,1)}
+.nav.s{padding:14px 48px;background:rgba(4,4,6,.9);backdrop-filter:blur(24px) saturate(1.3);border-bottom:1px solid rgba(201,165,76,.05)}
+
+.nav-logo{font-family:var(--serif);font-size:14px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+
+.nav-r{display:flex;align-items:center;gap:36px}
+.nav-r a{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--td);text-decoration:none;padding:6px 0;position:relative;transition:color .3s}
+.nav-r a::after{content:'';position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--gold);transition:width .4s cubic-bezier(.16,1,.3,1)}
+.nav-r a:hover{color:var(--cream)}
+.nav-r a:hover::after{width:100%}
+
+.nav-mob{display:none;background:none;border:none;color:var(--gold);font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;padding:8px 0}
+
+/* ═══ HERO ═══ */
+.hero{min-height:100vh;position:relative;display:flex;align-items:flex-end;padding:0 48px 80px;overflow:hidden}
+
+.hero-bg{position:absolute;inset:0;z-index:0}
+.hero-bg-grad{position:absolute;inset:0;background:radial-gradient(ellipse at 25% 40%,rgba(201,165,76,.04) 0%,transparent 55%),radial-gradient(ellipse at 75% 60%,rgba(201,165,76,.025) 0%,transparent 45%)}
+
+/* Film sprocket strip */
+.sprocket{position:absolute;right:0;top:0;bottom:0;width:48px;opacity:.04;background:repeating-linear-gradient(to bottom,transparent,transparent 28px,var(--gold) 28px,var(--gold) 30px,transparent 30px,transparent 40px)}
+
+.hero-content{position:relative;z-index:2;width:100%;max-width:1000px}
+
+.hero-tag{
+display:inline-flex;align-items:center;gap:14px;
+font-family:var(--mono);font-size:9px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);
+margin-bottom:32px;overflow:hidden
+}
+.hero-tag span{display:inline-block;opacity:0;transform:translateY(100%);animation:slideUp .6s 2s forwards}
+.hero-tag i{display:block;width:32px;height:1px;background:var(--gold);opacity:0;animation:iFade .4s 1.8s forwards}
+
+.hero-h{font-family:var(--serif);font-size:clamp(52px,10vw,160px);font-weight:400;line-height:.9;color:var(--cream);letter-spacing:-.04em;margin-bottom:44px}
+.hero-h .word{display:inline-block;overflow:hidden;margin-right:.25em}
+.hero-h .word span{display:inline-block;opacity:0;transform:translateY(110%) rotate(3deg);animation:heroWord 1s cubic-bezier(.16,1,.3,1) forwards}
+.hero-h .word:nth-child(1) span{animation-delay:2.1s}
+.hero-h .word:nth-child(2) span{animation-delay:2.2s}
+.hero-h .word:nth-child(3) span{animation-delay:2.35s}
+.hero-h .line2 .word:nth-child(1) span{animation-delay:2.3s}
+.hero-h .line2 .word:nth-child(2) span{animation-delay:2.4s}
+.hero-h em{font-style:italic;background:linear-gradient(135deg,var(--gold),var(--gold-h));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+@keyframes heroWord{to{opacity:1;transform:translateY(0) rotate(0)}}
+@keyframes slideUp{to{opacity:1;transform:translateY(0)}}
+
+.hero-p{max-width:500px;font-size:15px;line-height:1.8;color:var(--cream-m);font-weight:400;opacity:0;animation:iFadeUp .8s 2.7s forwards}
+
+.hero-stats{display:flex;gap:56px;margin-top:60px;opacity:0;animation:iFadeUp .8s 3s forwards}
+
+.h-stat{position:relative;padding-top:20px}
+.h-stat::before{content:'';position:absolute;top:0;left:0;width:24px;height:1px;background:var(--gold-d)}
+
+.h-stat-n{font-family:var(--serif);font-size:clamp(36px,4vw,56px);font-weight:400;color:var(--cream);line-height:1}
+.h-stat-n .g{color:var(--gold)}
+.h-stat-l{font-family:var(--mono);font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--td);margin-top:6px}
+
+.hero-bot{position:absolute;bottom:0;left:48px;right:48px;height:1px;background:linear-gradient(90deg,rgba(201,165,76,.12),transparent 80%);opacity:0;animation:iFade .6s 3.3s forwards}
+
+.hero-scroll{position:absolute;bottom:32px;right:48px;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;animation:iFade .6s 3.5s forwards}
+.hero-scroll span{writing-mode:vertical-rl;font-family:var(--mono);font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--td)}
+.scroll-bar{width:1px;height:44px;background:rgba(201,165,76,.08);position:relative;overflow:hidden}
+.scroll-bar::after{content:'';position:absolute;top:-100%;width:1px;height:100%;background:var(--gold);animation:sDown 2.2s ease-in-out infinite}
+@keyframes sDown{0%{top:-100%}50%{top:0}100%{top:100%}}
+
+/* ═══ SECTIONS ═══ */
+.sec{padding:140px 48px;position:relative}
+
+.sec-n{font-family:var(--mono);font-size:9px;letter-spacing:.25em;color:var(--gold-d)}
+.sec-l{font-family:var(--mono);font-size:9px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);margin:8px 0 20px}
+.sec-h{font-family:var(--serif);font-size:clamp(32px,5vw,72px);font-weight:400;color:var(--cream);line-height:1.05;margin-bottom:20px}
+.sec-h em{font-style:italic;color:var(--gold)}
+.sec-r{width:40px;height:1px;background:var(--gold);margin-bottom:60px}
+
+/* Reveal */
+[data-r]{opacity:0;transform:translateY(44px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
+[data-r].v{opacity:1;transform:translateY(0)}
+[data-r][data-d="1"]{transition-delay:.1s}
+[data-r][data-d="2"]{transition-delay:.2s}
+[data-r][data-d="3"]{transition-delay:.3s}
+[data-r][data-d="4"]{transition-delay:.4s}
+
+/* ═══ REEL ═══ */
+.reel{max-width:1200px;margin:0 auto}
+.reel-box{position:relative;width:100%;aspect-ratio:2.35/1;background:var(--s1);overflow:hidden;border:1px solid rgba(201,165,76,.06)}
+
+.reel-inner{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:linear-gradient(160deg,#0b0b12,#070710);transition:background .5s;cursor:pointer}
+.reel-box:hover .reel-inner{background:linear-gradient(160deg,#0f0f18,#0a0a14)}
+
+.reel-play{width:80px;height:80px;border:1.5px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .5s cubic-bezier(.16,1,.3,1)}
+.reel-box:hover .reel-play{transform:scale(1.14);box-shadow:0 0 80px rgba(201,165,76,.1);background:rgba(201,165,76,.03)}
+.reel-play svg{margin-left:3px}
+.reel-t{font-family:var(--mono);font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold-d);transition:color .4s}
+.reel-box:hover .reel-t{color:var(--gold)}
+
+/* Viewfinder */
+.vf{position:absolute;width:28px;height:28px;opacity:.25}
+.vf--tl{top:14px;left:14px;border-top:1px solid var(--gold-d);border-left:1px solid var(--gold-d)}
+.vf--tr{top:14px;right:14px;border-top:1px solid var(--gold-d);border-right:1px solid var(--gold-d)}
+.vf--bl{bottom:14px;left:14px;border-bottom:1px solid var(--gold-d);border-left:1px solid var(--gold-d)}
+.vf--br{bottom:14px;right:14px;border-bottom:1px solid var(--gold-d);border-right:1px solid var(--gold-d)}
+
+.reel-meta{display:flex;justify-content:space-between;margin-top:14px;font-family:var(--mono);font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--td)}
+
+/* ═══ MARQUEE ═══ */
+.marquee{overflow:hidden;padding:80px 0;border-top:1px solid rgba(201,165,76,.04);border-bottom:1px solid rgba(201,165,76,.04);position:relative}
+.marquee-track{display:flex;gap:0;animation:marqueeScroll 30s linear infinite;width:max-content}
+.marquee-item{flex-shrink:0;font-family:var(--serif);font-size:clamp(48px,6vw,100px);font-weight:300;font-style:italic;color:rgba(201,165,76,.06);white-space:nowrap;padding:0 32px;line-height:1}
+.marquee-dot{flex-shrink:0;width:8px;height:8px;border-radius:50%;background:rgba(201,165,76,.08);align-self:center;margin:0 32px}
+
+@keyframes marqueeScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* ═══ FILMS ═══ */
+.films-sec{background:var(--s1);overflow:hidden}
+
+.f-strip{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;cursor:grab}
+.f-strip::-webkit-scrollbar{display:none}
+.f-strip:active{cursor:grabbing}
+
+.f-track{display:flex;gap:3px;padding:0 48px;width:max-content}
+
+.fc{flex-shrink:0;width:300px;background:var(--s2);overflow:hidden;transition:all .5s cubic-bezier(.16,1,.3,1);position:relative}
+.fc:hover{transform:translateY(-8px);box-shadow:0 40px 80px rgba(0,0,0,.5),0 0 0 1px rgba(201,165,76,.1)}
+
+.fc-poster{width:100%;height:200px;overflow:hidden;position:relative}
+.fc-poster-bg{width:100%;height:100%;transition:transform .7s cubic-bezier(.16,1,.3,1)}
+.fc:hover .fc-poster-bg{transform:scale(1.08)}
+.fc-poster::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,var(--s2),transparent 50%)}
+.fc-yr{position:absolute;top:12px;left:12px;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--gold);background:rgba(4,4,6,.7);backdrop-filter:blur(8px);padding:3px 9px;z-index:1}
+
+.fc-body{padding:20px 22px 24px}
+.fc-title{font-family:var(--serif);font-size:21px;font-weight:500;color:var(--cream);line-height:1.2;margin-bottom:8px}
+.fc-role{font-family:var(--mono);font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.fc-studio{font-size:12px;color:var(--cream-d);margin-bottom:14px}
+.fc-box{font-family:var(--mono);font-size:9px;color:var(--td);padding-top:12px;border-top:1px solid rgba(201,165,76,.05);display:flex;justify-content:space-between}
+.fc-box b{color:var(--gold-d);font-weight:500}
+
+.f-hint{padding:24px 48px 0;font-family:var(--mono);font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--td);display:flex;align-items:center;gap:12px}
+.f-hint i{width:28px;height:1px;background:var(--gold-d)}
+
+/* ═══ BENTO GALLERY ═══ */
+.bento{
+display:grid;
+grid-template-columns:repeat(12,1fr);
+grid-template-rows:280px 240px 280px;
+gap:4px;
+margin-top:64px
+}
+
+.b-item{position:relative;overflow:hidden;cursor:pointer}
+.b-item:nth-child(1){grid-column:1/8;grid-row:1}
+.b-item:nth-child(2){grid-column:8/13;grid-row:1}
+.b-item:nth-child(3){grid-column:1/5;grid-row:2}
+.b-item:nth-child(4){grid-column:5/13;grid-row:2}
+.b-item:nth-child(5){grid-column:1/6;grid-row:3}
+.b-item:nth-child(6){grid-column:6/13;grid-row:3}
+
+.b-bg{width:100%;height:100%;transition:transform .8s cubic-bezier(.16,1,.3,1)}
+.b-item:hover .b-bg{transform:scale(1.05)}
+
+.b-ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(4,4,6,.9),transparent 55%);opacity:0;transition:opacity .5s;display:flex;flex-direction:column;justify-content:flex-end;padding:28px}
+.b-item:hover .b-ov{opacity:1}
+.b-ov h3{font-family:var(--serif);font-size:20px;font-weight:500;color:var(--cream);margin-bottom:4px}
+.b-ov span{font-family:var(--mono);font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold-d)}
+
+/* ═══ ABOUT ═══ */
+.about-lay{display:grid;grid-template-columns:360px 1fr;gap:72px;align-items:start}
+
+.about-port{position:sticky;top:120px;width:100%;aspect-ratio:3/4;background:var(--s2);border:1px solid rgba(201,165,76,.05);overflow:hidden;position:relative}
+.about-port-inner{width:100%;height:100%;background:linear-gradient(160deg,#0c0c14,#07070c);display:flex;align-items:center;justify-content:center}
+.about-port-txt{font-family:var(--mono);font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--td);transform:rotate(-90deg)}
+.about-port-frame{position:absolute;inset:8px;border:1px solid rgba(201,165,76,.03);pointer-events:none}
+
+.about-p{font-size:15px;line-height:1.85;color:var(--t);margin-bottom:24px}
+.about-p strong{color:var(--cream);font-weight:600}
+
+.about-q{padding:32px 36px;background:var(--s1);border-left:2px solid var(--gold);margin:44px 0;position:relative}
+.about-q::before{content:'\201C';font-family:var(--serif);font-size:72px;color:var(--gold-ud);position:absolute;top:-8px;left:14px;line-height:1}
+.about-q p{font-family:var(--serif);font-size:22px;font-weight:400;font-style:italic;color:var(--cream);line-height:1.5}
+
+/* HORIZONTAL TIMELINE */
+.htl{margin-top:56px;overflow-x:auto;scrollbar-width:none;padding-bottom:20px}
+.htl::-webkit-scrollbar{display:none}
+
+.htl-track{display:flex;gap:0;width:max-content;position:relative}
+.htl-track::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(201,165,76,.06)}
+
+.htl-item{flex-shrink:0;width:260px;padding:0 20px;position:relative;display:flex;flex-direction:column}
+.htl-item:nth-child(odd){padding-bottom:80px}
+.htl-item:nth-child(even){padding-top:80px}
+
+.htl-dot{width:8px;height:8px;border-radius:50%;background:var(--gold-d);border:2px solid var(--bg);position:absolute;left:50%;transform:translateX(-50%);z-index:1;transition:background .3s,box-shadow .3s}
+.htl-item:nth-child(odd) .htl-dot{bottom:0}
+.htl-item:nth-child(even) .htl-dot{top:0}
+.htl-item:hover .htl-dot{background:var(--gold);box-shadow:0 0 20px rgba(201,165,76,.3)}
+
+.htl-yr{font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:.08em;margin-bottom:8px}
+.htl-text{font-size:13px;line-height:1.6;color:var(--t)}
+.htl-text strong{color:var(--cream);font-weight:600}
+
+/* ═══ EXPERTISE ═══ */
+.exp-g{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:64px}
+
+.exp-c{padding:48px 32px;background:var(--s1);position:relative;overflow:hidden;transition:all .5s}
+.exp-c::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--gold);transform:scaleX(0);transform-origin:left;transition:transform .6s cubic-bezier(.16,1,.3,1)}
+.exp-c:hover{background:var(--s2)}
+.exp-c:hover::after{transform:scaleX(1)}
+
+.exp-i{font-family:var(--serif);font-size:44px;font-weight:300;color:var(--gold-ud);line-height:1;margin-bottom:20px;transition:color .4s}
+.exp-c:hover .exp-i{color:var(--gold-d)}
+.exp-n{font-family:var(--serif);font-size:22px;font-weight:500;color:var(--cream);margin-bottom:14px}
+.exp-d{font-size:13px;line-height:1.7;color:var(--cream-d)}
+
+/* ═══ STUDIOS STRIP ═══ */
+.studios{padding:100px 48px;text-align:center;border-top:1px solid rgba(201,165,76,.04);border-bottom:1px solid rgba(201,165,76,.04)}
+.studios-label{font-family:var(--mono);font-size:8px;letter-spacing:.4em;text-transform:uppercase;color:var(--td);margin-bottom:48px}
+.studios-row{display:flex;justify-content:center;gap:80px;flex-wrap:wrap}
+.studio-name{font-family:var(--serif);font-size:24px;font-weight:400;font-style:italic;color:rgba(201,165,76,.15);transition:color .4s}
+.studio-name:hover{color:var(--gold)}
+
+/* ═══ CTA ═══ */
+.cta{padding:200px 48px;text-align:center;position:relative}
+.cta::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(201,165,76,.03),transparent 55%);pointer-events:none}
+
+.cta-h{font-family:var(--serif);font-size:clamp(40px,7vw,100px);font-weight:400;color:var(--cream);line-height:1;margin-bottom:28px}
+.cta-h em{font-style:italic;background:linear-gradient(135deg,var(--gold),var(--gold-h));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+.cta-p{font-size:15px;color:var(--cream-m);max-width:440px;margin:0 auto 56px;line-height:1.75}
+
+.cta-btn{
+display:inline-flex;align-items:center;gap:14px;
+font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+color:var(--bg);background:var(--gold);padding:20px 52px;
+text-decoration:none;border:1px solid var(--gold);
+position:relative;overflow:hidden;transition:all .5s cubic-bezier(.16,1,.3,1);cursor:pointer
+}
+.cta-btn::before{content:'';position:absolute;inset:0;background:var(--bg);transform:scaleY(0);transform-origin:bottom;transition:transform .5s cubic-bezier(.16,1,.3,1)}
+.cta-btn:hover::before{transform:scaleY(1)}
+.cta-btn span,.cta-btn svg{position:relative;z-index:1;transition:color .4s}
+.cta-btn:hover span{color:var(--gold)}
+.cta-btn:hover svg{stroke:var(--gold)}
+.cta-btn:hover{box-shadow:0 0 80px rgba(201,165,76,.1)}
+
+.cta-links{display:flex;justify-content:center;gap:48px;margin-top:80px}
+.cta-links a{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--td);text-decoration:none;transition:color .3s}
+.cta-links a:hover{color:var(--gold)}
+
+/* ═══ FOOTER ═══ */
+.ft{padding:24px 48px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(201,165,76,.03)}
+.ft-l{font-family:var(--serif);font-size:12px;color:var(--td);letter-spacing:.08em}
+.ft-r{font-family:var(--mono);font-size:7px;letter-spacing:.18em;text-transform:uppercase;color:var(--td);opacity:.4}
+.ft-r a{color:var(--gold-d);text-decoration:none;transition:color .3s}
+.ft-r a:hover{color:var(--gold)}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:1024px){
+.about-lay{grid-template-columns:1fr;gap:48px}
+.about-port{max-width:340px;position:static}
+.exp-g{grid-template-columns:1fr 1fr}
+.bento{grid-template-columns:1fr 1fr;grid-template-rows:auto}
+.bento .b-item{grid-column:auto!important;grid-row:auto!important;aspect-ratio:16/10}
+.bento .b-item:nth-child(1){grid-column:1/-1!important;aspect-ratio:21/9}
+}
+
+@media(max-width:768px){
+.cur{display:none}
+body,.reel-inner,.b-item,.cta-btn,.cta-links a,.nav-r a,.fc{cursor:pointer!important}
+
+.nav{padding:14px 20px}
+.nav.s{padding:10px 20px}
+.nav-r a{display:none}
+.nav-mob{display:block}
+
+.hero{padding:0 20px 60px}
+.hero-stats{flex-wrap:wrap;gap:28px}
+.hero-scroll{display:none}
+.hero-bot{left:20px;right:20px}
+.sprocket{display:none}
+
+.sec{padding:80px 20px}
+.bento{grid-template-columns:1fr;grid-template-rows:auto}
+.bento .b-item{aspect-ratio:16/9!important;grid-column:auto!important}
+.exp-g{grid-template-columns:1fr}
+.f-track{padding:0 20px}
+.fc{width:260px}
+.f-hint{padding:20px 20px 0}
+.studios{padding:60px 20px}
+.studios-row{gap:40px}
+.cta{padding:120px 20px}
+.ft{padding:20px;flex-direction:column;gap:10px;text-align:center}
+.marquee-item{font-size:clamp(32px,8vw,64px)}
+}
+</style>
+</head>
+<body>
+
+<div class="progress" id="prog"></div>
+<div class="cur" id="cur"></div>
+<div class="grain"></div>
+<div class="vig"></div>
+<div class="particles" id="particles"></div>
+
+<!-- INTRO -->
+<div class="intro" id="intro">
+  <div class="intro-countdown" id="introCount">REEL 01</div>
+  <div class="intro-title"><em>Cameron</em> Hood</div>
+  <div class="intro-sub">Feature Animation Director</div>
+  <div class="intro-line"></div>
+</div>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <div class="nav-logo">Cameron Hood</div>
+  <div class="nav-r" id="navR">
+    <a href="#reel">Reel</a>
+    <a href="#films">Films</a>
+    <a href="#gallery">Gallery</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <button class="nav-mob" id="navMob">Menu</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"><div class="hero-bg-grad"></div></div>
+  <div class="sprocket"></div>
+  <div class="hero-content">
+    <div class="hero-tag"><i></i><span>Director &nbsp;·&nbsp; Story Artist &nbsp;·&nbsp; 30+ Years</span></div>
+    <h1 class="hero-h">
+      <span class="word"><span>Bringing</span></span>
+      <span class="word"><span>worlds</span></span>
+      <span class="word"><span>to</span></span>
+      <br>
+      <span class="line2">
+        <span class="word"><span><em>life,</em></span></span>
+        <span class="word"><span>one frame</span></span>
+      </span>
+      <br>
+      <span class="word"><span>at a time.</span></span>
+    </h1>
+    <p class="hero-p">Feature animation director and visual storyteller behind Hollywood's most beloved films. From hand-drawn classics at Warner Bros. to billion-dollar blockbusters at DreamWorks and Illumination.</p>
+    <div class="hero-stats">
+      <div class="h-stat"><div class="h-stat-n"><span class="g" data-count="2">0</span><span class="g">B</span>+</div><div class="h-stat-l">Box Office</div></div>
+      <div class="h-stat"><div class="h-stat-n"><span data-count="30">0</span>+</div><div class="h-stat-l">Feature Credits</div></div>
+      <div class="h-stat"><div class="h-stat-n"><span data-count="14">0</span></div><div class="h-stat-l">Years at DreamWorks</div></div>
+      <div class="h-stat"><div class="h-stat-n"><span data-count="3">0</span></div><div class="h-stat-l">Major Studios</div></div>
+    </div>
+  </div>
+  <div class="hero-bot"></div>
+  <div class="hero-scroll"><div class="scroll-bar"></div><span>Scroll</span></div>
+</section>
+
+<!-- REEL -->
+<section class="sec" id="reel">
+  <div class="reel" data-r>
+    <div class="reel-box">
+      <div class="reel-inner">
+        <div class="reel-play"><svg width="26" height="26" fill="none" viewBox="0 0 24 24"><polygon points="7,3 21,12 7,21" fill="#c9a54c"/></svg></div>
+        <div class="reel-t">Play Showreel</div>
+      </div>
+      <div class="vf vf--tl"></div><div class="vf vf--tr"></div><div class="vf vf--bl"></div><div class="vf vf--br"></div>
+    </div>
+    <div class="reel-meta"><span>Cameron Hood — Director's Reel 2026</span><span>2.35:1 &nbsp;·&nbsp; Cinemascope</span></div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee">
+  <div class="marquee-track">
+    <span class="marquee-item">Megamind</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Shrek 2</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Kung Fu Panda</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Madagascar</span><span class="marquee-dot"></span>
+    <span class="marquee-item">The Iron Giant</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Secret Life of Pets</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Despicable Me 3</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Bee Movie</span><span class="marquee-dot"></span>
+    <!-- duplicate for seamless -->
+    <span class="marquee-item">Megamind</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Shrek 2</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Kung Fu Panda</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Madagascar</span><span class="marquee-dot"></span>
+    <span class="marquee-item">The Iron Giant</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Secret Life of Pets</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Despicable Me 3</span><span class="marquee-dot"></span>
+    <span class="marquee-item">Bee Movie</span><span class="marquee-dot"></span>
+  </div>
+</div>
+
+<!-- FILMS -->
+<section class="sec films-sec" id="films">
+  <div class="sec-n" data-r>01</div>
+  <div class="sec-l" data-r data-d="1">Filmography</div>
+  <div class="sec-h" data-r data-d="2">Selected <em>Credits</em></div>
+  <div class="sec-r" data-r data-d="3"></div>
+
+  <div class="f-strip" id="fStrip">
+    <div class="f-track">
+      <div class="fc"><div class="fc-poster"><div class="fc-poster-bg" style="background:linear-gradient(140deg,#0a1540,#1a3580)"></div><div class="fc-yr">2010</div></div><div class="fc-body"><div class="fc-title">Megamind</div><div class="fc-role">Co-Director / Head of Story</div><div class="fc-studio">DreamWorks Animation</div><div class="fc-box"><span>Worldwide</span><b>$321M</b></div></div></div>
+
+      <div class="fc"><div class="fc-poster"><div class="fc-poster-bg" style="background:linear-gradient(140deg,#103010,#207020)"></div><div class="fc-yr">2004</div></div><div class="fc-body"><div class="fc-title">Shrek 2</div><div class="fc-role">Story Artist</div><div class="fc-studio">DreamWorks Animation</div><div class="fc-box"><span>Worldwide</span><b>$928M</b></div></div></div>
+
+      <div class="fc"><div class="fc-poster"><div class="fc-poster-bg" style="background:linear-gradient(140deg,#301040,#602080)"></div><div class="fc-yr">2005</div></div><div class="fc-body"><div class="fc-title">Madagascar</div><div class="fc-role">Story Artist</div><div class="fc-studio">DreamWorks Animation</div><div class="fc-box"><span>Worldwide</span><b>$542M</b></div></div></div>
+
+      <div class="fc"><div class="fc-poster"><div class="fc-poster-bg" style="background:linear-gradient(140deg,#401008,#802818)"></div><div class="fc-yr">2008</div></div><div class="fc-body"><div class="fc-title">Kung Fu Panda</div><div class="fc-role">Story Artist</div><div class="fc-studio">DreamWorks Animation</div><div class="fc-box"><span>Worldwide</span><b>$631M</b></div></div></div>
+
+      <div class="fc"><div class="fc-poster"><div class="fc-poster-bg" style="background:linear-gradient(140deg,#403008,#806018)"></div><div class="fc-yr">2007</div></div><div class="fc-body"><div class="fc-title">Bee Movie</div><div class="fc-role">Story Artist</div><div class="fc-studio">DreamWorks Animation</div><div class="fc-box"><span>Worldwide</span><b>$293M</b></div></div></div>
+
+      <div class="fc"><div class="fc-poster"><div class="fc-poster-bg" style="background:linear-gradient(140deg,#082828,#184848)"></div><div class="fc-yr">2009</div></div><div class="fc-body"><div class="fc-title">Monsters vs. Aliens</div><div class="fc-role">Story Artist</div><div class="fc-studio">DreamWorks Animation</div><div class="fc-box"><span>Worldwide</span><b>$381M</b></div></div></div>
+
+      <div class="fc"><div class="fc-poster"><div class="fc-poster-bg" style="background:linear-gradient(140deg,#141420,#222236)"></div><div class="fc-yr">1999</div></div><div class="fc-body"><div class="fc-title">The Iron Giant</div><div class="fc-role">Story Artist</div><div class="fc-studio">Warner Bros. Animation</div><div class="fc-box"><span>Legacy</span><b>Cult Classic</b></div></div></div>
+
+      <div class="fc"><div class="fc-poster"><div class="fc-poster-bg" style="background:linear-gradient(140deg,#300828,#601048)"></div><div class="fc-yr">2016</div></div><div class="fc-body"><div class="fc-title">The Secret Life of Pets</div><div class="fc-role">Story Artist</div><div class="fc-studio">Illumination Entertainment</div><div class="fc-box"><span>Worldwide</span><b>$875M</b></div></div></div>
+
+      <div class="fc"><div class="fc-poster"><div class="fc-poster-bg" style="background:linear-gradient(140deg,#302008,#604018)"></div><div class="fc-yr">2017</div></div><div class="fc-body"><div class="fc-title">Despicable Me 3</div><div class="fc-role">Story Artist</div><div class="fc-studio">Illumination Entertainment</div><div class="fc-box"><span>Worldwide</span><b>$1.03B</b></div></div></div>
+
+      <div class="fc"><div class="fc-poster"><div class="fc-poster-bg" style="background:linear-gradient(140deg,#100830,#201050)"></div><div class="fc-yr">2001</div></div><div class="fc-body"><div class="fc-title">Osmosis Jones</div><div class="fc-role">Story Artist</div><div class="fc-studio">Warner Bros. Animation</div><div class="fc-box"><span>Format</span><b>Hybrid Film</b></div></div></div>
+    </div>
+  </div>
+  <div class="f-hint"><i></i> Drag to explore all credits</div>
+</section>
+
+<!-- GALLERY -->
+<section class="sec" id="gallery">
+  <div class="sec-n" data-r>02</div>
+  <div class="sec-l" data-r data-d="1">Storyboard Gallery</div>
+  <div class="sec-h" data-r data-d="2">Visual <em>Storytelling</em></div>
+  <div class="sec-r" data-r data-d="3"></div>
+
+  <div class="bento" data-r data-d="4">
+    <div class="b-item"><div class="b-bg" style="background:linear-gradient(155deg,#0c1530,#152550)"></div><div class="b-ov"><h3>Megamind — Opening Sequence</h3><span>Storyboard Panels · 42 Frames</span></div></div>
+    <div class="b-item"><div class="b-bg" style="background:linear-gradient(155deg,#1a2810,#2a3820)"></div><div class="b-ov"><h3>Character Expressions</h3><span>Character Studies</span></div></div>
+    <div class="b-item"><div class="b-bg" style="background:linear-gradient(155deg,#281810,#382820)"></div><div class="b-ov"><h3>Action Choreography</h3><span>Dynamic Sequences</span></div></div>
+    <div class="b-item"><div class="b-bg" style="background:linear-gradient(155deg,#0c0c28,#181840)"></div><div class="b-ov"><h3>Shrek 2 — Far Far Away Arrival</h3><span>Sequence Design · 68 Frames</span></div></div>
+    <div class="b-item"><div class="b-bg" style="background:linear-gradient(155deg,#282810,#383820)"></div><div class="b-ov"><h3>Emotional Beats</h3><span>Story Moments</span></div></div>
+    <div class="b-item"><div class="b-bg" style="background:linear-gradient(155deg,#102828,#183838)"></div><div class="b-ov"><h3>Environment & World Design</h3><span>World Building</span></div></div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="sec" id="about">
+  <div class="sec-n" data-r>03</div>
+  <div class="sec-l" data-r data-d="1">About</div>
+  <div class="sec-h" data-r data-d="2">The Story Behind<br>the <em>Stories</em></div>
+  <div class="sec-r" data-r data-d="3"></div>
+
+  <div class="about-lay" data-r data-d="4">
+    <div class="about-port"><div class="about-port-inner"><div class="about-port-txt">Portrait</div></div><div class="about-port-frame"></div></div>
+    <div>
+      <p class="about-p"><strong>Cameron Hood</strong> is a feature animation director, story artist, and creative leader with over three decades of experience shaping Hollywood's most iconic animated worlds. His career spans the golden eras of both hand-drawn and CG animation — from Warner Bros. to DreamWorks to Illumination.</p>
+      <p class="about-p">As <strong>Co-Director and Head of Story on Megamind</strong>, Cameron helped create a film that grossed $321 million worldwide and launched a franchise. His storyboard work has contributed to films with a combined global box office exceeding <strong>$2 billion</strong>.</p>
+      <div class="about-q"><p>Every frame is a chance to make someone feel something they've never felt before. That's the power of visual storytelling.</p></div>
+      <p class="about-p">Trained in the lineage of <strong>Chuck Jones</strong> and classical animation masters, Cameron bridges old-school craftsmanship with cutting-edge technology. He led DreamWorks' historic transition from 2D to 3D production — equally fluent in hand-drawn emotion and CG spectacle.</p>
+      <p class="about-p">Beyond the studio, Cameron hosted an internationally acclaimed <strong>Character Animation Lecture Series</strong> and traveled with DreamWorks CEO <strong>Jeffrey Katzenberg</strong> on the studio's university outreach program, inspiring the next generation of animators.</p>
+    </div>
+  </div>
+
+  <!-- Horizontal Timeline -->
+  <div class="htl" style="margin-top:80px" data-r>
+    <div class="htl-track">
+      <div class="htl-item"><div class="htl-yr">1990s</div><div class="htl-text">Classical animation training in the <strong>Chuck Jones</strong> tradition</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">1995</div><div class="htl-text"><strong>Warner Bros.</strong> — Story Artist on Quest for Camelot</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">1999</div><div class="htl-text"><strong>The Iron Giant</strong> — Now a cult classic beloved worldwide</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">2001</div><div class="htl-text"><strong>Osmosis Jones</strong> — Animated/live-action hybrid at Warner Bros.</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">2004</div><div class="htl-text"><strong>Shrek 2</strong> — $928M worldwide. Highest-grossing film of 2004.</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">2005</div><div class="htl-text"><strong>Madagascar</strong> — $542M worldwide. Launched a 4-film franchise.</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">2007</div><div class="htl-text"><strong>Bee Movie</strong> — $293M worldwide. Cultural phenomenon.</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">2008</div><div class="htl-text"><strong>Kung Fu Panda</strong> — $631M worldwide. Oscar-nominated.</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">2009</div><div class="htl-text"><strong>Monsters vs. Aliens</strong> — $381M worldwide at DreamWorks.</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">2010</div><div class="htl-text"><strong>Megamind</strong> — Co-Director & Head of Story. $321M. Career apex.</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">2016</div><div class="htl-text"><strong>Secret Life of Pets</strong> — $875M at Illumination.</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">2017</div><div class="htl-text"><strong>Despicable Me 3</strong> — $1.03B worldwide. Billion-dollar club.</div><div class="htl-dot"></div></div>
+      <div class="htl-item"><div class="htl-yr">Now</div><div class="htl-text">Continuing to shape animation's future at <strong>Illumination</strong>.</div><div class="htl-dot"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERTISE -->
+<section class="sec" style="background:var(--s1)">
+  <div class="sec-n" data-r>04</div>
+  <div class="sec-l" data-r data-d="1">Expertise</div>
+  <div class="sec-h" data-r data-d="2">What I <em>Do</em></div>
+  <div class="sec-r" data-r data-d="3"></div>
+  <div class="exp-g">
+    <div class="exp-c" data-r><div class="exp-i">01</div><div class="exp-n">Direction</div><div class="exp-d">Feature film direction leading teams of 200+ from first pitch through final delivery. $150M+ budgets. Multi-year creative vision.</div></div>
+    <div class="exp-c" data-r data-d="1"><div class="exp-i">02</div><div class="exp-n">Story & Board</div><div class="exp-d">Thousands of storyboard panels across 30+ features. Translating scripts into sequences that move audiences worldwide.</div></div>
+    <div class="exp-c" data-r data-d="2"><div class="exp-i">03</div><div class="exp-n">Characters</div><div class="exp-d">Designing characters audiences fall in love with. From Megamind's expressions to DreamWorks' most beloved ensemble casts.</div></div>
+    <div class="exp-c" data-r data-d="3"><div class="exp-i">04</div><div class="exp-n">2D & 3D</div><div class="exp-d">Fluent in hand-drawn and CG pipelines. Led DreamWorks' transition from traditional 2D to 3D production workflows.</div></div>
+    <div class="exp-c" data-r data-d="4"><div class="exp-i">05</div><div class="exp-n">Leadership</div><div class="exp-d">Mentoring emerging talent. Managing creative vision across multi-year productions. Building teams that deliver excellence.</div></div>
+    <div class="exp-c" data-r><div class="exp-i">06</div><div class="exp-n">Speaking</div><div class="exp-d">DreamWorks Outreach with Jeffrey Katzenberg. Best-selling lecture series. Available for keynotes and masterclasses worldwide.</div></div>
+  </div>
+</section>
+
+<!-- STUDIOS -->
+<div class="studios">
+  <div class="studios-label" data-r>Studios & Partners</div>
+  <div class="studios-row" data-r data-d="1">
+    <div class="studio-name">DreamWorks</div>
+    <div class="studio-name">Illumination</div>
+    <div class="studio-name">Warner Bros.</div>
+  </div>
+</div>
+
+<!-- CTA -->
+<section class="cta" id="contact">
+  <div class="sec-l" data-r>05</div>
+  <h2 class="cta-h" data-r data-d="1">Let's make something<br><em>extraordinary</em></h2>
+  <p class="cta-p" data-r data-d="2">Available for feature animation, directing, story development, and speaking. Based in Los Angeles.</p>
+  <a href="mailto:cameron@cameronhood.com" class="cta-btn" data-r data-d="3">
+    <span>Get In Touch</span>
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+  </a>
+  <div class="cta-links" data-r data-d="4">
+    <a href="https://www.imdb.com/name/nm1968931/" target="_blank">IMDb</a>
+    <a href="http://www.cameronhood.com" target="_blank">Website</a>
+    <a href="https://www.linkedin.com/in/cameronhood" target="_blank">LinkedIn</a>
+  </div>
+</section>
+
+<footer class="ft">
+  <div class="ft-l">© 2026 Cameron Hood</div>
+  <div class="ft-r">Built by <a href="https://www.vektorlabs.ai" target="_blank">VektorLabs</a></div>
+</footer>
+
+<script>
+// ═══ INTRO ═══
+setTimeout(()=>document.getElementById('intro').classList.add('out'),2200);
+
+// ═══ PARTICLES ═══
+const pc=document.getElementById('particles');
+for(let i=0;i<20;i++){
+  const p=document.createElement('div');
+  p.className='particle';
+  p.style.left=Math.random()*100+'%';
+  p.style.animationDuration=(8+Math.random()*16)+'s';
+  p.style.animationDelay=Math.random()*10+'s';
+  p.style.width=p.style.height=(1+Math.random()*2)+'px';
+  pc.appendChild(p);
+}
+
+// ═══ CURSOR ═══
+const cur=document.getElementById('cur');
+let cx=0,cy=0,tx=0,ty=0;
+document.addEventListener('mousemove',e=>{tx=e.clientX;ty=e.clientY});
+document.addEventListener('mousedown',()=>cur.classList.add('click'));
+document.addEventListener('mouseup',()=>cur.classList.remove('click'));
+(function ac(){cx+=(tx-cx)*.1;cy+=(ty-cy)*.1;cur.style.left=cx+'px';cur.style.top=cy+'px';requestAnimationFrame(ac)})();
+document.querySelectorAll('a,button,.reel-box,.b-item,.fc,.exp-c,.studio-name,.cta-btn').forEach(el=>{
+  el.addEventListener('mouseenter',()=>cur.classList.add('h'));
+  el.addEventListener('mouseleave',()=>cur.classList.remove('h'));
+});
+
+// ═══ SCROLL PROGRESS ═══
+const prog=document.getElementById('prog');
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  prog.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+});
+
+// ═══ NAV ═══
+window.addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('s',scrollY>80));
+
+// ═══ SMOOTH SCROLL ═══
+document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{
+  e.preventDefault();
+  const t=document.querySelector(a.getAttribute('href'));
+  if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
+}));
+
+// ═══ MOBILE NAV ═══
+document.getElementById('navMob').addEventListener('click',()=>document.getElementById('navR').classList.toggle('mob'));
+const ms=document.createElement('style');
+ms.textContent=`.nav-r.mob{display:flex!important;position:fixed;inset:0;background:rgba(4,4,6,.97);flex-direction:column;align-items:center;justify-content:center;gap:32px;z-index:999;backdrop-filter:blur(24px)}.nav-r.mob a{display:block!important;font-size:13px;color:var(--cream)}`;
+document.head.appendChild(ms);
+
+// ═══ REVEAL ═══
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('v')}),{threshold:.06,rootMargin:'0px 0px -30px 0px'});
+document.querySelectorAll('[data-r]').forEach(el=>obs.observe(el));
+
+// ═══ COUNTER ═══
+let counted=false;
+const countObs=new IntersectionObserver(es=>{
+  if(counted)return;
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      counted=true;
+      document.querySelectorAll('[data-count]').forEach(el=>{
+        const end=parseInt(el.dataset.count);
+        let start=0;
+        const dur=1200;
+        const t0=performance.now();
+        (function step(now){
+          const p=Math.min((now-t0)/dur,1);
+          const ease=1-Math.pow(1-p,3);
+          el.textContent='$'===el.previousSibling?.textContent?Math.round(ease*end):Math.round(ease*end);
+          if(p<1)requestAnimationFrame(step);
+          else el.textContent=end;
+        })(t0);
+      });
+    }
+  });
+},{threshold:.5});
+document.querySelectorAll('.hero-stats').forEach(el=>countObs.observe(el));
+
+// ═══ FILM DRAG ═══
+const fs=document.getElementById('fStrip');
+let fd=false,fsx,fsl;
+fs.addEventListener('mousedown',e=>{fd=true;fs.style.cursor='grabbing';fsx=e.pageX-fs.offsetLeft;fsl=fs.scrollLeft});
+fs.addEventListener('mouseleave',()=>{fd=false;fs.style.cursor='grab'});
+fs.addEventListener('mouseup',()=>{fd=false;fs.style.cursor='grab'});
+fs.addEventListener('mousemove',e=>{if(!fd)return;e.preventDefault();fs.scrollLeft=fsl-(e.pageX-fs.offsetLeft-fsx)*1.5});
+
+// ═══ PARALLAX ═══
+window.addEventListener('scroll',()=>{
+  const sy=window.scrollY;
+  document.querySelector('.hero-bg-grad').style.transform=`translateY(${sy*.15}px)`;
+  document.querySelectorAll('.marquee').forEach(m=>m.style.transform=`translateX(${sy*-.03}px)`);
+});
+</script>
+</body>
+</html>
