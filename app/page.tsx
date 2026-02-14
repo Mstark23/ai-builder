@@ -32,6 +32,19 @@ const ALL_TAGS = [
   'HVAC', 'Roofing',
 ];
 
+// ── Tag → Industry Mapping ──
+const TAG_TO_INDUSTRY: Record<string, string> = {
+  'Restaurants': 'Restaurants & Food', 'E-Commerce': 'E-Commerce / Retail', 'Real Estate': 'Real Estate',
+  'Health & Wellness': 'Health & Wellness', 'Construction': 'Construction & Trades', 'Beauty': 'Beauty & Skincare',
+  'Legal': 'Legal Services', 'Dental': 'Dental & Medical', 'SaaS': 'SaaS / Tech', 'Photography': 'Photography',
+  'Consulting': 'Consulting', 'Fitness': 'Fitness & Gym', 'Education': 'Education & Coaching',
+  'Jewelry': 'Jewelry & Accessories', 'Automotive': 'Home Services', 'Home Services': 'Home Services',
+  'Pet Services': 'Home Services', 'Travel': 'Consulting', 'Financial': 'Financial Services',
+  'Non-Profit': 'Consulting', 'Architecture': 'Construction & Trades', 'Interior Design': 'Home Services',
+  'Cleaning': 'Home Services', 'Insurance': 'Financial Services', 'Landscaping': 'Home Services',
+  'Plumbing': 'Construction & Trades', 'HVAC': 'Construction & Trades', 'Roofing': 'Construction & Trades',
+};
+
 // ── Main Component ──
 function LandingPage() {
   const searchParams = useSearchParams();
@@ -326,7 +339,7 @@ function LandingPage() {
               <h2 className="font-d text-4xl lg:text-5xl font-medium text-black mt-4 leading-tight max-w-[500px] mx-auto">44+ industries. One intelligence engine.</h2>
               <div className="flex flex-wrap justify-center gap-2 mt-10">
                 {ALL_TAGS.map(t => (
-                  <span key={t} className={`px-5 py-2.5 text-[13px] font-medium rounded-full border cursor-default transition-all ${HOT_TAGS.includes(t) ? 'border-black text-black bg-white' : 'border-neutral-200 text-neutral-500 hover:border-neutral-400 hover:text-black'}`}>{t}</span>
+                  <button key={t} onClick={() => { setLead({ ...lead, industry: TAG_TO_INDUSTRY[t] || '' }); setErrors({ ...errors, industry: false }); document.getElementById('sel-industry')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }} className={`px-5 py-2.5 text-[13px] font-medium rounded-full border transition-all cursor-pointer hover:border-black hover:text-black hover:bg-white ${HOT_TAGS.includes(t) ? 'border-black text-black bg-white' : 'border-neutral-200 text-neutral-500'}`}>{t}</button>
                 ))}
               </div>
             </div>
