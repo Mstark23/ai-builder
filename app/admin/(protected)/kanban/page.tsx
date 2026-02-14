@@ -1,295 +1,295 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
-type Project = {
-  id: string;
-  business_name: string;
-  status: string;
-  plan: string;
-  paid: boolean;
-  created_at: string;
-  customers?: {
-    name: string;
-    email: string;
-  } | null;
-};
-
-const COLUMNS = [
-  { id: 'QUEUED', label: 'Queued', color: 'border-amber-400', bg: 'bg-amber-50' },
-  { id: 'IN_PROGRESS', label: 'In Progress', color: 'border-blue-400', bg: 'bg-blue-50' },
-  { id: 'PREVIEW_READY', label: 'Preview Ready', color: 'border-purple-400', bg: 'bg-purple-50' },
-  { id: 'PAID', label: 'Paid', color: 'border-emerald-400', bg: 'bg-emerald-50' },
-  { id: 'DELIVERED', label: 'Delivered', color: 'border-emerald-600', bg: 'bg-emerald-100' },
+const NAV_SECTIONS = [
+  {
+    label: null,
+    items: [
+      {
+        href: '/admin/dashboard',
+        label: 'Dashboard',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
+    label: 'Leads',
+    items: [
+      {
+        href: '/admin/leads',
+        label: 'All Leads',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
+    label: 'Projects',
+    items: [
+      {
+        href: '/admin/kanban',
+        label: 'Kanban',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+          </svg>
+        ),
+      },
+      {
+        href: '/admin/projects',
+        label: 'Projects',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+        ),
+      },
+      {
+        href: '/admin/customers',
+        label: 'Customers',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        ),
+      },
+      {
+        href: '/admin/messages',
+        label: 'Messages',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
+    label: 'Team',
+    items: [
+      {
+        href: '/admin/employees',
+        label: 'Team',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        ),
+      },
+      {
+        href: '/admin/connections',
+        label: 'Connections',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+        ),
+      },
+      {
+        href: '/admin/analytics',
+        label: 'Analytics',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        ),
+      },
+      {
+        href: '/admin/settings',
+        label: 'Settings',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        ),
+      },
+    ],
+  },
 ];
 
-export default function KanbanPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
   const [loading, setLoading] = useState(true);
-  const [draggedProject, setDraggedProject] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadProjects();
-  }, []);
+    const checkAdmin = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.push('/admin/login');
+          return;
+        }
 
-  const loadProjects = async () => {
-    try {
-      const { data } = await supabase
-        .from('projects')
-        .select('*, customers(name, email)')
-        .order('created_at', { ascending: false });
+        const { data: adminUser } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
 
-      if (data) {
-        setProjects(data);
+        if (!adminUser) {
+          router.push('/admin/login');
+          return;
+        }
+
+        setAdminEmail(session.user.email || '');
+        setLoading(false);
+      } catch {
+        router.push('/admin/login');
       }
-    } catch (err) {
-      console.error('Error loading projects:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDragStart = (projectId: string) => {
-    setDraggedProject(projectId);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = async (newStatus: string) => {
-    if (!draggedProject) return;
-
-    const project = projects.find(p => p.id === draggedProject);
-    if (!project || project.status === newStatus) {
-      setDraggedProject(null);
-      return;
-    }
-
-    setSaving(true);
-
-    // Optimistic update
-    setProjects(projects.map(p => 
-      p.id === draggedProject ? { ...p, status: newStatus } : p
-    ));
-
-    // Update in database
-    const updateData: any = { status: newStatus };
-    if (newStatus === 'PAID') {
-      updateData.paid = true;
-    }
-
-    const { error } = await supabase
-      .from('projects')
-      .update(updateData)
-      .eq('id', draggedProject);
-
-    if (error) {
-      console.error('Error updating project:', error);
-      // Revert on error
-      loadProjects();
-    }
-
-    setDraggedProject(null);
-    setSaving(false);
-  };
-
-  const getProjectsByStatus = (status: string) => {
-    return projects.filter(p => p.status === status);
-  };
-
-  const getPlanPrice = (plan: string) => {
-    const prices: Record<string, number> = {
-      starter: 299, landing: 299,
-      professional: 599, service: 599,
-      premium: 799,
-      enterprise: 999, ecommerce: 999,
     };
-    return prices[plan] || 0;
-  };
+    checkAdmin();
+  }, [router]);
 
-  const timeAgo = (date: string) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return 'Just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-    return `${Math.floor(seconds / 86400)}d`;
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/admin/login');
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="font-body text-neutral-500">Loading kanban...</p>
-        </div>
+        <div className="w-8 h-8 border-2 border-black/20 border-t-black rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-[#fafafa] flex">
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
         .font-display { font-family: 'Playfair Display', Georgia, serif; }
         .font-body { font-family: 'Inter', -apple-system, sans-serif; }
-        
-        .kanban-card {
-          cursor: grab;
-          transition: all 0.2s ease;
-        }
-        
-        .kanban-card:active {
-          cursor: grabbing;
-          transform: rotate(2deg) scale(1.02);
-          box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-        }
-        
-        .kanban-column.drag-over {
-          background: rgba(0,0,0,0.03);
-        }
       `}</style>
 
-      <div className="p-8 lg:p-12">
-        {/* HEADER */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-          <div>
-            <Link href="/admin/dashboard" className="inline-flex items-center gap-2 font-body text-neutral-500 hover:text-black transition-colors mb-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span>Back to Dashboard</span>
-            </Link>
-            <h1 className="font-display text-4xl font-medium text-black">Kanban Board</h1>
-            <p className="font-body text-neutral-500 mt-1">Drag and drop to update project status</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {saving && (
-              <span className="px-4 py-2 bg-blue-100 text-blue-700 font-body text-sm rounded-full">
-                Saving...
-              </span>
+      {/* SIDEBAR */}
+      <aside
+        className={`fixed left-0 top-0 h-screen bg-black text-white transition-all duration-300 z-50 flex flex-col ${
+          collapsed ? 'w-16' : 'w-64'
+        }`}
+      >
+        {/* LOGO */}
+        <div className={`p-4 border-b border-white/10 ${collapsed ? 'px-3' : 'px-6'}`}>
+          <Link href="/admin/dashboard" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center transition-transform group-hover:rotate-6 flex-shrink-0">
+              <span className="text-black font-display text-xl font-semibold">V</span>
+            </div>
+            {!collapsed && (
+              <span className="font-body text-white font-semibold tracking-wide">VEKTORLABS</span>
             )}
-            <Link
-              href="/admin/projects"
-              className="px-5 py-2.5 bg-white border border-neutral-200 text-black font-body text-sm font-medium rounded-full hover:bg-neutral-50 transition-all"
-            >
-              List View
-            </Link>
-          </div>
+          </Link>
         </div>
 
-        {/* KANBAN BOARD */}
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {COLUMNS.map((column) => {
-            const columnProjects = getProjectsByStatus(column.id);
-            
-            return (
-              <div
-                key={column.id}
-                className={`kanban-column flex-shrink-0 w-72 rounded-2xl border-t-4 ${column.color} bg-white border border-neutral-200 overflow-hidden`}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(column.id)}
-              >
-                {/* COLUMN HEADER */}
-                <div className={`px-4 py-4 ${column.bg} border-b border-neutral-200`}>
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-body font-semibold text-black">{column.label}</h3>
-                    <span className="w-6 h-6 bg-white rounded-full flex items-center justify-center font-body text-sm font-medium text-black shadow-sm">
-                      {columnProjects.length}
-                    </span>
-                  </div>
+        {/* NAV WITH SECTIONS */}
+        <nav className="flex-1 py-4 overflow-y-auto">
+          {NAV_SECTIONS.map((section, sIdx) => (
+            <div key={sIdx} className={sIdx > 0 ? 'mt-2' : ''}>
+              {/* Section Label */}
+              {section.label && !collapsed && (
+                <div className="px-6 pt-4 pb-2">
+                  <span className="font-body text-[10px] font-semibold text-white/30 uppercase tracking-widest">
+                    {section.label}
+                  </span>
                 </div>
+              )}
+              {section.label && collapsed && (
+                <div className="mx-3 my-2 border-t border-white/10" />
+              )}
 
-                {/* CARDS */}
-                <div className="p-3 space-y-3 min-h-[400px]">
-                  {columnProjects.length === 0 ? (
-                    <div className="p-4 border-2 border-dashed border-neutral-200 rounded-xl text-center">
-                      <p className="font-body text-sm text-neutral-400">
-                        Drop projects here
-                      </p>
-                    </div>
-                  ) : (
-                    columnProjects.map((project) => (
-                      <div
-                        key={project.id}
-                        draggable
-                        onDragStart={() => handleDragStart(project.id)}
-                        className={`kanban-card bg-white rounded-xl border border-neutral-200 p-4 ${
-                          draggedProject === project.id ? 'opacity-50' : ''
+              {/* Section Items */}
+              <ul className="space-y-1 px-3">
+                {section.items.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${
+                          isActive
+                            ? 'bg-white text-black'
+                            : 'text-white/70 hover:bg-white/10 hover:text-white'
                         }`}
+                        title={collapsed ? item.label : undefined}
                       >
-                        {/* PROJECT HEADER */}
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="w-9 h-9 bg-black rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span className="text-white font-body text-sm font-semibold">
-                              {project.business_name?.charAt(0)?.toUpperCase() || '?'}
-                            </span>
-                          </div>
-                          <span className="font-body text-xs text-neutral-400">
-                            {timeAgo(project.created_at)}
-                          </span>
-                        </div>
-
-                        {/* PROJECT NAME */}
-                        <h4 className="font-body font-semibold text-black text-sm mb-1 line-clamp-1">
-                          {project.business_name}
-                        </h4>
-                        <p className="font-body text-xs text-neutral-500 mb-3">
-                          {project.customers?.name || 'No customer'}
-                        </p>
-
-                        {/* FOOTER */}
-                        <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
-                          <span className="font-body text-xs font-medium text-neutral-600 capitalize">
-                            {project.plan}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {project.paid ? (
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-body text-xs font-medium">
-                                Paid
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-body text-xs font-medium">
-                                Unpaid
-                              </span>
-                            )}
-                            <span className="font-body text-xs font-semibold text-black">
-                              ${getPlanPrice(project.plan)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* QUICK LINK */}
-                        <Link
-                          href={`/admin/projects/${project.id}`}
-                          className="mt-3 block w-full px-3 py-2 bg-neutral-100 text-black font-body text-xs font-medium rounded-lg text-center hover:bg-neutral-200 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          View Details
-                        </Link>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* LEGEND */}
-        <div className="mt-8 flex flex-wrap items-center gap-6">
-          <p className="font-body text-sm text-neutral-500">Status:</p>
-          {COLUMNS.map((col) => (
-            <div key={col.id} className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${col.color.replace('border-', 'bg-')}`}></div>
-              <span className="font-body text-sm text-neutral-600">{col.label}</span>
+                        <span className={isActive ? 'text-black' : 'text-white/70'}>
+                          {item.icon}
+                        </span>
+                        {!collapsed && (
+                          <span className="font-body text-sm font-medium">{item.label}</span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           ))}
+        </nav>
+
+        {/* USER */}
+        <div className={`p-4 border-t border-white/10 ${collapsed ? 'px-3' : 'px-4'}`}>
+          {!collapsed && (
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-white font-body text-sm font-medium">
+                  {adminEmail?.charAt(0)?.toUpperCase() || 'A'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-body text-sm font-medium text-white truncate">Admin</p>
+                <p className="font-body text-xs text-white/50 truncate">{adminEmail}</p>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-all ${
+              collapsed ? 'justify-center' : ''
+            }`}
+            title={collapsed ? 'Sign Out' : undefined}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            {!collapsed && <span className="font-body text-sm font-medium">Sign Out</span>}
+          </button>
         </div>
-      </div>
+
+        {/* COLLAPSE TOGGLE */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-20 w-6 h-6 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+        >
+          <svg
+            className={`w-4 h-4 text-black transition-transform ${collapsed ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <main className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-64'}`}>
+        {children}
+      </main>
     </div>
   );
 }
