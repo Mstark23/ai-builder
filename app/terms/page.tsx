@@ -1,154 +1,141 @@
-import Link from 'next/link';
-import type { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Terms of Service',
-};
+import Link from 'next/link';
+
+function LegalNav() {
+  return (
+    <>
+      <style jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+        .font-d { font-family: 'Playfair Display', Georgia, serif; }
+        .font-b { font-family: 'Inter', -apple-system, sans-serif; }
+        .noise {
+          position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0.03;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+      `}</style>
+      <div className="noise" />
+      <header className="bg-white border-b border-neutral-200">
+        <nav className="max-w-[1400px] mx-auto px-8 lg:px-12 flex items-center justify-between h-20">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="relative w-11 h-11">
+              <div className="absolute inset-0 bg-black rounded-xl transition-transform duration-300 group-hover:rotate-6" />
+              <div className="absolute inset-0 flex items-center justify-center"><span className="text-white font-d text-xl font-semibold">V</span></div>
+            </div>
+            <span className="hidden sm:block font-b text-[15px] font-semibold tracking-wide text-black">VEKTORLABS</span>
+          </Link>
+          <Link href="/" className="font-b text-[13px] font-medium text-neutral-500 hover:text-black transition-colors">← Back to Home</Link>
+        </nav>
+      </header>
+    </>
+  );
+}
+
+function LegalFooter() {
+  return (
+    <footer className="py-16 bg-neutral-950 text-white">
+      <div className="max-w-[1400px] mx-auto px-8 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center"><span className="text-black font-d text-xl font-semibold">V</span></div>
+          <span className="font-b text-[15px] font-semibold tracking-wide">VEKTORLABS</span>
+        </div>
+        <div className="flex items-center gap-8 text-sm text-neutral-500">
+          <Link href="/about" className="hover:text-white transition-colors">About</Link>
+          <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+          <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+        </div>
+        <p className="font-b text-sm text-neutral-500">© 2026 VektorLabs. All rights reserved.</p>
+      </div>
+    </footer>
+  );
+}
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[#fafafa]">
-      {/* Header */}
-      <header className="bg-white border-b border-neutral-200">
-        <div className="max-w-3xl mx-auto px-6 py-6 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold tracking-tight text-black">
-            VERKTORLABS
-          </Link>
-          <Link href="/" className="text-sm text-neutral-500 hover:text-black transition">
-            ← Back to Home
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#fafafa] antialiased">
+      <LegalNav />
 
-      {/* Content */}
-      <main className="max-w-3xl mx-auto px-6 py-16">
-        <h1 className="text-4xl font-bold text-black mb-2">Terms of Service</h1>
-        <p className="text-neutral-400 mb-12">Last updated: February 2026</p>
+      <section className="py-24 bg-white">
+        <div className="max-w-[720px] mx-auto px-8 lg:px-12">
+          <span className="font-b text-xs font-semibold tracking-[0.2em] text-neutral-400 uppercase">Legal</span>
+          <h1 className="font-d text-4xl lg:text-5xl font-medium mt-4 mb-4 text-black">Terms of Service</h1>
+          <p className="font-b text-sm text-neutral-400 mb-12">Last updated: February 2026</p>
 
-        <div className="prose prose-neutral max-w-none space-y-8 text-[15px] leading-relaxed text-neutral-700">
-          <section>
-            <h2 className="text-xl font-semibold text-black mt-0">1. Agreement to Terms</h2>
-            <p>
-              By accessing or using VektorLabs (&quot;Service&quot;), operated by VektorLabs (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;), 
-              you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
-            </p>
-          </section>
+          <div className="font-b text-neutral-600 leading-relaxed space-y-8">
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">1. Agreement to Terms</h2>
+              <p>By accessing or using VektorLabs services (&quot;Services&quot;), operated by VektorLabs (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use our Services.</p>
+            </div>
 
-          <section>
-            <h2 className="text-xl font-semibold text-black">2. Description of Service</h2>
-            <p>
-              VektorLabs provides AI-powered website design and development services. We create custom websites 
-              based on your business information, industry intelligence, and design preferences. Our service includes 
-              website generation, revisions as specified in your plan, and deployment assistance.
-            </p>
-          </section>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">2. Services Description</h2>
+              <p>VektorLabs provides AI-assisted website design and development services. We build custom websites based on competitive intelligence and industry best practices. Our service includes an initial free preview of your website design. Payment is only required if you choose to proceed with the final deliverable.</p>
+            </div>
 
-          <section>
-            <h2 className="text-xl font-semibold text-black">3. Account Registration</h2>
-            <p>
-              To use the Service, you must create an account and provide accurate, complete information. You are 
-              responsible for maintaining the security of your account credentials and for all activities under your account. 
-              You must notify us immediately of any unauthorized use.
-            </p>
-          </section>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">3. Free Preview Policy</h2>
+              <p>We build your website preview at no cost before any payment is required. You are under no obligation to purchase or proceed after viewing the preview. If you choose not to proceed, you owe nothing. The preview remains our intellectual property until payment is completed.</p>
+            </div>
 
-          <section>
-            <h2 className="text-xl font-semibold text-black">4. Payment Terms</h2>
-            <p>
-              Payments are processed securely through our payment processor. All prices are listed in USD. 
-              Payment is required before website delivery. By submitting payment, you authorize us to charge 
-              the specified amount for the selected plan.
-            </p>
-            <p>
-              <strong>Refund Policy:</strong> If we are unable to deliver a satisfactory website after your 
-              included revision rounds, you may request a full refund within 30 days of your initial payment. 
-              Refund requests should be sent to support@verktorlabs.com.
-            </p>
-          </section>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">4. Pricing and Payment</h2>
+              <p>Service pricing starts at $299 CAD and varies based on project scope. All prices are displayed in Canadian dollars unless otherwise stated. Payment is processed through Stripe and is due only after you approve the website design. We accept major credit cards and debit cards.</p>
+            </div>
 
-          <section>
-            <h2 className="text-xl font-semibold text-black">5. Intellectual Property</h2>
-            <p>
-              Upon full payment, you own the website files and content we create for you. You grant us permission 
-              to showcase your project in our portfolio unless you opt out. The underlying technology, AI systems, 
-              templates, and industry intelligence databases remain our intellectual property.
-            </p>
-          </section>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">5. Intellectual Property</h2>
+              <p>Upon full payment, all rights to the custom website design and code are transferred to you. Until payment is received, all designs, code, and creative work remain the exclusive property of VektorLabs. You may not copy, reproduce, or distribute preview materials without our written consent. Our competitive intelligence methodology, King Profile™ system, and proprietary processes remain our intellectual property at all times.</p>
+            </div>
 
-          <section>
-            <h2 className="text-xl font-semibold text-black">6. Your Content &amp; Credentials</h2>
-            <p>
-              You retain ownership of all content, logos, images, and business information you provide. 
-              Platform credentials you share (e.g., Shopify, WordPress access) are used solely to deploy 
-              your website and are not stored after project completion. You are responsible for ensuring 
-              you have the right to use all content you provide.
-            </p>
-          </section>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">6. Client Responsibilities</h2>
+              <p>You agree to provide accurate business information during the intake process. You are responsible for providing any necessary content, images, and brand assets required for your website. You agree not to use our Services for any unlawful purpose or to create websites promoting illegal activities.</p>
+            </div>
 
-          <section>
-            <h2 className="text-xl font-semibold text-black">7. Website Delivery &amp; Revisions</h2>
-            <p>
-              Delivery timelines are estimates and may vary based on project complexity. Each plan includes 
-              a specified number of revision rounds. Additional revisions beyond your plan limit may incur 
-              extra fees. We reserve the right to decline requests that fundamentally change the project scope.
-            </p>
-          </section>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">7. Revisions and Modifications</h2>
+              <p>Revision policies vary by plan tier and are communicated at the time of purchase. Additional revisions beyond the included amount may incur extra charges. Major scope changes after project approval may require a separate quote.</p>
+            </div>
 
-          <section>
-            <h2 className="text-xl font-semibold text-black">8. Limitation of Liability</h2>
-            <p>
-              VektorLabs provides websites on an &quot;as-is&quot; basis. We are not liable for any indirect, 
-              incidental, or consequential damages arising from the use of our Service. Our total liability 
-              is limited to the amount you paid for the specific service in question.
-            </p>
-          </section>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">8. Refund Policy</h2>
+              <p>Since we provide a free preview before any payment, all sales are final once payment is made and the final website is delivered. If we fail to deliver the agreed-upon website within the specified timeframe, you are entitled to a full refund.</p>
+            </div>
 
-          <section>
-            <h2 className="text-xl font-semibold text-black">9. Prohibited Uses</h2>
-            <p>
-              You may not use our Service to create websites that promote illegal activities, hate speech, 
-              harassment, fraud, or any content that violates applicable laws. We reserve the right to 
-              refuse service and terminate accounts that violate these terms.
-            </p>
-          </section>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">9. Limitation of Liability</h2>
+              <p>VektorLabs shall not be liable for any indirect, incidental, special, or consequential damages arising from the use of our Services. Our total liability shall not exceed the amount paid by you for the specific service in question. We do not guarantee specific business results, traffic, or conversion rates from the websites we build.</p>
+            </div>
 
-          <section>
-            <h2 className="text-xl font-semibold text-black">10. Termination</h2>
-            <p>
-              We may terminate or suspend your account at our discretion if you violate these Terms. 
-              You may cancel your account at any time by contacting us. Upon termination, your right 
-              to use the Service ceases immediately.
-            </p>
-          </section>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">10. Third-Party Services</h2>
+              <p>Our websites may integrate with third-party services such as hosting providers, analytics tools, and payment processors. We are not responsible for the terms, privacy practices, or availability of third-party services.</p>
+            </div>
 
-          <section>
-            <h2 className="text-xl font-semibold text-black">11. Changes to Terms</h2>
-            <p>
-              We may update these Terms at any time. Continued use of the Service after changes constitutes 
-              acceptance of the updated Terms. Material changes will be communicated via email or through the Service.
-            </p>
-          </section>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">11. Termination</h2>
+              <p>We reserve the right to refuse or terminate service to anyone at our discretion. You may cancel your project at any time before final payment. No charges will be incurred for cancelled projects that have not been paid for.</p>
+            </div>
 
-          <section>
-            <h2 className="text-xl font-semibold text-black">12. Contact</h2>
-            <p>
-              For questions about these Terms, contact us at{' '}
-              <a href="mailto:support@verktorlabs.com" className="text-black underline">support@verktorlabs.com</a>.
-            </p>
-          </section>
-        </div>
-      </main>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">12. Governing Law</h2>
+              <p>These terms are governed by the laws of the Province of Quebec, Canada. Any disputes arising from these terms shall be resolved in the courts of Quebec, Canada.</p>
+            </div>
 
-      {/* Footer */}
-      <footer className="border-t border-neutral-200 py-8">
-        <div className="max-w-3xl mx-auto px-6 flex items-center justify-between text-sm text-neutral-400">
-          <span>© {new Date().getFullYear()} VektorLabs</span>
-          <div className="flex gap-6">
-            <Link href="/privacy" className="hover:text-black transition">Privacy Policy</Link>
-            <Link href="/terms" className="text-black font-medium">Terms of Service</Link>
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">13. Changes to Terms</h2>
+              <p>We may update these terms from time to time. Changes will be posted on this page with an updated revision date. Continued use of our Services after changes constitutes acceptance of the revised terms.</p>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-black mb-3">14. Contact</h2>
+              <p>For questions about these Terms of Service, contact us at <a href="mailto:hello@tryvektorlabs.com" className="text-black underline hover:no-underline">hello@tryvektorlabs.com</a>.</p>
+            </div>
           </div>
         </div>
-      </footer>
+      </section>
+
+      <LegalFooter />
     </div>
   );
 }
