@@ -1,483 +1,373 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
-
-// ── Types ──
-type Project = {
-  id: string;
-  business_name: string;
-  status: string;
-  plan: string;
-  paid: boolean;
-  created_at: string;
-  source?: string;
-  industry?: string;
-  website_type?: string;
-  email?: string;
-  phone?: string;
-  customers?: { name: string; email: string } | null;
-};
-
-type Customer = {
-  id: string;
-  name: string;
-  email: string;
-  created_at: string;
-};
-
-type Message = {
-  id: string;
-  content: string;
-  created_at: string;
-  project_id: string;
-  sender_type: string;
-  projects?: { business_name: string } | null;
-};
+import { useParams, useRouter } from 'next/navigation';
 
 // ═══════════════════════════════════════
-// NEW LEADS SECTION (inline)
+// INDUSTRY CONFIGS — pages, features, addons per industry
 // ═══════════════════════════════════════
-function NewLeadsSection() {
-  const [leads, setLeads] = useState<Project[]>([]);
+type IndustryConfig = {
+  icon: string;
+  pre_pages: string[];
+  extra_pages: string[];
+  pre_features: string[];
+  extra_features: string[];
+  pre_addons: string[];
+  extra_addons: string[];
+};
+
+const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
+  'restaurant': { icon: '🍽️',
+    pre_pages: ['Home', 'Menu', 'About', 'Contact'], extra_pages: ['Gallery', 'Events', 'Catering', 'Reservations', 'Reviews'],
+    pre_features: ['Online Ordering', 'Reservation Widget', 'Menu Display', 'Contact Form', 'Google Maps'], extra_features: ['Delivery Tracking', 'Gift Cards', 'Loyalty Program', 'Event Booking', 'Multi-Location'],
+    pre_addons: ['Google Business', 'Custom Domain'], extra_addons: ['SEO Setup', 'Hosting', 'Food Photography', 'Social Media Kit', 'Logo Design'] },
+  'beauty': { icon: '💇',
+    pre_pages: ['Home', 'Services', 'Gallery', 'Contact'], extra_pages: ['About', 'Team', 'Pricing', 'Reviews', 'Blog'],
+    pre_features: ['Online Booking', 'Service Menu', 'Contact Form', 'Before & After Gallery', 'Reviews Widget'], extra_features: ['Gift Cards', 'Loyalty Program', 'Multi-Stylist Calendar', 'Product Sales', 'Membership'],
+    pre_addons: ['Google Business', 'Custom Domain'], extra_addons: ['SEO Setup', 'Hosting', 'Photo Shoot', 'Social Media Kit', 'Logo Design'] },
+  'fitness': { icon: '💪',
+    pre_pages: ['Home', 'Programs', 'Schedule', 'Contact'], extra_pages: ['About', 'Trainers', 'Pricing', 'Gallery', 'Blog', 'Membership'],
+    pre_features: ['Class Schedule', 'Membership Signup', 'Contact Form', 'Trainer Profiles', 'Trial Booking'], extra_features: ['Online Payments', 'Workout Videos', 'Nutrition Plans', 'Progress Tracking', 'App Integration'],
+    pre_addons: ['Google Business', 'Custom Domain'], extra_addons: ['SEO Setup', 'Hosting', 'Photo Shoot', 'Social Media Kit', 'Logo Design'] },
+  'home-services': { icon: '🔧',
+    pre_pages: ['Home', 'Services', 'Contact', 'Free Estimate'], extra_pages: ['About', 'Gallery', 'Service Areas', 'Reviews', 'FAQ', 'Blog'],
+    pre_features: ['Free Estimate Form', 'Click-to-Call', 'Service Areas Map', 'Contact Form', 'Reviews Widget'], extra_features: ['Online Booking', 'Before & After Gallery', 'Emergency Service', 'Financing Calculator', 'License Display'],
+    pre_addons: ['Google Business', 'Custom Domain', 'SEO Setup'], extra_addons: ['Hosting', 'Photo Shoot', 'Vehicle Wraps Design', 'Logo Design', 'Social Media Kit'] },
+  'marine': { icon: '🛥️',
+    pre_pages: ['Home', 'Services', 'Before & After', 'Free Estimate', 'Contact'], extra_pages: ['About', 'Gallery', 'Reviews', 'FAQ', 'Blog'],
+    pre_features: ['Before & After Slider', 'Free Estimate Form', 'Click-to-Call', 'Reviews Widget', 'Certification Badges', 'Contact Form'], extra_features: ['Online Booking', 'Service Tracker', 'Product Sales', 'Multi-Location'],
+    pre_addons: ['Google Business', 'Custom Domain', 'SEO Setup'], extra_addons: ['Hosting', 'Photo Shoot', 'Logo Design', 'Social Media Kit'] },
+  'real-estate': { icon: '🏠',
+    pre_pages: ['Home', 'Properties', 'About', 'Contact'], extra_pages: ['Sellers', 'Buyers', 'Blog', 'Neighborhoods', 'Reviews', 'Resources'],
+    pre_features: ['Property Listings', 'Search & Filter', 'Contact Form', 'Virtual Tours', 'Lead Capture'], extra_features: ['Mortgage Calculator', 'CRM Integration', 'MLS Feed', 'Agent Profiles', 'Market Reports'],
+    pre_addons: ['Custom Domain', 'SEO Setup'], extra_addons: ['Google Business', 'Hosting', 'Drone Photography', 'Logo Design', 'Social Media Kit'] },
+  'ecommerce': { icon: '🛍️',
+    pre_pages: ['Home', 'Shop', 'About', 'Contact'], extra_pages: ['FAQ', 'Blog', 'Size Guide', 'Lookbook', 'Reviews'],
+    pre_features: ['Product Catalog', 'Shopping Cart', 'Secure Checkout', 'Order Tracking', 'Contact Form'], extra_features: ['Wishlist', 'Reviews & Ratings', 'Discount Codes', 'Inventory Management', 'Email Marketing'],
+    pre_addons: ['Custom Domain', 'Hosting', 'SEO Setup'], extra_addons: ['Google Business', 'Product Photography', 'Logo Design', 'Social Media Kit', 'Email Setup'] },
+  'medical': { icon: '🏥',
+    pre_pages: ['Home', 'Services', 'About', 'Contact'], extra_pages: ['Team', 'Patient Resources', 'FAQ', 'Insurance', 'Blog', 'Reviews'],
+    pre_features: ['Appointment Booking', 'Contact Form', 'Provider Profiles', 'Insurance List', 'Patient Portal Link'], extra_features: ['Telehealth Integration', 'Forms Download', 'Multi-Location', 'HIPAA Compliance Badge', 'Reviews Widget'],
+    pre_addons: ['Custom Domain', 'SEO Setup'], extra_addons: ['Google Business', 'Hosting', 'Logo Design', 'Photo Shoot', 'Social Media Kit'] },
+  'legal': { icon: '⚖️',
+    pre_pages: ['Home', 'Practice Areas', 'About', 'Contact'], extra_pages: ['Team', 'Case Results', 'Blog', 'FAQ', 'Reviews', 'Resources'],
+    pre_features: ['Free Consultation Form', 'Click-to-Call', 'Contact Form', 'Practice Area Pages', 'Attorney Profiles'], extra_features: ['Client Portal', 'Case Results Display', 'Live Chat', 'Intake Forms', 'Reviews Widget'],
+    pre_addons: ['Custom Domain', 'SEO Setup'], extra_addons: ['Google Business', 'Hosting', 'Logo Design', 'Photo Shoot', 'Social Media Kit'] },
+  'education': { icon: '📚',
+    pre_pages: ['Home', 'Programs', 'About', 'Contact'], extra_pages: ['Faculty', 'Admissions', 'Gallery', 'Blog', 'FAQ', 'Events'],
+    pre_features: ['Program Listings', 'Enrollment Form', 'Contact Form', 'Calendar', 'Faculty Profiles'], extra_features: ['Online Courses', 'Student Portal', 'Payment Integration', 'Testimonials', 'Newsletter Signup'],
+    pre_addons: ['Custom Domain'], extra_addons: ['SEO Setup', 'Google Business', 'Hosting', 'Logo Design', 'Photo Shoot'] },
+  'creative': { icon: '🎨',
+    pre_pages: ['Home', 'Portfolio', 'About', 'Contact'], extra_pages: ['Services', 'Blog', 'Testimonials', 'Press', 'Shop'],
+    pre_features: ['Portfolio Gallery', 'Lightbox Display', 'Contact Form', 'Social Links', 'Bio Section'], extra_features: ['Client Portal', 'Booking Calendar', 'Print Shop', 'Video Reel', 'Newsletter'],
+    pre_addons: ['Custom Domain'], extra_addons: ['SEO Setup', 'Hosting', 'Logo Design', 'Social Media Kit'] },
+  'construction': { icon: '🏗️',
+    pre_pages: ['Home', 'Services', 'Projects', 'Contact'], extra_pages: ['About', 'Team', 'Reviews', 'FAQ', 'Blog', 'Careers'],
+    pre_features: ['Project Gallery', 'Free Quote Form', 'Click-to-Call', 'Service Areas', 'Contact Form'], extra_features: ['Before & After', 'License Display', 'Financing Info', 'Video Tours', 'Reviews Widget'],
+    pre_addons: ['Google Business', 'Custom Domain', 'SEO Setup'], extra_addons: ['Hosting', 'Drone Photography', 'Logo Design', 'Social Media Kit'] },
+  'tech': { icon: '💻',
+    pre_pages: ['Home', 'Features', 'Pricing', 'Contact'], extra_pages: ['About', 'Blog', 'Docs', 'Careers', 'Case Studies', 'Integrations'],
+    pre_features: ['Feature Showcase', 'Pricing Table', 'Contact Form', 'Demo Request', 'Newsletter'], extra_features: ['Live Chat', 'Knowledge Base', 'API Docs', 'Status Page', 'Changelog'],
+    pre_addons: ['Custom Domain', 'Hosting'], extra_addons: ['SEO Setup', 'Google Analytics', 'Logo Design', 'Social Media Kit'] },
+  'events': { icon: '🎉',
+    pre_pages: ['Home', 'Services', 'Gallery', 'Contact'], extra_pages: ['About', 'Pricing', 'Reviews', 'Blog', 'FAQ'],
+    pre_features: ['Event Gallery', 'Quote Request', 'Contact Form', 'Calendar', 'Package Display'], extra_features: ['Online Booking', 'Payment Integration', 'Vendor List', 'Virtual Tours', 'Reviews Widget'],
+    pre_addons: ['Custom Domain'], extra_addons: ['SEO Setup', 'Google Business', 'Hosting', 'Photo Shoot', 'Logo Design'] },
+  'nonprofit': { icon: '💚',
+    pre_pages: ['Home', 'Mission', 'Programs', 'Contact'], extra_pages: ['Team', 'Events', 'Blog', 'Gallery', 'Volunteer', 'Impact'],
+    pre_features: ['Donation Button', 'Volunteer Signup', 'Contact Form', 'Newsletter', 'Impact Counter'], extra_features: ['Event Calendar', 'Member Portal', 'Annual Report', 'Fundraising Tracker', 'Social Feed'],
+    pre_addons: ['Custom Domain'], extra_addons: ['SEO Setup', 'Google Business', 'Hosting', 'Logo Design', 'Email Setup'] },
+  'automotive': { icon: '🚗',
+    pre_pages: ['Home', 'Services', 'Contact', 'Free Estimate'], extra_pages: ['About', 'Gallery', 'Reviews', 'FAQ', 'Blog', 'Specials'],
+    pre_features: ['Service Menu', 'Online Booking', 'Click-to-Call', 'Contact Form', 'Reviews Widget'], extra_features: ['Price Calculator', 'Before & After', 'Loyalty Program', 'Multi-Location', 'Gift Cards'],
+    pre_addons: ['Google Business', 'Custom Domain'], extra_addons: ['SEO Setup', 'Hosting', 'Photo Shoot', 'Logo Design', 'Social Media Kit'] },
+  'pet': { icon: '🐾',
+    pre_pages: ['Home', 'Services', 'About', 'Contact'], extra_pages: ['Gallery', 'Pricing', 'Reviews', 'FAQ', 'Blog', 'Team'],
+    pre_features: ['Online Booking', 'Service List', 'Contact Form', 'Pet Gallery', 'Reviews Widget'], extra_features: ['Client Portal', 'Vaccination Records', 'Loyalty Program', 'Product Sales', 'Live Webcam'],
+    pre_addons: ['Google Business', 'Custom Domain'], extra_addons: ['SEO Setup', 'Hosting', 'Photo Shoot', 'Logo Design', 'Social Media Kit'] },
+};
+
+// Fallback config for unknown industries
+const DEFAULT_CONFIG: IndustryConfig = {
+  icon: '🌐',
+  pre_pages: ['Home', 'About', 'Services', 'Contact'],
+  extra_pages: ['Gallery', 'Blog', 'FAQ', 'Reviews', 'Pricing'],
+  pre_features: ['Contact Form', 'Click-to-Call', 'Google Maps', 'Social Links'],
+  extra_features: ['Online Booking', 'Reviews Widget', 'Newsletter', 'Live Chat', 'Search'],
+  pre_addons: ['Custom Domain'],
+  extra_addons: ['SEO Setup', 'Google Business', 'Hosting', 'Logo Design', 'Social Media Kit'],
+};
+
+const TIMELINES = ['ASAP (Rush)', '1–2 Weeks', '2–4 Weeks', '1–2 Months', 'No Rush'];
+const BUDGETS = ['Under $300', '$300–$500', '$500–$1,000', '$1,000–$2,000', '$2,000+'];
+
+// ═══════════════════════════════════════
+// NEEDS FORM COMPONENT
+// ═══════════════════════════════════════
+export default function NeedsFormPage() {
+  const params = useParams();
+  const router = useRouter();
+  const projectId = params.id as string;
+
+  const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    loadLeads();
-    const channel = supabase
-      .channel('new-leads')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'projects',
-        filter: 'source=eq.landing_page',
-      }, (payload) => {
-        setLeads(prev => [payload.new as Project, ...prev]);
-      })
-      .subscribe();
+  // Form state
+  const [selectedPages, setSelectedPages] = useState<string[]>([]);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const [timeline, setTimeline] = useState('');
+  const [budget, setBudget] = useState('');
+  const [notes, setNotes] = useState('');
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+  useEffect(() => { if (projectId) loadProject(); }, [projectId]);
 
-  const loadLeads = async () => {
-    const { data } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('source', 'landing_page')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(10);
-    setLeads(data || []);
-    setLoading(false);
-  };
-
-  const timeAgo = (date: string) => {
-    const diff = Date.now() - new Date(date).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    return `${Math.floor(hrs / 24)}d ago`;
-  };
-
-  const claimLead = async (id: string) => {
-    await supabase.from('projects').update({ status: 'claimed' }).eq('id', id);
-    setLeads(prev => prev.filter(l => l.id !== id));
-  };
-
-  if (loading || leads.length === 0) return null;
-
-  return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-3 h-3 bg-emerald-500 rounded-full" />
-            <div className="absolute inset-0 w-3 h-3 bg-emerald-500 rounded-full animate-ping opacity-75" />
-          </div>
-          <h2 className="font-body text-lg font-semibold text-black">
-            New Leads
-            <span className="ml-2 text-sm font-normal text-neutral-500">({leads.length} waiting)</span>
-          </h2>
-        </div>
-        <Link href="/admin/projects?source=landing_page&status=pending" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">
-          View all →
-        </Link>
-      </div>
-
-      <div className="grid gap-3">
-        {leads.map(lead => (
-          <div key={lead.id} className="bg-white border border-neutral-200 rounded-2xl p-5 hover:border-neutral-300 hover:shadow-sm transition-all">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                    {lead.business_name?.charAt(0)?.toUpperCase() || '?'}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-body font-semibold text-black text-[15px] truncate">{lead.business_name}</h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="font-body text-xs text-neutral-500">{lead.industry}</span>
-                      <span className="text-neutral-300">·</span>
-                      <span className="font-body text-xs text-neutral-500">{lead.website_type}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mt-3 flex-wrap">
-                  <a href={`sms:${lead.phone}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-100 transition-colors font-body">
-                    💬 {lead.phone}
-                  </a>
-                  <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 text-neutral-600 rounded-lg text-xs font-medium hover:bg-neutral-200 transition-colors font-body">
-                    ✉️ {lead.email}
-                  </a>
-                  <span className="font-body text-[11px] text-neutral-400">{timeAgo(lead.created_at)}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button onClick={() => claimLead(lead.id)} className="px-4 py-2 bg-black text-white text-xs font-medium rounded-full hover:shadow-lg hover:shadow-black/20 transition-all font-body">
-                  Claim & Build
-                </button>
-                <Link href={`/admin/projects/${lead.id}`} className="px-3 py-2 border border-neutral-200 text-neutral-600 text-xs font-medium rounded-full hover:border-black hover:text-black transition-all font-body">
-                  View
-                </Link>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════
-// MAIN DASHBOARD
-// ═══════════════════════════════════════
-export default function AdminDashboardPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
+  const loadProject = async () => {
     try {
-      const [projectsRes, customersRes, messagesRes] = await Promise.all([
-        supabase.from('projects').select('*, customers(name, email)').order('created_at', { ascending: false }),
-        supabase.from('customers').select('*').order('created_at', { ascending: false }),
-        supabase.from('messages').select('*, projects(business_name)').order('created_at', { ascending: false }).limit(10),
-      ]);
-
-      if (projectsRes.data) setProjects(projectsRes.data);
-      if (customersRes.data) setCustomers(customersRes.data);
-      if (messagesRes.data) setMessages(messagesRes.data);
+      const res = await fetch(`/api/preview/${projectId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProject(data.project);
+        // Auto-detect industry config and pre-select essentials
+        const ind = detectIndustryKey(data.project.industry || '');
+        const config = INDUSTRY_CONFIGS[ind] || DEFAULT_CONFIG;
+        setSelectedPages([...config.pre_pages]);
+        setSelectedFeatures([...config.pre_features]);
+        setSelectedAddons([...config.pre_addons]);
+      }
     } catch (err) {
-      console.error('Error loading dashboard:', err);
+      console.error('Error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Stats ──
-  const planPrices: Record<string, number> = {
-    starter: 299, landing: 299,
-    professional: 599, service: 599,
-    premium: 799,
-    enterprise: 999, ecommerce: 999,
+  const detectIndustryKey = (industry: string): string => {
+    const lower = industry.toLowerCase();
+    if (lower.includes('restaurant') || lower.includes('food') || lower.includes('cafe') || lower.includes('bar')) return 'restaurant';
+    if (lower.includes('beauty') || lower.includes('salon') || lower.includes('nail') || lower.includes('hair') || lower.includes('spa') || lower.includes('barber')) return 'beauty';
+    if (lower.includes('fitness') || lower.includes('gym') || lower.includes('yoga') || lower.includes('personal train')) return 'fitness';
+    if (lower.includes('plumb') || lower.includes('hvac') || lower.includes('electric') || lower.includes('clean') || lower.includes('landscap') || lower.includes('home service') || lower.includes('local service') || lower.includes('handyman') || lower.includes('roofing') || lower.includes('pest')) return 'home-services';
+    if (lower.includes('marine') || lower.includes('boat') || lower.includes('gelcoat')) return 'marine';
+    if (lower.includes('real estate') || lower.includes('property') || lower.includes('realtor') || lower.includes('cash home')) return 'real-estate';
+    if (lower.includes('ecommerce') || lower.includes('e-commerce') || lower.includes('shop') || lower.includes('retail') || lower.includes('store') || lower.includes('jewel')) return 'ecommerce';
+    if (lower.includes('medical') || lower.includes('dental') || lower.includes('doctor') || lower.includes('health') || lower.includes('clinic') || lower.includes('therap')) return 'medical';
+    if (lower.includes('legal') || lower.includes('law') || lower.includes('attorney') || lower.includes('lawyer')) return 'legal';
+    if (lower.includes('edu') || lower.includes('school') || lower.includes('tutor') || lower.includes('academ')) return 'education';
+    if (lower.includes('creative') || lower.includes('portfolio') || lower.includes('photo') || lower.includes('design') || lower.includes('art') || lower.includes('animation') || lower.includes('film')) return 'creative';
+    if (lower.includes('construct') || lower.includes('reno') || lower.includes('contractor') || lower.includes('build')) return 'construction';
+    if (lower.includes('tech') || lower.includes('saas') || lower.includes('software') || lower.includes('startup') || lower.includes('app') || lower.includes('it ')) return 'tech';
+    if (lower.includes('event') || lower.includes('wedding') || lower.includes('catering') || lower.includes('party')) return 'events';
+    if (lower.includes('nonprofit') || lower.includes('non-profit') || lower.includes('charity') || lower.includes('foundation')) return 'nonprofit';
+    if (lower.includes('auto') || lower.includes('car') || lower.includes('detailing') || lower.includes('mechanic') || lower.includes('tire') || lower.includes('body shop')) return 'automotive';
+    if (lower.includes('pet') || lower.includes('vet') || lower.includes('groom') || lower.includes('kennel') || lower.includes('dog') || lower.includes('cat')) return 'pet';
+    return '';
   };
 
-  const stats = {
-    totalRevenue: projects.filter(p => p.paid).reduce((sum, p) => sum + (planPrices[p.plan] || 0), 0),
-    activeProjects: projects.filter(p => !['DELIVERED', 'CANCELLED', 'delivered'].includes(p.status)).length,
-    totalCustomers: customers.length,
-    pendingLeads: projects.filter(p => p.source === 'landing_page' && p.status === 'pending').length,
-    todayLeads: projects.filter(p => {
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      return p.source === 'landing_page' && new Date(p.created_at) >= today;
-    }).length,
-    conversionRate: projects.length > 0 ? Math.round((projects.filter(p => p.paid).length / projects.length) * 100) : 0,
-    newThisWeek: projects.filter(p => {
-      const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
-      return new Date(p.created_at) > weekAgo;
-    }).length,
+  const toggleItem = (list: string[], setList: (v: string[]) => void, item: string) => {
+    setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
   };
 
-  // ── Status counts for pipeline ──
-  const statusCounts = {
-    pending: projects.filter(p => p.status === 'pending').length,
-    claimed: projects.filter(p => p.status === 'claimed').length,
-    QUEUED: projects.filter(p => p.status === 'QUEUED').length,
-    generating: projects.filter(p => ['IN_PROGRESS', 'generating'].includes(p.status)).length,
-    preview: projects.filter(p => ['PREVIEW_READY', 'preview'].includes(p.status)).length,
-    sent: projects.filter(p => p.status === 'sent').length,
-    PAID: projects.filter(p => p.status === 'PAID' || p.paid).length,
-    DELIVERED: projects.filter(p => ['DELIVERED', 'delivered'].includes(p.status)).length,
-  };
-
-  const maxStatusCount = Math.max(...Object.values(statusCounts), 1);
-
-  const recentProjects = projects.slice(0, 5);
-  const unreadMessages = messages.filter(m => m.sender_type === 'customer').length;
-
-  const timeAgo = (date: string) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return 'Just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return `${Math.floor(seconds / 86400)}d ago`;
-  };
-
-  const getStatusConfig = (status: string) => {
-    const configs: Record<string, { label: string; color: string; bg: string }> = {
-      pending: { label: 'New Lead', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' },
-      claimed: { label: 'Claimed', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200' },
-      QUEUED: { label: 'Queued', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' },
-      IN_PROGRESS: { label: 'In Progress', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200' },
-      generating: { label: 'Generating', color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200' },
-      PREVIEW_READY: { label: 'Preview', color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200' },
-      preview: { label: 'Preview', color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200' },
-      sent: { label: 'Link Sent', color: 'text-cyan-600', bg: 'bg-cyan-50 border-cyan-200' },
-      PAID: { label: 'Paid', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
-      DELIVERED: { label: 'Delivered', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
-      delivered: { label: 'Delivered', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
-    };
-    return configs[status] || { label: status, color: 'text-neutral-600', bg: 'bg-neutral-50 border-neutral-200' };
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/needs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId, pages: selectedPages, features: selectedFeatures, addons: selectedAddons, timeline, budget, notes }),
+      });
+      if (res.ok) setSubmitted(true);
+    } catch (err) {
+      console.error('Submit error:', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="font-body text-neutral-500">Loading dashboard...</p>
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+        <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap'); .font-display{font-family:'Playfair Display',serif} .font-body{font-family:'Inter',sans-serif}`}</style>
+        <div className="w-10 h-10 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-6">
+        <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap'); .font-display{font-family:'Playfair Display',serif} .font-body{font-family:'Inter',sans-serif}`}</style>
+        <div className="bg-white rounded-3xl border border-neutral-200 p-12 max-w-md text-center shadow-sm">
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">✅</div>
+          <h1 className="font-display text-3xl font-medium text-black mb-3">You're All Set!</h1>
+          <p className="font-body text-neutral-500 mb-2">We've received your preferences for <strong className="text-black">{project?.business_name}</strong>.</p>
+          <p className="font-body text-neutral-400 text-sm">Our team will review your needs and send you a custom quote shortly via text.</p>
+          <div className="mt-8 p-4 bg-neutral-50 rounded-xl border border-neutral-100">
+            <p className="font-body text-xs text-neutral-400">Summary</p>
+            <p className="font-body text-sm text-black font-medium mt-1">{selectedPages.length} pages · {selectedFeatures.length} features · {selectedAddons.length} add-ons</p>
+            {timeline && <p className="font-body text-xs text-neutral-500 mt-1">Timeline: {timeline}</p>}
+          </div>
         </div>
       </div>
     );
   }
 
+  const ind = detectIndustryKey(project?.industry || '');
+  const config = INDUSTRY_CONFIGS[ind] || DEFAULT_CONFIG;
+  const allPages = [...new Set([...config.pre_pages, ...config.extra_pages])];
+  const allFeatures = [...new Set([...config.pre_features, ...config.extra_features])];
+  const allAddons = [...new Set([...config.pre_addons, ...config.extra_addons])];
+
   return (
-    <div className="p-6 lg:p-8">
-      {/* HEADER */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="font-display text-3xl lg:text-4xl font-medium text-black">Dashboard</h1>
-          <p className="font-body text-neutral-500 mt-1">Welcome back!</p>
-        </div>
+    <div className="min-h-screen bg-[#fafafa]">
+      <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap'); .font-display{font-family:'Playfair Display',serif} .font-body{font-family:'Inter',sans-serif}`}</style>
+
+      {/* Top bar */}
+      <div className="sticky top-0 z-50 bg-black text-white px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/admin/kanban" className="px-5 py-2.5 bg-white border border-neutral-200 text-black font-body text-sm font-medium rounded-full hover:bg-neutral-50 transition-all">
-            📋 Kanban Board
-          </Link>
-          <Link href="/admin/projects" className="px-5 py-2.5 bg-black text-white font-body text-sm font-medium rounded-full hover:bg-black/80 transition-all">
-            + New Project
-          </Link>
+          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+            <span className="text-black font-display font-semibold text-sm">V</span>
+          </div>
+          <span className="font-body text-sm text-white/60">Tell us what you need for <strong className="text-white">{project?.business_name}</strong></span>
         </div>
+        <div className="font-body text-xs text-white/40">Step 2 of 2</div>
       </div>
 
-      {/* ✨ NEW LEADS SECTION — live feed from landing page */}
-      <NewLeadsSection />
+      <div className="max-w-3xl mx-auto px-6 py-10">
+        <div className="text-center mb-10">
+          <div className="text-4xl mb-3">{config.icon}</div>
+          <h1 className="font-display text-3xl lg:text-4xl font-medium text-black mb-2">What Do You Need?</h1>
+          <p className="font-body text-neutral-500">We've pre-selected the essentials for your industry. Add or remove anything.</p>
+        </div>
 
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* Revenue */}
-        <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+        {/* ── PAGES ── */}
+        <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <h2 className="font-body font-semibold text-black">Pages</h2>
+            <span className="font-body text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded-full">{selectedPages.length} selected</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {allPages.map(page => (
+              <button
+                key={page}
+                onClick={() => toggleItem(selectedPages, setSelectedPages, page)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium font-body border transition-all ${
+                  selectedPages.includes(page)
+                    ? 'bg-black text-white border-black'
+                    : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── FEATURES ── */}
+        <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-body font-semibold text-black">Features</h2>
+            <span className="font-body text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded-full">{selectedFeatures.length} selected</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {allFeatures.map(feat => (
+              <button
+                key={feat}
+                onClick={() => toggleItem(selectedFeatures, setSelectedFeatures, feat)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium font-body border transition-all ${
+                  selectedFeatures.includes(feat)
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'
+                }`}
+              >
+                {feat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── ADD-ONS ── */}
+        <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-body font-semibold text-black">Add-Ons</h2>
+            <span className="font-body text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded-full">{selectedAddons.length} selected</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {allAddons.map(addon => (
+              <button
+                key={addon}
+                onClick={() => toggleItem(selectedAddons, setSelectedAddons, addon)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium font-body border transition-all ${
+                  selectedAddons.includes(addon)
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'
+                }`}
+              >
+                {addon}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── TIMELINE & BUDGET ── */}
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+            <h2 className="font-body font-semibold text-black mb-4">Timeline</h2>
+            <div className="space-y-2">
+              {TIMELINES.map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTimeline(t)}
+                  className={`w-full text-left px-4 py-3 rounded-xl text-sm font-body border transition-all ${
+                    timeline === t ? 'bg-black text-white border-black' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
             </div>
           </div>
-          <p className="font-body text-2xl font-semibold text-black">${stats.totalRevenue.toLocaleString()}</p>
-          <p className="font-body text-sm text-neutral-500 mt-1">Total Revenue</p>
-        </div>
-
-        {/* Active Projects */}
-        <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+            <h2 className="font-body font-semibold text-black mb-4">Budget</h2>
+            <div className="space-y-2">
+              {BUDGETS.map(b => (
+                <button
+                  key={b}
+                  onClick={() => setBudget(b)}
+                  className={`w-full text-left px-4 py-3 rounded-xl text-sm font-body border transition-all ${
+                    budget === b ? 'bg-black text-white border-black' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'
+                  }`}
+                >
+                  {b}
+                </button>
+              ))}
             </div>
-            {stats.newThisWeek > 0 && (
-              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-body text-xs font-medium">
-                +{stats.newThisWeek} this week
-              </span>
-            )}
-          </div>
-          <p className="font-body text-2xl font-semibold text-black">{stats.activeProjects}</p>
-          <p className="font-body text-sm text-neutral-500 mt-1">Active Projects</p>
-        </div>
-
-        {/* Pending Leads */}
-        <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-              <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </div>
-            {stats.todayLeads > 0 && (
-              <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full font-body text-xs font-medium">
-                +{stats.todayLeads} today
-              </span>
-            )}
-          </div>
-          <p className="font-body text-2xl font-semibold text-black">{stats.pendingLeads}</p>
-          <p className="font-body text-sm text-neutral-500 mt-1">Pending Leads</p>
-        </div>
-
-        {/* Customers */}
-        <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-body text-xs font-medium">
-              {stats.conversionRate}% conv.
-            </span>
-          </div>
-          <p className="font-body text-2xl font-semibold text-black">{stats.totalCustomers}</p>
-          <p className="font-body text-sm text-neutral-500 mt-1">Total Customers</p>
-        </div>
-      </div>
-
-      {/* PIPELINE + RECENT */}
-      <div className="grid lg:grid-cols-3 gap-6 mb-8">
-        {/* Pipeline */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-neutral-200 p-6">
-          <h3 className="font-body font-semibold text-black mb-6">Pipeline Overview</h3>
-          <div className="space-y-3">
-            {Object.entries(statusCounts)
-              .filter(([, count]) => count > 0)
-              .map(([status, count]) => {
-                const config = getStatusConfig(status);
-                return (
-                  <div key={status} className="flex items-center gap-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${config.bg} ${config.color} min-w-[100px] text-center font-body`}>
-                      {config.label}
-                    </span>
-                    <div className="flex-1 bg-neutral-100 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="h-full bg-black rounded-full transition-all duration-500"
-                        style={{ width: `${(count / maxStatusCount) * 100}%` }}
-                      />
-                    </div>
-                    <span className="font-body text-sm font-semibold text-black min-w-[24px] text-right">{count}</span>
-                  </div>
-                );
-              })}
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-body font-semibold text-black">Messages</h3>
-            {unreadMessages > 0 && (
-              <span className="w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-body font-medium">
-                {unreadMessages}
-              </span>
-            )}
-          </div>
-          <div className="space-y-3">
-            {messages.length === 0 ? (
-              <p className="font-body text-sm text-neutral-400 text-center py-8">No messages yet</p>
-            ) : (
-              messages.slice(0, 5).map(msg => (
-                <Link key={msg.id} href={`/admin/projects/${msg.project_id}`} className="block p-3 rounded-xl hover:bg-neutral-50 transition-colors">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`w-2 h-2 rounded-full ${msg.sender_type === 'customer' ? 'bg-blue-500' : 'bg-neutral-300'}`} />
-                    <span className="font-body text-xs font-medium text-black truncate">
-                      {msg.projects?.business_name || 'Unknown'}
-                    </span>
-                    <span className="font-body text-[10px] text-neutral-400 ml-auto">{timeAgo(msg.created_at)}</span>
-                  </div>
-                  <p className="font-body text-xs text-neutral-500 truncate pl-4">{msg.content}</p>
-                </Link>
-              ))
-            )}
-          </div>
-          <Link href="/admin/messages" className="block text-center mt-4 font-body text-sm text-neutral-500 hover:text-black transition-colors">
-            View all messages →
-          </Link>
+        {/* ── NOTES ── */}
+        <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-8">
+          <h2 className="font-body font-semibold text-black mb-4">Anything Else?</h2>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="Tell us about any specific requirements, inspiration sites, or special requests..."
+            className="w-full h-24 p-4 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-body resize-none outline-none focus:border-black transition-colors"
+          />
         </div>
-      </div>
 
-      {/* RECENT PROJECTS */}
-      <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-body font-semibold text-black">Recent Projects</h3>
-          <Link href="/admin/projects" className="font-body text-sm text-neutral-500 hover:text-black transition-colors">
-            View all →
-          </Link>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-neutral-100">
-                <th className="text-left py-3 px-2 font-body text-xs font-semibold text-neutral-400 uppercase tracking-wider">Business</th>
-                <th className="text-left py-3 px-2 font-body text-xs font-semibold text-neutral-400 uppercase tracking-wider">Source</th>
-                <th className="text-left py-3 px-2 font-body text-xs font-semibold text-neutral-400 uppercase tracking-wider">Status</th>
-                <th className="text-left py-3 px-2 font-body text-xs font-semibold text-neutral-400 uppercase tracking-wider">Plan</th>
-                <th className="text-left py-3 px-2 font-body text-xs font-semibold text-neutral-400 uppercase tracking-wider">Payment</th>
-                <th className="text-right py-3 px-2 font-body text-xs font-semibold text-neutral-400 uppercase tracking-wider">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentProjects.map(project => {
-                const sc = getStatusConfig(project.status);
-                return (
-                  <tr key={project.id} className="border-b border-neutral-50 hover:bg-neutral-50 transition-colors">
-                    <td className="py-3 px-2">
-                      <Link href={`/admin/projects/${project.id}`} className="flex items-center gap-3 group">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-body font-bold text-xs ${
-                          project.source === 'landing_page' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' : 'bg-gradient-to-br from-neutral-600 to-neutral-800'
-                        }`}>
-                          {project.business_name?.charAt(0)?.toUpperCase() || '?'}
-                        </div>
-                        <div>
-                          <span className="font-body text-sm font-medium text-black group-hover:underline">{project.business_name}</span>
-                          <p className="font-body text-xs text-neutral-400">{project.customers?.email || project.email || ''}</p>
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="py-3 px-2">
-                      {project.source === 'landing_page' ? (
-                        <span className="font-body text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">🌐 Landing</span>
-                      ) : (
-                        <span className="font-body text-xs text-neutral-400">Admin</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-2">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${sc.bg} ${sc.color} font-body`}>
-                        {sc.label}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2">
-                      <span className="font-body text-sm text-neutral-600 capitalize">{project.plan || '—'}</span>
-                    </td>
-                    <td className="py-3 px-2">
-                      {project.paid ? (
-                        <span className="font-body text-xs font-medium text-emerald-600">✅ Paid</span>
-                      ) : (
-                        <span className="font-body text-xs text-neutral-400">Pending</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-2 text-right">
-                      <span className="font-body text-xs text-neutral-400">{timeAgo(project.created_at)}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        {/* ── SUBMIT ── */}
+        <div className="text-center pb-12">
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || selectedPages.length === 0}
+            className="px-10 py-4 bg-black text-white rounded-full text-sm font-semibold font-body hover:bg-black/80 disabled:opacity-50 transition-all shadow-lg shadow-black/20"
+          >
+            {submitting ? 'Submitting...' : `Submit Needs (${selectedPages.length} pages, ${selectedFeatures.length} features, ${selectedAddons.length} add-ons)`}
+          </button>
+          <p className="font-body text-xs text-neutral-400 mt-4">We'll send you a custom quote based on your selections</p>
         </div>
       </div>
     </div>
