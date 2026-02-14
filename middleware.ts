@@ -13,12 +13,16 @@ export async function middleware(request: NextRequest) {
     '/reset-password',
     '/auth/callback',
     '/preview',
+    '/needs',           // ← NEW: needs form is public (no auth required)
+    '/create-account',  // ← NEW: post-payment account creation
     '/terms',
     '/privacy',
     '/api/square/webhook',
     '/api/webhook',
     '/api/reports',
     '/api/track',
+    '/api/preview',     // ← preview API is public
+    '/api/needs',       // ← needs API is public
   ];
 
   const isPublic =
@@ -56,10 +60,10 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session - getUser() triggers token refresh, getSession() does not
+  // Refresh session
   const { data: { user } } = await supabase.auth.getUser();
 
-  // ── Portal routes: require logged-in user ──
+  // Portal routes: require logged-in user
   if (pathname.startsWith('/portal')) {
     if (!user) {
       const loginUrl = new URL('/login', request.url);
@@ -69,13 +73,12 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // ── Admin routes (except /admin/login): require session + admin check ──
+  // Admin routes (except /admin/login): require session + admin check
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     if (!user) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
 
-    // Verify user is admin
     const { data: adminUser } = await supabase
       .from('admin_users')
       .select('id')
