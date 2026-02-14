@@ -1,7 +1,5 @@
 // app/api/preview/[id]/route.ts
 // Public endpoint - serves preview data without auth
-// Used by the customer preview page
-
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
@@ -17,7 +15,7 @@ export async function GET(
 
   const { data: project, error } = await supabaseAdmin
     .from('projects')
-    .select('id, business_name, generated_html, generated_pages, requested_pages, status, plan')
+    .select('id, business_name, industry, generated_html, generated_pages, requested_pages, status, plan, metadata')
     .eq('id', projectId)
     .single();
 
