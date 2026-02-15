@@ -805,6 +805,33 @@ export default function ProjectDetailPage() {
   // ==========================================================================
   // KING DNA v4: Calls /api/ai/generate (forensic extraction + deterministic build)
   // ==========================================================================
+  const [generatingVariations, setGeneratingVariations] = useState(false);
+
+  const generate3Variations = async () => {
+    if (!project) return;
+    setGeneratingVariations(true);
+    try {
+      await supabase.from('projects').update({ status: 'GENERATING' }).eq('id', projectId);
+      const response = await fetch('/api/ai/generate-variations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        alert(`✅ 3 Variations generated!\n\nBold: ${data.sizes.bold}\nElegant: ${data.sizes.elegant}\nDynamic: ${data.sizes.dynamic}\n\nTotal: ${data.timing}ms\n\nPreview link ready to send!`);
+        await loadProject();
+      } else {
+        alert(`❌ Generation failed: ${data.error || 'Unknown error'}\n\n${data.debugLog?.join('\n') || ''}`);
+        await supabase.from('projects').update({ status: formData.status || 'pending' }).eq('id', projectId);
+      }
+    } catch (err: any) {
+      alert(`❌ Error: ${err.message}`);
+    } finally {
+      setGeneratingVariations(false);
+    }
+  };
+
   const generateWebsite = async () => {
     if (!project) return;
     setGenerating(true);
@@ -1379,6 +1406,17 @@ export default function ProjectDetailPage() {
             <div className="bg-white rounded-2xl border border-neutral-200 p-6">
               <h2 className="font-semibold text-black mb-4">Actions</h2>
               <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={generate3Variations}
+                  disabled={generatingVariations}
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium rounded-full hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {generatingVariations ? (
+                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating 3 Variations...</>
+                  ) : (
+                    <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>Generate 3 Variations</>
+                  )}
+                </button>
                 <button
                   onClick={generateWebsite}
                   disabled={generating}
