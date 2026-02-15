@@ -28,7 +28,6 @@ const IC: Record<string, IndustryConfig> = {
 
 const DC: IndustryConfig = { icon: '🌐', pre_pages: ['Home','About','Services','Contact'], extra_pages: ['Gallery','Blog','FAQ','Reviews','Pricing'], pre_features: ['Contact Form','Click-to-Call','Google Maps','Social Links'], extra_features: ['Online Booking','Reviews Widget','Newsletter','Live Chat','Search'], pre_addons: ['Custom Domain'], extra_addons: ['SEO Setup','Google Business','Hosting','Logo Design','Social Media Kit'] };
 const TIMELINES = ['ASAP (Rush)','1–2 Weeks','2–4 Weeks','1–2 Months','No Rush'];
-const BUDGETS = ['Under $300','$300–$500','$500–$1,000','$1,000–$2,000','$2,000+'];
 
 export default function NeedsFormPage() {
   const params = useParams();
@@ -50,7 +49,6 @@ export default function NeedsFormPage() {
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [timeline, setTimeline] = useState('');
-  const [budget, setBudget] = useState('');
   const [notes, setNotes] = useState('');
 
   useEffect(() => { if (projectId) loadProject(); }, [projectId]);
@@ -73,7 +71,6 @@ export default function NeedsFormPage() {
           setSelectedFeatures(p.metadata.client_needs.features || c.pre_features);
           setSelectedAddons(p.metadata.client_needs.addons || c.pre_addons);
           setTimeline(p.metadata.client_needs.timeline || '');
-          setBudget(p.metadata.client_needs.budget || '');
         }
       }
     } catch (err) { console.error('Error:', err); }
@@ -117,14 +114,29 @@ export default function NeedsFormPage() {
   const handleFinalSubmit = async () => {
     setSubmitting(true); setError('');
     try {
+      // Try signup first
+      let userId: string | undefined;
       const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
-      if (authError) { setError(authError.message); setSubmitting(false); return; }
-      const userId = authData.user?.id;
+      
+      if (authError) {
+        // If user already exists, try signing in instead
+        if (authError.message.toLowerCase().includes('already registered') || authError.message.toLowerCase().includes('already been registered')) {
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInError) { setError('Account exists but password is wrong. Try signing in or reset your password.'); setSubmitting(false); return; }
+          userId = signInData.user?.id;
+        } else {
+          setError(authError.message); setSubmitting(false); return;
+        }
+      } else {
+        userId = authData.user?.id;
+      }
+      
       if (!userId) { setError('Account creation failed'); setSubmitting(false); return; }
 
       await supabase.from('customers').upsert({ id: userId, email: email.toLowerCase().trim(), name: project?.business_name || email.split('@')[0], source: 'needs_form' }, { onConflict: 'email' });
       await fetch('/api/preview/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: projectId, customer_id: userId }) });
-      await fetch('/api/needs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, pages: selectedPages, features: selectedFeatures, addons: selectedAddons, timeline, budget, notes }) });
+      await fetch('/api/needs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, pages: selectedPages, features: selectedFeatures, addons: selectedAddons, timeline, notes }) });
+      // Make sure we're signed in
       await supabase.auth.signInWithPassword({ email, password });
       router.push(`/portal/project/${projectId}/checkout`);
     } catch (err: any) { setError(err.message || 'Something went wrong'); setSubmitting(false); }
@@ -230,14 +242,10 @@ export default function NeedsFormPage() {
             <div className="flex flex-wrap gap-2">{allAddons.map(a => <Chip key={a} label={a} selected={selectedAddons.includes(a)} onClick={() => toggle(selectedAddons, setSelectedAddons, a)} />)}</div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div className="mb-4">
             <div className="bg-white rounded-2xl border border-neutral-200 p-6">
               <h2 className="fb font-semibold text-black mb-4">Timeline</h2>
-              <div className="space-y-2">{TIMELINES.map(t => <button key={t} onClick={() => setTimeline(t)} className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${timeline === t ? 'bg-black text-white border-black' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'}`}>{timeline === t && '✓ '}{t}</button>)}</div>
-            </div>
-            <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-              <h2 className="fb font-semibold text-black mb-4">Budget Range</h2>
-              <div className="space-y-2">{BUDGETS.map(b => <button key={b} onClick={() => setBudget(b)} className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${budget === b ? 'bg-black text-white border-black' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'}`}>{budget === b && '✓ '}{b}</button>)}</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{TIMELINES.map(t => <button key={t} onClick={() => setTimeline(t)} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${timeline === t ? 'bg-black text-white border-black' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'}`}>{timeline === t && '✓ '}{t}</button>)}</div>
             </div>
           </div>
 
