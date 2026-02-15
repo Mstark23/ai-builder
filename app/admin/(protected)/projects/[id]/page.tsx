@@ -806,6 +806,36 @@ export default function ProjectDetailPage() {
   // KING DNA v4: Calls /api/ai/generate (forensic extraction + deterministic build)
   // ==========================================================================
   const [generatingVariations, setGeneratingVariations] = useState(false);
+  const [buildingPages, setBuildingPages] = useState(false);
+
+  const buildAllPages = async () => {
+    if (!project) return;
+    setBuildingPages(true);
+    try {
+      const needsPages = project.metadata?.client_needs?.pages || ['Home', 'About', 'Services', 'Contact'];
+      await supabase.from('projects').update({ status: 'building' }).eq('id', projectId);
+      setFormData(prev => ({ ...prev, status: 'building' }));
+
+      const response = await fetch('/api/generate-multipage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id, pages: needsPages }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        const pageList = data.pages.map((p: string) => `  ${p}: ${data.sizes[p]}`).join('\n');
+        alert(`✅ ${data.pages.length} pages built!\n\n${pageList}\n\nStyle: ${data.style}\nTime: ${(data.timing / 1000).toFixed(1)}s\n\nClient can now review in their portal.`);
+        await loadProject();
+      } else {
+        alert(`❌ Build failed: ${data.error || 'Unknown'}\n\n${data.debugLog?.join('\n') || ''}`);
+        await supabase.from('projects').update({ status: formData.status || 'paid' }).eq('id', projectId);
+      }
+    } catch (err: any) {
+      alert(`❌ Error: ${err.message}`);
+    } finally {
+      setBuildingPages(false);
+    }
+  };
 
   const generate3Variations = async () => {
     if (!project) return;
@@ -1415,6 +1445,17 @@ export default function ProjectDetailPage() {
                     <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating 3 Variations...</>
                   ) : (
                     <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>Generate 3 Variations</>
+                  )}
+                </button>
+                <button
+                  onClick={buildAllPages}
+                  disabled={buildingPages}
+                  className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {buildingPages ? (
+                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Building Pages...</>
+                  ) : (
+                    <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>Build All Pages ({(project as any).metadata?.client_needs?.pages?.length || 4})</>
                   )}
                 </button>
                 <button
