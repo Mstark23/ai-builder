@@ -1453,6 +1453,7 @@ export default function ProjectDetailPage() {
                       </svg>
                       📋 Copy Customer Link
                     </button>
+                    <SMSButton projectId={project.id} phone={project.contact_phone || (project.customers as any)?.phone} businessName={project.business_name} />
                     <button
                       onClick={() => setActiveTab('preview')}
                       className="px-5 py-2.5 bg-violet-600 text-white text-sm font-medium rounded-full hover:bg-violet-700 transition-colors flex items-center gap-2"
@@ -1703,5 +1704,83 @@ export default function ProjectDetailPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// ============================================
+// SMS BUTTON COMPONENT
+// ============================================
+function SMSButton({ projectId, phone, businessName }: { projectId: string; phone: string | null; businessName: string }) {
+  const [open, setOpen] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [template, setTemplate] = useState<'preview' | 'needs' | 'invoice' | 'custom'>('preview');
+  const [customMsg, setCustomMsg] = useState('');
+  const [phoneInput, setPhoneInput] = useState(phone || '');
+
+  const send = async () => {
+    if (!phoneInput.trim()) { alert('Enter a phone number'); return; }
+    setSending(true);
+    try {
+      const res = await fetch('/api/sms/send-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId, phone: phoneInput, template, customMessage: template === 'custom' ? customMsg : undefined }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`✅ SMS sent to ${data.to}!`);
+        setOpen(false);
+      } else {
+        alert(`❌ Failed: ${data.error}`);
+      }
+    } catch (err: any) { alert(`❌ Error: ${err.message}`); } finally { setSending(false); }
+  };
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} className="px-5 py-2.5 bg-green-600 text-white text-sm font-medium rounded-full hover:bg-green-700 transition-colors flex items-center gap-2">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+        📱 Send SMS
+      </button>
+      {open && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-black text-lg mb-1">Send SMS to Client</h3>
+            <p className="text-sm text-neutral-500 mb-4">{businessName}</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-neutral-500 mb-1">Phone Number</label>
+                <input type="tel" value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} placeholder="+1 (555) 123-4567" className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:border-black" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-neutral-500 mb-2">Message Template</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { key: 'preview', label: '👁️ Preview Ready', desc: 'Send preview link' },
+                    { key: 'needs', label: '📋 Needs Follow-up', desc: 'Nudge to fill needs form' },
+                    { key: 'invoice', label: '💰 Invoice Reminder', desc: 'Payment reminder' },
+                    { key: 'custom', label: '✏️ Custom', desc: 'Write your own' },
+                  ] as const).map((t) => (
+                    <button key={t.key} onClick={() => setTemplate(t.key)} className={`p-3 rounded-xl border text-left transition-all ${template === t.key ? 'border-black bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300'}`}>
+                      <p className="text-sm font-medium">{t.label}</p>
+                      <p className="text-xs text-neutral-500">{t.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {template === 'custom' && (
+                <textarea value={customMsg} onChange={(e) => setCustomMsg(e.target.value)} placeholder="Type your message..." className="w-full p-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm resize-none h-24 focus:outline-none focus:border-black" />
+              )}
+              <div className="flex gap-2">
+                <button onClick={() => setOpen(false)} className="flex-1 px-4 py-2.5 bg-neutral-100 text-black text-sm font-medium rounded-xl">Cancel</button>
+                <button onClick={send} disabled={sending || !phoneInput.trim()} className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-xl hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                  {sending ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...</> : '📱 Send SMS'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
