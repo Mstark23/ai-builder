@@ -1,0 +1,61 @@
+export const dynamic = "force-dynamic";
+
+// POST /api/needs
+// Saves client's needs form submission (pages, features, addons, timeline, budget, notes)
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { projectId, pages, features, addons, timeline, budget, notes } = await request.json();
+
+    if (!projectId) {
+      return NextResponse.json({ error: 'Missing projectId' }, { status: 400 });
+    }
+
+    if (!pages || pages.length === 0) {
+      return NextResponse.json({ error: 'At least one page is required' }, { status: 400 });
+    }
+
+    const { data: project, error: fetchErr } = await supabaseAdmin
+      .from('projects')
+      .select('metadata')
+      .eq('id', projectId)
+      .single();
+
+    if (fetchErr || !project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    const updatedMetadata = {
+      ...(project.metadata || {}),
+      client_needs: {
+        pages: pages || [],
+        features: features || [],
+        addons: addons || [],
+        timeline: timeline || '',
+        budget: budget || '',
+        notes: notes || '',
+        submitted_at: new Date().toISOString(),
+      },
+    };
+
+    const { error: updateErr } = await supabaseAdmin
+      .from('projects')
+      .update({
+        metadata: updatedMetadata,
+        status: 'needs_submitted',
+      })
+      .eq('id', projectId);
+
+    if (updateErr) {
+      console.error('Needs save error:', updateErr);
+      return NextResponse.json({ error: 'Failed to save needs' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('Needs API error:', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
