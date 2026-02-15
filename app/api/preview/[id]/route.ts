@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/preview/[id]/route.ts
 // Public endpoint - serves preview data without auth
 import { NextRequest, NextResponse } from 'next/server';
