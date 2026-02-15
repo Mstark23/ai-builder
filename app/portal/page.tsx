@@ -47,10 +47,10 @@ export default function PortalDashboard() {
   });
 
   // Check if user has any paid/delivered project (unlocks Growth)
-  const hasGrowthAccess = projects.some(p => p.paid || p.status === 'DELIVERED');
+  const hasGrowthAccess = projects.some(p => p.paid || p.status === 'DELIVERED' || p.status === 'published');
   
   // Check if user has delivered projects but no growth packages
-  const hasDeliveredProject = projects.some(p => p.status === 'DELIVERED' || p.paid);
+  const hasDeliveredProject = projects.some(p => p.status === 'DELIVERED' || p.status === 'published' || p.paid);
   const [hasGrowthPackages, setHasGrowthPackages] = useState(false);
 
   useEffect(() => {
@@ -100,12 +100,12 @@ export default function PortalDashboard() {
 
         const totalSpent = projectsData
           .filter(p => p.paid)
-          .reduce((sum, p) => sum + (planPrices[p.plan] || 0), 0);
+          .reduce((sum, p) => sum + (p.custom_price || planPrices[p.plan] || 0), 0);
 
         setStats({
           total: projectsData.length,
-          inProgress: projectsData.filter(p => !['DELIVERED'].includes(p.status)).length,
-          completed: projectsData.filter(p => p.status === 'DELIVERED').length,
+          inProgress: projectsData.filter(p => !['DELIVERED', 'published'].includes(p.status)).length,
+          completed: projectsData.filter(p => p.status === 'DELIVERED' || p.status === 'published').length,
           totalSpent,
         });
 
@@ -139,18 +139,28 @@ export default function PortalDashboard() {
 
   const getActivityType = (status: string) => {
     const types: Record<string, string> = {
-      QUEUED: 'queued',
-      IN_PROGRESS: 'progress',
-      PREVIEW_READY: 'preview',
-      REVISION_REQUESTED: 'revision',
-      PAID: 'paid',
-      DELIVERED: 'delivered',
+      pending: "queued", interested: "preview", preview_sent: "preview",
+      needs_submitted: "revision", invoice_sent: "paid",
+      paid: "paid", building: "progress", review: "preview",
+      client_review: "preview", published: "delivered",
+      QUEUED: "queued", IN_PROGRESS: "progress", PREVIEW_READY: "preview",
+      REVISION_REQUESTED: "revision", PAID: "paid", DELIVERED: "delivered",
     };
-    return types[status] || 'update';
+    return types[status]
   };
 
   const getActivityMessage = (status: string, name: string) => {
     const messages: Record<string, string> = {
+      pending: `${name} is in the queue`,
+      interested: `You selected a design for ${name}`,
+      preview_sent: `Preview ready for ${name}`,
+      needs_submitted: `Needs submitted for ${name}`,
+      invoice_sent: `Invoice sent for ${name}`,
+      paid: `Payment received for ${name}`,
+      building: `Building website for ${name}`,
+      review: `${name} is ready for review`,
+      client_review: `${name} is ready for review`,
+      published: `${name} is live!`,
       QUEUED: `${name} is in the queue`,
       IN_PROGRESS: `Designer started working on ${name}`,
       PREVIEW_READY: `Preview ready for ${name}`,
@@ -158,7 +168,7 @@ export default function PortalDashboard() {
       PAID: `Payment received for ${name}`,
       DELIVERED: `${name} has been delivered`,
     };
-    return messages[status] || `Update for ${name}`;
+    return messages[status]
   };
 
   const getActivityIcon = (type: string) => {
@@ -176,14 +186,24 @@ export default function PortalDashboard() {
 
   const getStatusConfig = (status: string) => {
     const configs: Record<string, { label: string; color: string; bg: string; progress: number }> = {
-      QUEUED: { label: 'In Queue', color: 'text-amber-700', bg: 'bg-amber-100', progress: 20 },
-      IN_PROGRESS: { label: 'In Progress', color: 'text-blue-700', bg: 'bg-blue-100', progress: 50 },
-      PREVIEW_READY: { label: 'Preview Ready', color: 'text-purple-700', bg: 'bg-purple-100', progress: 75 },
-      REVISION_REQUESTED: { label: 'Revising', color: 'text-orange-700', bg: 'bg-orange-100', progress: 60 },
-      PAID: { label: 'Paid', color: 'text-emerald-700', bg: 'bg-emerald-100', progress: 90 },
-      DELIVERED: { label: 'Delivered', color: 'text-emerald-700', bg: 'bg-emerald-100', progress: 100 },
+      pending: { label: "Pending", color: "text-neutral-700", bg: "bg-neutral-100", progress: 5 },
+      interested: { label: "Interested", color: "text-pink-700", bg: "bg-pink-100", progress: 15 },
+      preview_sent: { label: "Preview Sent", color: "text-purple-700", bg: "bg-purple-100", progress: 25 },
+      needs_submitted: { label: "Needs Submitted", color: "text-amber-700", bg: "bg-amber-100", progress: 35 },
+      invoice_sent: { label: "Invoice Sent", color: "text-orange-700", bg: "bg-orange-100", progress: 45 },
+      paid: { label: "Building", color: "text-emerald-700", bg: "bg-emerald-100", progress: 60 },
+      building: { label: "Building", color: "text-indigo-700", bg: "bg-indigo-100", progress: 75 },
+      review: { label: "Review", color: "text-blue-700", bg: "bg-blue-100", progress: 88 },
+      client_review: { label: "Review", color: "text-blue-700", bg: "bg-blue-100", progress: 88 },
+      published: { label: "Published", color: "text-emerald-700", bg: "bg-emerald-100", progress: 100 },
+      QUEUED: { label: "In Queue", color: "text-amber-700", bg: "bg-amber-100", progress: 20 },
+      IN_PROGRESS: { label: "In Progress", color: "text-blue-700", bg: "bg-blue-100", progress: 50 },
+      PREVIEW_READY: { label: "Preview Ready", color: "text-purple-700", bg: "bg-purple-100", progress: 75 },
+      REVISION_REQUESTED: { label: "Revising", color: "text-orange-700", bg: "bg-orange-100", progress: 60 },
+      PAID: { label: "Paid", color: "text-emerald-700", bg: "bg-emerald-100", progress: 90 },
+      DELIVERED: { label: "Delivered", color: "text-emerald-700", bg: "bg-emerald-100", progress: 100 },
     };
-    return configs[status] || { label: status, color: 'text-neutral-700', bg: 'bg-neutral-100', progress: 0 };
+    return configs[status]
   };
 
   const getPlanPrice = (plan: string) => {
