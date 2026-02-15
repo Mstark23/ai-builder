@@ -29,6 +29,62 @@ const IC: Record<string, IndustryConfig> = {
 const DC: IndustryConfig = { icon: '🌐', pre_pages: ['Home','About','Services','Contact'], extra_pages: ['Gallery','Blog','FAQ','Reviews','Pricing'], pre_features: ['Contact Form','Click-to-Call','Google Maps','Social Links'], extra_features: ['Online Booking','Reviews Widget','Newsletter','Live Chat','Search'], pre_addons: ['Custom Domain'], extra_addons: ['SEO Setup','Google Business','Hosting','Logo Design','Social Media Kit'] };
 const TIMELINES = ['ASAP (Rush)','1–2 Weeks','2–4 Weeks','1–2 Months','No Rush'];
 
+// ═══════════════════════════════════════════════════
+// SUGGESTED PRICE ENGINE (admin-only, never shown to customer)
+// Used as a starting floor for you to set the real price
+// ═══════════════════════════════════════════════════
+const FEAT_WEIGHT: Record<string, number> = {
+  'Contact Form': 0, 'Click-to-Call': 0, 'Google Maps': 0, 'Social Links': 0, 'Bio Section': 0,
+  'Menu Display': 50, 'Service Menu': 50, 'Reviews Widget': 50, 'Lightbox Display': 25,
+  'Certification Badges': 25, 'License Display': 25, 'Insurance List': 25, 'Patient Portal Link': 25,
+  'Free Estimate Form': 50, 'Free Quote Form': 50, 'Quote Request': 50, 'Free Consultation Form': 50,
+  'Lead Capture': 50, 'Newsletter': 50, 'Newsletter Signup': 50, 'Demo Request': 50,
+  'Portfolio Gallery': 50, 'Event Gallery': 50, 'Calendar': 50, 'Impact Counter': 50,
+  'Package Display': 50, 'Program Listings': 50, 'Feature Showcase': 50, 'Pricing Table': 50,
+  'Provider Profiles': 50, 'Attorney Profiles': 50, 'Agent Profiles': 50, 'Faculty Profiles': 50,
+  'Trainer Profiles': 50, 'Practice Area Pages': 50, 'Service Areas Map': 50, 'Service Areas': 50,
+  'Testimonials': 50, 'Google Analytics': 50, 'Enrollment Form': 50, 'Forms Download': 50,
+  'Financing Info': 50, 'Emergency Service': 50, 'Volunteer Signup': 50,
+  'Online Booking': 75, 'Reservation Widget': 75, 'Before & After Gallery': 75,
+  'Before & After Slider': 75, 'Before & After': 75, 'Appointment Booking': 75,
+  'Class Schedule': 75, 'Trial Booking': 50, 'Donation Button': 75, 'Wishlist': 75,
+  'Reviews & Ratings': 75, 'Intake Forms': 75, 'Case Results Display': 75, 'Changelog': 75,
+  'Social Feed': 75, 'Annual Report': 75, 'Vendor List': 50,
+  'Online Ordering': 100, 'Online Payments': 100, 'Event Booking': 100, 'Membership Signup': 100,
+  'Booking Calendar': 100, 'Video Reel': 100, 'Live Chat': 100, 'Discount Codes': 100,
+  'Status Page': 100, 'Event Calendar': 100, 'Service Tracker': 100, 'Price Estimator': 100,
+  'Vaccination Records': 100, 'Vehicle Wraps Design': 100, 'Mortgage Calculator': 100,
+  'Gift Cards': 100, 'Progress Tracking': 150, 'Loyalty Program': 150,
+  'Multi-Location': 150, 'Multi-Stylist Calendar': 150, 'Product Sales': 150, 'Membership': 150,
+  'Delivery Tracking': 150, 'Product Catalog': 150, 'Shopping Cart': 150, 'Secure Checkout': 150,
+  'Order Tracking': 100, 'Virtual Tours': 150, 'Knowledge Base': 150, 'API Docs': 150,
+  'Inventory Management': 150, 'Email Marketing': 150, 'Workout Videos': 150, 'Nutrition Plans': 100,
+  'Fundraising Tracker': 150, 'Live Cam': 150, 'Payment Integration': 150,
+  'CRM Integration': 200, 'MLS Feed': 200, 'Market Reports': 150,
+  'Telehealth Integration': 200, 'Client Portal': 200, 'HIPAA Compliance Badge': 50,
+  'Online Courses': 200, 'Student Portal': 200, 'Print Shop': 200,
+  'App Integration': 200, 'Pet Portal': 200, 'Member Portal': 200,
+  'Financing Calculator': 100, 'Video Tours': 100,
+};
+const ADDON_WEIGHT: Record<string, number> = {
+  'Custom Domain': 25, 'Google Business': 50, 'SEO Setup': 150, 'Hosting': 100,
+  'Logo Design': 200, 'Photo Shoot': 300, 'Food Photography': 350, 'Product Photography': 300,
+  'Drone Photography': 400, 'Social Media Kit': 150, 'Email Setup': 100, 'Vehicle Wraps Design': 250,
+};
+const TL_MULT: Record<string, number> = { 'ASAP (Rush)': 1.5, '1–2 Weeks': 1.25, '2–4 Weeks': 1, '1–2 Months': 1, 'No Rush': 1 };
+
+function calcSuggestedPrice(pages: string[], features: string[], addons: string[], tl: string) {
+  let total = 299; // base
+  total += Math.max(0, pages.length - 4) * 75;
+  features.forEach(f => { total += FEAT_WEIGHT[f] ?? 50; });
+  addons.forEach(a => { total += ADDON_WEIGHT[a] ?? 50; });
+  total = Math.round(total * (TL_MULT[tl] || 1));
+  return Math.ceil(total / 50) * 50;
+}
+
+// ═══════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════
 export default function NeedsFormPage() {
   const params = useParams();
   const router = useRouter();
@@ -50,6 +106,8 @@ export default function NeedsFormPage() {
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [timeline, setTimeline] = useState('');
   const [notes, setNotes] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showContract, setShowContract] = useState(false);
 
   useEffect(() => { if (projectId) loadProject(); }, [projectId]);
 
@@ -100,7 +158,6 @@ export default function NeedsFormPage() {
   };
 
   const toggle = (list: string[], set: (v: string[]) => void, item: string) => set(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
-
   const pwStr = () => { let s = 0; if (password.length >= 6) s++; if (password.length >= 8) s++; if (/[A-Z]/.test(password)) s++; if (/[0-9!@#$%^&*]/.test(password)) s++; return s; };
 
   const handleAccountNext = () => {
@@ -112,43 +169,45 @@ export default function NeedsFormPage() {
   };
 
   const handleFinalSubmit = async () => {
+    if (!agreedToTerms) { setError('Please agree to the project terms before continuing'); return; }
     setSubmitting(true); setError('');
     try {
-      // Try signup first
+      // Auth — signup or signin if already registered
       let userId: string | undefined;
       const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
-      
       if (authError) {
-        // If user already exists, try signing in instead
         if (authError.message.toLowerCase().includes('already registered') || authError.message.toLowerCase().includes('already been registered')) {
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
           if (signInError) { setError('Account exists but password is wrong. Try signing in or reset your password.'); setSubmitting(false); return; }
           userId = signInData.user?.id;
-        } else {
-          setError(authError.message); setSubmitting(false); return;
-        }
-      } else {
-        userId = authData.user?.id;
-      }
-      
+        } else { setError(authError.message); setSubmitting(false); return; }
+      } else { userId = authData.user?.id; }
       if (!userId) { setError('Account creation failed'); setSubmitting(false); return; }
 
+      // Save customer + claim project + save needs
       await supabase.from('customers').upsert({ id: userId, email: email.toLowerCase().trim(), name: project?.business_name || email.split('@')[0], source: 'needs_form' }, { onConflict: 'email' });
       await fetch('/api/preview/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: projectId, customer_id: userId }) });
-      await fetch('/api/needs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, pages: selectedPages, features: selectedFeatures, addons: selectedAddons, timeline, notes }) });
-      // Make sure we're signed in
+
+      // Calculate suggested price for admin (customer never sees this)
+      const suggestedPrice = calcSuggestedPrice(selectedPages, selectedFeatures, selectedAddons, timeline);
+
+      await fetch('/api/needs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        projectId, pages: selectedPages, features: selectedFeatures, addons: selectedAddons,
+        timeline, notes, suggestedPrice,
+      })});
+
       await supabase.auth.signInWithPassword({ email, password });
-      router.push(`/portal/project/${projectId}/checkout`);
+      router.push(`/portal/project/${projectId}`);
     } catch (err: any) { setError(err.message || 'Something went wrong'); setSubmitting(false); }
   };
 
+  // ── Loading / Not Found ──
   if (loading) return (
     <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
       <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap'); .fd{font-family:'Playfair Display',serif} .fb{font-family:'Inter',sans-serif}`}</style>
       <div className="w-10 h-10 border-2 border-black/20 border-t-black rounded-full animate-spin" />
     </div>
   );
-
   if (!project) return (
     <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-6">
       <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap'); .fd{font-family:'Playfair Display',serif} .fb{font-family:'Inter',sans-serif}`}</style>
@@ -167,6 +226,7 @@ export default function NeedsFormPage() {
   const allAddons = Array.from(new Set([...config.pre_addons, ...config.extra_addons]));
   const strength = pwStr();
   const sColors = ['bg-neutral-200','bg-red-500','bg-orange-500','bg-emerald-400','bg-emerald-500'];
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   const Chip = ({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) => (
     <button onClick={onClick} className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${selected ? 'bg-black text-white border-black shadow-sm' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'}`}>
@@ -178,6 +238,7 @@ export default function NeedsFormPage() {
     <div className="min-h-screen bg-[#fafafa]">
       <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap'); .fd{font-family:'Playfair Display',serif} .fb{font-family:'Inter',sans-serif}`}</style>
 
+      {/* Top Bar */}
       <div className="sticky top-0 z-50 bg-black text-white px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center"><span className="text-black fd font-semibold text-sm">V</span></div>
@@ -186,6 +247,9 @@ export default function NeedsFormPage() {
         <div className="fb text-xs text-white/40">Step {step} of 2</div>
       </div>
 
+      {/* ════════════════════════════════ */}
+      {/* STEP 1 — CREATE ACCOUNT         */}
+      {/* ════════════════════════════════ */}
       {step === 1 && (
         <div className="max-w-md mx-auto px-6 py-12">
           <div className="text-center mb-8">
@@ -196,20 +260,20 @@ export default function NeedsFormPage() {
           <div className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm space-y-5">
             <div>
               <label className="fb text-sm font-medium text-black block mb-1.5">Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 border border-neutral-200 rounded-xl fb text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-neutral-50" placeholder="your@email.com" />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-3 border border-neutral-200 rounded-xl fb text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-neutral-50" placeholder="your@email.com" />
               {project?.email && email === project.email && <p className="fb text-xs text-emerald-600 mt-1 flex items-center gap-1"><span>✓</span> Pre-filled from your request</p>}
             </div>
             <div>
               <label className="fb text-sm font-medium text-black block mb-1.5">Create Password</label>
               <div className="relative">
-                <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 border border-neutral-200 rounded-xl fb text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent pr-12" placeholder="Min 6 characters" />
+                <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-3 border border-neutral-200 rounded-xl fb text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent pr-12" placeholder="Min 6 characters" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 fb text-xs text-neutral-400 hover:text-black">{showPassword ? 'Hide' : 'Show'}</button>
               </div>
               {password.length > 0 && <div className="flex gap-1 mt-2">{[0,1,2,3].map(i => <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i < strength ? sColors[strength] : 'bg-neutral-200'}`} />)}</div>}
             </div>
             <div>
               <label className="fb text-sm font-medium text-black block mb-1.5">Confirm Password</label>
-              <input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 border border-neutral-200 rounded-xl fb text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" placeholder="Re-enter password" />
+              <input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 border border-neutral-200 rounded-xl fb text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" placeholder="Re-enter password" />
               {confirmPassword && password && confirmPassword === password && <p className="fb text-xs text-emerald-600 mt-1 flex items-center gap-1"><span>✓</span> Passwords match</p>}
             </div>
             {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="fb text-sm text-red-700">{error}</p></div>}
@@ -219,6 +283,9 @@ export default function NeedsFormPage() {
         </div>
       )}
 
+      {/* ════════════════════════════════ */}
+      {/* STEP 2 — REQUIREMENTS + CONTRACT */}
+      {/* ════════════════════════════════ */}
       {step === 2 && (
         <div className="max-w-3xl mx-auto px-6 py-10">
           <div className="text-center mb-10">
@@ -227,42 +294,150 @@ export default function NeedsFormPage() {
             <p className="fb text-neutral-500">We&apos;ve pre-selected the essentials for your industry. Add or remove anything.</p>
           </div>
 
+          {/* Pages */}
           <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-4">
-            <div className="flex items-center justify-between mb-4"><h2 className="fb font-semibold text-black">Pages</h2><span className="fb text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded-full">{selectedPages.length} selected</span></div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="fb font-semibold text-black">Pages</h2>
+              <span className="fb text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded-full">{selectedPages.length} selected</span>
+            </div>
             <div className="flex flex-wrap gap-2">{allPages.map(p => <Chip key={p} label={p} selected={selectedPages.includes(p)} onClick={() => toggle(selectedPages, setSelectedPages, p)} />)}</div>
           </div>
 
+          {/* Features */}
           <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-4">
-            <div className="flex items-center justify-between mb-4"><h2 className="fb font-semibold text-black">Features</h2><span className="fb text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded-full">{selectedFeatures.length} selected</span></div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="fb font-semibold text-black">Features</h2>
+              <span className="fb text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded-full">{selectedFeatures.length} selected</span>
+            </div>
             <div className="flex flex-wrap gap-2">{allFeatures.map(f => <Chip key={f} label={f} selected={selectedFeatures.includes(f)} onClick={() => toggle(selectedFeatures, setSelectedFeatures, f)} />)}</div>
           </div>
 
+          {/* Add-ons */}
           <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-4">
-            <div className="flex items-center justify-between mb-4"><h2 className="fb font-semibold text-black">Add-ons</h2><span className="fb text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded-full">{selectedAddons.length} selected</span></div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="fb font-semibold text-black">Add-ons</h2>
+              <span className="fb text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded-full">{selectedAddons.length} selected</span>
+            </div>
             <div className="flex flex-wrap gap-2">{allAddons.map(a => <Chip key={a} label={a} selected={selectedAddons.includes(a)} onClick={() => toggle(selectedAddons, setSelectedAddons, a)} />)}</div>
           </div>
 
-          <div className="mb-4">
-            <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-              <h2 className="fb font-semibold text-black mb-4">Timeline</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{TIMELINES.map(t => <button key={t} onClick={() => setTimeline(t)} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${timeline === t ? 'bg-black text-white border-black' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'}`}>{timeline === t && '✓ '}{t}</button>)}</div>
-            </div>
+          {/* Timeline */}
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-4">
+            <h2 className="fb font-semibold text-black mb-4">Timeline</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{TIMELINES.map(t => (
+              <button key={t} onClick={() => setTimeline(t)} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${timeline === t ? 'bg-black text-white border-black' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'}`}>
+                {timeline === t && '✓ '}{t}
+              </button>
+            ))}</div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-6">
+          {/* Notes */}
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-4">
             <h2 className="fb font-semibold text-black mb-3">Anything Else?</h2>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full px-4 py-3 border border-neutral-200 rounded-xl fb text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black" rows={3} placeholder="References, brand colors, competitors you admire..." />
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full px-4 py-3 border border-neutral-200 rounded-xl fb text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black" rows={3} placeholder="References, brand colors, competitors you admire..." />
+          </div>
+
+          {/* ═══ CONTRACT / TERMS ═══ */}
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="fb font-semibold text-black">Project Agreement</h2>
+              <button onClick={() => setShowContract(!showContract)} className="fb text-xs text-neutral-500 hover:text-black transition-colors underline">
+                {showContract ? 'Hide terms' : 'View full terms'}
+              </button>
+            </div>
+
+            {showContract && (
+              <div className="bg-neutral-50 rounded-xl p-5 mb-4 max-h-[400px] overflow-y-auto border border-neutral-200">
+                <div className="fb text-xs text-neutral-700 space-y-4 leading-relaxed">
+                  <div className="text-center mb-4">
+                    <p className="font-semibold text-sm text-black">WEBSITE DEVELOPMENT AGREEMENT</p>
+                    <p className="text-neutral-500">VektorLabs × {project?.business_name}</p>
+                    <p className="text-neutral-400 mt-1">{today}</p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-black mb-1">1. Scope of Work</p>
+                    <p>VektorLabs (&quot;Provider&quot;) agrees to design and develop a custom website for {project?.business_name} (&quot;Client&quot;) based on the following requirements:</p>
+                    <p className="mt-2 font-medium">Pages ({selectedPages.length}):</p>
+                    <p>{selectedPages.join(', ')}</p>
+                    <p className="mt-2 font-medium">Features ({selectedFeatures.length}):</p>
+                    <p>{selectedFeatures.join(', ')}</p>
+                    {selectedAddons.length > 0 && (<><p className="mt-2 font-medium">Add-ons ({selectedAddons.length}):</p><p>{selectedAddons.join(', ')}</p></>)}
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-black mb-1">2. Deliverables</p>
+                    <p>Provider will deliver 3 custom design variations for Client to choose from. Upon selection, the chosen design will be finalized and developed into a fully functional website matching the agreed scope above.</p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-black mb-1">3. Timeline</p>
+                    <p>{timeline ? `Requested delivery: ${timeline}.` : 'No specific timeline requested.'} Provider will communicate expected delivery dates upon project start.</p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-black mb-1">4. Pricing &amp; Payment</p>
+                    <p>A custom quote will be prepared based on the scope of work outlined above. The quote will be delivered to Client via the project portal. Payment is due upon acceptance of the quote before work begins. All prices are in CAD.</p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-black mb-1">5. Revisions</p>
+                    <p>Client receives 2 rounds of revisions included in the project price. Additional revision rounds will be billed at $75/hour and communicated in advance.</p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-black mb-1">6. Intellectual Property</p>
+                    <p>Upon full payment, all custom design work, code, and content created specifically for this project becomes the property of the Client. Provider retains the right to showcase the completed work in its portfolio.</p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-black mb-1">7. Refund Policy</p>
+                    <p>If Client is not satisfied with any of the 3 initial design variations, a full refund will be issued. Once a variation is selected and development begins, refunds are prorated based on work completed.</p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-black mb-1">8. Communication</p>
+                    <p>Client will receive access to a private portal for project tracking, messaging, and revision requests. Provider will respond to all communications within 24 business hours.</p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-black mb-1">9. Hosting &amp; Maintenance</p>
+                    <p>{selectedAddons.includes('Hosting') ? 'Hosting is included as an add-on for the first year. Renewal rates will be communicated before expiration.' : 'Hosting is not included in this agreement. Client is responsible for their own hosting, and Provider will deliver website files for deployment.'}</p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-black mb-1">10. Acceptance</p>
+                    <p>By checking &quot;I agree&quot; below, Client acknowledges the scope of work outlined above and agrees to receive a custom quote from VektorLabs based on these requirements.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <div className="mt-0.5">
+                <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="sr-only" />
+                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${agreedToTerms ? 'bg-black border-black' : 'border-neutral-300 group-hover:border-neutral-500'}`}>
+                  {agreedToTerms && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                </div>
+              </div>
+              <div>
+                <p className="fb text-sm text-black font-medium">I agree to the <button type="button" onClick={() => setShowContract(true)} className="underline hover:text-neutral-600">project terms</button></p>
+                <p className="fb text-xs text-neutral-400 mt-0.5">By agreeing, you confirm the scope above and authorize VektorLabs to prepare your custom quote.</p>
+              </div>
+            </label>
           </div>
 
           {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4"><p className="fb text-sm text-red-700">{error}</p></div>}
 
+          {/* Submit */}
           <div className="flex items-center gap-3">
             <button onClick={() => { setStep(1); window.scrollTo(0, 0); }} className="px-6 py-3.5 border border-neutral-200 text-neutral-600 fb text-sm font-medium rounded-xl hover:border-black hover:text-black transition-all">← Back</button>
-            <button onClick={handleFinalSubmit} disabled={submitting || selectedPages.length === 0} className="flex-1 py-3.5 bg-black text-white fb text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-black/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-              {submitting ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating account &amp; saving...</> : <>Create Account &amp; Continue to Invoice →</>}
+            <button onClick={handleFinalSubmit} disabled={submitting || selectedPages.length === 0 || !agreedToTerms} className="flex-1 py-3.5 bg-black text-white fb text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-black/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+              {submitting ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating account...</> : <>Submit &amp; View Your Portal →</>}
             </button>
           </div>
 
+          {/* Bottom summary */}
           <div className="mt-6 p-4 bg-neutral-100 rounded-xl">
             <div className="flex items-center justify-between fb text-sm">
               <span className="text-neutral-500">{selectedPages.length} pages · {selectedFeatures.length} features · {selectedAddons.length} add-ons{timeline && ` · ${timeline}`}</span>
