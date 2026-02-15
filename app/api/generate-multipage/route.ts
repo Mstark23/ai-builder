@@ -1,853 +1,388 @@
 // app/api/generate-multipage/route.ts
-// Generate full multi-page websites
+// Generate multi-page website based on client's selected variation + needs
+// Uses the style of their chosen variation (bold/elegant/dynamic) for consistency
 
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 
-export const maxDuration = 60;
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes for multiple pages
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// =============================================================================
-// PAGE TYPES & CONFIGURATIONS
-// =============================================================================
+// ============================================
+// PAGE DEFINITIONS
+// ============================================
 
-interface PageConfig {
-  id: string;
-  name: string;
-  description: string;
-  sections: string[];
-  requiredFields: string[];
-  icon: string;
-}
-
-const PAGE_CONFIGS: Record<string, PageConfig> = {
-  home: {
-    id: 'home',
-    name: 'Home',
-    description: 'Main landing page with hero, services overview, and CTA',
-    sections: ['hero', 'services-preview', 'about-preview', 'testimonials', 'cta'],
-    requiredFields: ['business_name', 'industry', 'description'],
-    icon: '🏠',
-  },
-  about: {
-    id: 'about',
-    name: 'About Us',
-    description: 'Company story, mission, values, and team',
-    sections: ['about-hero', 'story', 'mission-values', 'team', 'cta'],
-    requiredFields: ['business_name', 'description'],
-    icon: '📖',
-  },
-  services: {
-    id: 'services',
-    name: 'Services',
-    description: 'Detailed services/products with features and benefits',
-    sections: ['services-hero', 'services-grid', 'process', 'pricing-preview', 'cta'],
-    requiredFields: ['business_name', 'primary_services'],
-    icon: '⚡',
-  },
-  contact: {
-    id: 'contact',
-    name: 'Contact',
-    description: 'Contact form, location, hours, and map',
-    sections: ['contact-hero', 'contact-form', 'location-info', 'faq-preview'],
-    requiredFields: ['business_name', 'contact_email'],
-    icon: '✉️',
-  },
-  pricing: {
-    id: 'pricing',
-    name: 'Pricing',
-    description: 'Pricing plans, features comparison, and FAQ',
-    sections: ['pricing-hero', 'pricing-table', 'features-comparison', 'faq', 'cta'],
-    requiredFields: ['business_name'],
-    icon: '💰',
-  },
-  portfolio: {
-    id: 'portfolio',
-    name: 'Portfolio',
-    description: 'Work samples, case studies, and gallery',
-    sections: ['portfolio-hero', 'portfolio-grid', 'case-study-preview', 'cta'],
-    requiredFields: ['business_name', 'industry'],
-    icon: '🎨',
-  },
-  blog: {
-    id: 'blog',
-    name: 'Blog',
-    description: 'Blog listing page template',
-    sections: ['blog-hero', 'featured-post', 'posts-grid', 'categories', 'newsletter'],
-    requiredFields: ['business_name'],
-    icon: '📝',
-  },
-  faq: {
-    id: 'faq',
-    name: 'FAQ',
-    description: 'Frequently asked questions page',
-    sections: ['faq-hero', 'faq-categories', 'faq-accordion', 'contact-cta'],
-    requiredFields: ['business_name', 'industry'],
-    icon: '❓',
-  },
+const PAGE_CONFIGS: Record<string, { name: string; desc: string; sections: string[] }> = {
+  'home':           { name: 'Home', desc: 'Hero, overview, trust signals, CTA', sections: ['hero', 'services-preview', 'about-preview', 'testimonials', 'cta'] },
+  'about':          { name: 'About Us', desc: 'Story, mission, values, team', sections: ['about-hero', 'story', 'mission-values', 'team', 'cta'] },
+  'about-us':       { name: 'About Us', desc: 'Story, mission, values, team', sections: ['about-hero', 'story', 'mission-values', 'team', 'cta'] },
+  'services':       { name: 'Services', desc: 'Service cards, process, benefits', sections: ['services-hero', 'services-grid', 'process', 'benefits', 'cta'] },
+  'contact':        { name: 'Contact', desc: 'Form, map, hours, info', sections: ['contact-hero', 'contact-form', 'location-info', 'faq-preview'] },
+  'contact-us':     { name: 'Contact', desc: 'Form, map, hours, info', sections: ['contact-hero', 'contact-form', 'location-info', 'faq-preview'] },
+  'pricing':        { name: 'Pricing', desc: 'Plans, comparison, FAQ', sections: ['pricing-hero', 'pricing-table', 'features-comparison', 'faq', 'cta'] },
+  'portfolio':      { name: 'Portfolio', desc: 'Work gallery, case studies', sections: ['portfolio-hero', 'portfolio-grid', 'case-study', 'cta'] },
+  'gallery':        { name: 'Gallery', desc: 'Photo gallery, lightbox', sections: ['gallery-hero', 'gallery-grid', 'cta'] },
+  'blog':           { name: 'Blog', desc: 'Blog listing, categories', sections: ['blog-hero', 'featured-post', 'posts-grid', 'newsletter'] },
+  'faq':            { name: 'FAQ', desc: 'Accordion FAQ, categories', sections: ['faq-hero', 'faq-accordion', 'contact-cta'] },
+  'testimonials':   { name: 'Testimonials', desc: 'Reviews, ratings, case studies', sections: ['testimonials-hero', 'reviews-grid', 'stats', 'cta'] },
+  'menu':           { name: 'Menu', desc: 'Restaurant menu with categories', sections: ['menu-hero', 'menu-categories', 'specials', 'reservation-cta'] },
+  'booking':        { name: 'Booking', desc: 'Appointment scheduling, calendar', sections: ['booking-hero', 'booking-form', 'services-list', 'policies'] },
+  'team':           { name: 'Team', desc: 'Team members, bios', sections: ['team-hero', 'team-grid', 'values', 'join-cta'] },
+  'reviews':        { name: 'Reviews', desc: 'Customer reviews and ratings', sections: ['reviews-hero', 'reviews-grid', 'stats', 'cta'] },
+  'before-after':   { name: 'Before & After', desc: 'Transformation gallery', sections: ['ba-hero', 'ba-gallery', 'process', 'cta'] },
+  'locations':      { name: 'Locations', desc: 'Multiple locations, maps', sections: ['locations-hero', 'locations-grid', 'contact-cta'] },
+  'careers':        { name: 'Careers', desc: 'Job listings, culture', sections: ['careers-hero', 'culture', 'openings-grid', 'apply-cta'] },
+  'shop':           { name: 'Shop', desc: 'Product grid, filters', sections: ['shop-hero', 'product-grid', 'categories', 'newsletter'] },
 };
 
-// Plan limits
-const PLAN_PAGE_LIMITS: Record<string, number> = {
-  starter: 1,        // Landing page only
-  professional: 5,   // Home + About + Services + Contact + 1 more
-  enterprise: 10,    // Unlimited (practically)
-};
-
-// =============================================================================
-// DESIGN DIRECTIONS
-// =============================================================================
-
-const DESIGN_DIRECTIONS: Record<string, {
-  name: string;
-  fonts: { display: string; body: string; import: string };
-  colors: Record<string, string>;
-  characteristics: string;
-}> = {
-  luxury_minimal: {
-    name: "Luxury Minimal",
-    fonts: {
-      display: "Cormorant Garamond",
-      body: "Crimson Pro",
-      import: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@400;500;600&display=swap"
-    },
-    colors: {
-      primary: "#1a1a1a", primaryRgb: "26, 26, 26",
-      secondary: "#c9a227", secondaryRgb: "201, 162, 39",
-      accent: "#8b7355",
-      bgPrimary: "#faf9f7", bgSecondary: "#f5f3ef",
-      textPrimary: "#1a1a1a", textSecondary: "#5c5c5c",
-      border: "#e8e6e1"
-    },
-    characteristics: "Lots of whitespace, subtle animations, serif typography, muted earth tones"
-  },
-  bold_modern: {
-    name: "Bold Modern",
-    fonts: {
-      display: "Space Grotesk",
-      body: "DM Sans",
-      import: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
-    },
-    colors: {
-      primary: "#6366f1", primaryRgb: "99, 102, 241",
-      secondary: "#8b5cf6", secondaryRgb: "139, 92, 246",
-      accent: "#22d3ee",
-      bgPrimary: "#ffffff", bgSecondary: "#f8fafc",
-      textPrimary: "#0f172a", textSecondary: "#475569",
-      border: "#e2e8f0"
-    },
-    characteristics: "Strong geometric typography, gradient accents, card-based layouts"
-  },
-  warm_organic: {
-    name: "Warm Organic",
-    fonts: {
-      display: "Fraunces",
-      body: "Source Serif Pro",
-      import: "https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Source+Serif+Pro:wght@400;600&display=swap"
-    },
-    colors: {
-      primary: "#2d5016", primaryRgb: "45, 80, 22",
-      secondary: "#b45309", secondaryRgb: "180, 83, 9",
-      accent: "#dc2626",
-      bgPrimary: "#fffbeb", bgSecondary: "#fef3c7",
-      textPrimary: "#1c1917", textSecondary: "#57534e",
-      border: "#e7e5e4"
-    },
-    characteristics: "Rounded corners, warm earth palette, friendly approachable vibe"
-  },
-  dark_premium: {
-    name: "Dark Premium",
-    fonts: {
-      display: "Bebas Neue",
-      body: "Barlow",
-      import: "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap"
-    },
-    colors: {
-      primary: "#ffffff", primaryRgb: "255, 255, 255",
-      secondary: "#a855f7", secondaryRgb: "168, 85, 247",
-      accent: "#06b6d4",
-      bgPrimary: "#09090b", bgSecondary: "#18181b",
-      textPrimary: "#fafafa", textSecondary: "#a1a1aa",
-      border: "rgba(255,255,255,0.1)"
-    },
-    characteristics: "Dark theme, glowing effects, gradient borders, glassmorphism"
-  },
-  editorial_classic: {
-    name: "Editorial Classic",
-    fonts: {
-      display: "Playfair Display",
-      body: "Source Sans Pro",
-      import: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+Pro:wght@400;600;700&display=swap"
-    },
-    colors: {
-      primary: "#1e3a5f", primaryRgb: "30, 58, 95",
-      secondary: "#b8860b", secondaryRgb: "184, 134, 11",
-      accent: "#166534",
-      bgPrimary: "#ffffff", bgSecondary: "#f8f6f3",
-      textPrimary: "#1e293b", textSecondary: "#64748b",
-      border: "#e2e8f0"
-    },
-    characteristics: "Classic typography, structured grid, professional trustworthy feel"
-  },
-  vibrant_energy: {
-    name: "Vibrant Energy",
-    fonts: {
-      display: "Syne",
-      body: "Outfit",
-      import: "https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap"
-    },
-    colors: {
-      primary: "#7c3aed", primaryRgb: "124, 58, 237",
-      secondary: "#ec4899", secondaryRgb: "236, 72, 153",
-      accent: "#14b8a6",
-      bgPrimary: "#fafafa", bgSecondary: "#f3e8ff",
-      textPrimary: "#18181b", textSecondary: "#52525b",
-      border: "#e4e4e7"
-    },
-    characteristics: "Bold gradients, playful animations, colorful accents"
+function resolvePageId(raw: string): string {
+  const normalized = raw.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z-]/g, '');
+  if (PAGE_CONFIGS[normalized]) return normalized;
+  // Fuzzy match
+  for (const [key] of Object.entries(PAGE_CONFIGS)) {
+    if (normalized.includes(key) || key.includes(normalized)) return key;
   }
-};
-
-// =============================================================================
-// HELPER: Call Claude
-// =============================================================================
-
-async function callClaude(systemPrompt: string, userMessage: string, maxTokens: number = 8000): Promise<string> {
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: maxTokens,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userMessage }],
-  });
-
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type');
-  }
-  return content.text.trim();
+  // Keyword matching
+  if (normalized.includes('about')) return 'about';
+  if (normalized.includes('service')) return 'services';
+  if (normalized.includes('contact')) return 'contact';
+  if (normalized.includes('price') || normalized.includes('pricing')) return 'pricing';
+  if (normalized.includes('portfolio') || normalized.includes('work') || normalized.includes('project')) return 'portfolio';
+  if (normalized.includes('gallery') || normalized.includes('photo')) return 'gallery';
+  if (normalized.includes('blog') || normalized.includes('news') || normalized.includes('article')) return 'blog';
+  if (normalized.includes('faq') || normalized.includes('question')) return 'faq';
+  if (normalized.includes('testimonial') || normalized.includes('review')) return 'testimonials';
+  if (normalized.includes('menu') || normalized.includes('food')) return 'menu';
+  if (normalized.includes('book') || normalized.includes('appointment') || normalized.includes('reserv')) return 'booking';
+  if (normalized.includes('team') || normalized.includes('staff')) return 'team';
+  if (normalized.includes('before') || normalized.includes('after') || normalized.includes('transform')) return 'before-after';
+  if (normalized.includes('location') || normalized.includes('branch')) return 'locations';
+  if (normalized.includes('career') || normalized.includes('job') || normalized.includes('hiring')) return 'careers';
+  if (normalized.includes('shop') || normalized.includes('store') || normalized.includes('product')) return 'shop';
+  return normalized; // Return as-is, Claude will figure it out
 }
 
-// =============================================================================
-// SHARED CSS GENERATOR
-// =============================================================================
+// ============================================
+// VARIATION STYLE EXTRACTION
+// ============================================
 
-function generateSharedCSS(direction: typeof DESIGN_DIRECTIONS[string]): string {
-  return `
-@import url('${direction.fonts.import}');
-
-:root {
-  --primary: ${direction.colors.primary};
-  --primary-rgb: ${direction.colors.primaryRgb};
-  --secondary: ${direction.colors.secondary};
-  --secondary-rgb: ${direction.colors.secondaryRgb};
-  --accent: ${direction.colors.accent};
-  --bg-primary: ${direction.colors.bgPrimary};
-  --bg-secondary: ${direction.colors.bgSecondary};
-  --text-primary: ${direction.colors.textPrimary};
-  --text-secondary: ${direction.colors.textSecondary};
-  --border: ${direction.colors.border};
-  --font-display: '${direction.fonts.display}', serif;
-  --font-body: '${direction.fonts.body}', sans-serif;
+function detectVariationStyle(html: string): 'bold' | 'elegant' | 'dynamic' {
+  if (!html) return 'bold';
+  const lower = html.toLowerCase();
+  if (html.includes('data-variation="elegant"') || lower.includes('playfair') || lower.includes('#faf9f7') || lower.includes('#c8a97e')) return 'elegant';
+  if (html.includes('data-variation="dynamic"') || lower.includes('gradient') && lower.includes('backdrop-blur') || lower.includes('glassmorphism')) return 'dynamic';
+  return 'bold';
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body { 
-  font-family: var(--font-body); 
-  background: var(--bg-primary); 
-  color: var(--text-primary);
-  line-height: 1.6;
+function getStyleDirections(style: 'bold' | 'elegant' | 'dynamic'): string {
+  const styles = {
+    bold: `STYLE: Bold & Modern
+- Dark backgrounds (#0a0a0a, #111827), white text, high contrast
+- Large dramatic typography (48-72px hero), bold weights (700-900)
+- Bright accent CTAs (electric blue or hot pink)
+- Full-width sections, dramatic padding (120px)
+- Cards with dark backgrounds, hover lift animations
+- Uppercase CTA buttons, strong presence`,
+
+    elegant: `STYLE: Clean & Elegant
+- Light backgrounds (#faf9f7, white), dark text (#1a1a1a)
+- Serif headings (Playfair Display), clean body (Inter)
+- Warm neutral palette, subtle gold accent (#c8a97e)
+- Generous whitespace (100px+ padding)
+- Thin borders, soft shadows, rounded corners
+- Understated CTAs, sentence case, refined feel`,
+
+    dynamic: `STYLE: Dynamic & Vibrant
+- Gradient hero sections (purple-to-blue or pink-to-orange)
+- Modern sans-serif (Inter 800), gradient text effects
+- Vibrant colors, glassmorphism cards (backdrop-blur)
+- Colorful badges, gradient buttons (pill shape)
+- Floating glass navigation
+- Animated backgrounds, scale-up hover effects`,
+  };
+  return styles[style];
 }
 
-.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-section { padding: 100px 0; }
-
-/* Typography */
-h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); font-weight: 700; line-height: 1.2; }
-h1 { font-size: clamp(40px, 6vw, 64px); }
-h2 { font-size: clamp(32px, 4vw, 48px); }
-h3 { font-size: clamp(24px, 3vw, 32px); }
-p { color: var(--text-secondary); }
-
-/* Buttons */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 14px 28px; font-weight: 600; border-radius: 10px;
-  text-decoration: none; transition: all 0.3s ease; cursor: pointer;
-  font-family: var(--font-body); font-size: 15px; border: none;
-}
-.btn-primary {
-  background: var(--primary); color: white;
-  box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.3);
-}
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.4); }
-.btn-secondary {
-  background: transparent; color: var(--text-primary);
-  border: 2px solid var(--border);
-}
-.btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
-
-/* Cards */
-.card {
-  background: var(--bg-secondary); border-radius: 16px; padding: 32px;
-  border: 1px solid var(--border); transition: all 0.3s ease;
-}
-.card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); }
-
-/* Section Headers */
-.section-badge {
-  display: inline-block; padding: 6px 14px;
-  background: rgba(var(--primary-rgb), 0.1); color: var(--primary);
-  border-radius: 50px; font-size: 13px; font-weight: 600;
-  margin-bottom: 16px;
-}
-.section-title { margin-bottom: 16px; }
-.section-subtitle { font-size: 18px; max-width: 600px; margin-bottom: 48px; }
-
-/* Navigation */
-nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-  padding: 16px 0; transition: all 0.3s ease;
-}
-nav.scrolled {
-  background: rgba(var(--bg-primary), 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-}
-.nav-container {
-  max-width: 1200px; margin: 0 auto; padding: 0 24px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.nav-logo { font-family: var(--font-display); font-size: 24px; font-weight: 700; text-decoration: none; color: var(--text-primary); }
-.nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
-.nav-links a { text-decoration: none; color: var(--text-secondary); font-weight: 500; transition: color 0.3s; }
-.nav-links a:hover, .nav-links a.active { color: var(--primary); }
-
-/* Footer */
-footer { background: var(--bg-secondary); padding: 80px 0 40px; }
-.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 48px; }
-.footer-logo { font-family: var(--font-display); font-size: 24px; font-weight: 700; margin-bottom: 16px; }
-.footer-links { list-style: none; }
-.footer-links li { margin-bottom: 12px; }
-.footer-links a { color: var(--text-secondary); text-decoration: none; transition: color 0.3s; }
-.footer-links a:hover { color: var(--primary); }
-.footer-bottom { padding-top: 32px; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 14px; }
-
-/* Animations */
-.reveal { opacity: 0; transform: translateY(30px); transition: all 0.6s ease; }
-.reveal.active { opacity: 1; transform: translateY(0); }
-
-/* Responsive */
-@media (max-width: 968px) {
-  .footer-grid { grid-template-columns: 1fr 1fr; }
-  .nav-links { display: none; }
-}
-@media (max-width: 640px) {
-  section { padding: 60px 0; }
-  .footer-grid { grid-template-columns: 1fr; }
-}
-`;
-}
-
-// =============================================================================
-// SHARED JS GENERATOR
-// =============================================================================
-
-function generateSharedJS(): string {
-  return `
-document.addEventListener('DOMContentLoaded', () => {
-  // Scroll reveal
-  const reveals = document.querySelectorAll('.reveal');
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) entry.target.classList.add('active');
-    });
-  }, { threshold: 0.1 });
-  reveals.forEach(el => observer.observe(el));
-  
-  // Nav scroll
-  const nav = document.querySelector('nav');
-  if (nav) {
-    window.addEventListener('scroll', () => {
-      nav.classList.toggle('scrolled', window.scrollY > 50);
-    });
-  }
-  
-  // Smooth scroll
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function(e) {
-      e.preventDefault();
-      const target = document.querySelector(this.getAttribute('href'));
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  });
-  
-  // Counter animation
-  const counters = document.querySelectorAll('[data-count]');
-  const counterObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const el = entry.target;
-        const target = parseInt(el.dataset.count);
-        const duration = 2000;
-        const start = performance.now();
-        const animate = (now) => {
-          const progress = Math.min((now - start) / duration, 1);
-          el.textContent = Math.floor(progress * target);
-          if (progress < 1) requestAnimationFrame(animate);
-        };
-        requestAnimationFrame(animate);
-        counterObserver.unobserve(el);
-      }
-    });
-  }, { threshold: 0.5 });
-  counters.forEach(el => counterObserver.observe(el));
-});
-`;
-}
-
-// =============================================================================
+// ============================================
 // NAVIGATION GENERATOR
-// =============================================================================
+// ============================================
 
-function generateNavigation(project: any, pages: string[], currentPage: string): string {
-  const navLinks = pages.map(pageId => {
-    const config = PAGE_CONFIGS[pageId];
-    const isActive = pageId === currentPage;
-    const href = pageId === 'home' ? 'index.html' : `${pageId}.html`;
-    return `<li><a href="${href}" class="${isActive ? 'active' : ''}">${config?.name || pageId}</a></li>`;
+function generateNav(businessName: string, pages: string[], currentPage: string, style: 'bold' | 'elegant' | 'dynamic'): string {
+  const navLinks = pages.map(p => {
+    const config = PAGE_CONFIGS[resolvePageId(p)] || { name: p };
+    const isActive = resolvePageId(p) === currentPage;
+    const pageName = config.name || p;
+    const href = resolvePageId(p) === 'home' ? 'index.html' : `${resolvePageId(p)}.html`;
+    return `<a href="${href}" class="nav-link${isActive ? ' active' : ''}">${pageName}</a>`;
   }).join('\n              ');
 
-  return `
-  <nav>
-    <div class="nav-container">
-      <a href="index.html" class="nav-logo">${project.business_name}</a>
-      <ul class="nav-links">
-        ${navLinks}
-        <li><a href="contact.html" class="btn btn-primary">Get in Touch</a></li>
-      </ul>
+  if (style === 'bold') {
+    return `<nav style="position:sticky;top:0;z-index:100;background:#0a0a0a;padding:20px 0;border-bottom:1px solid rgba(255,255,255,0.1)">
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between">
+      <a href="index.html" style="color:white;font-size:22px;font-weight:800;text-decoration:none;letter-spacing:-0.5px">${businessName}</a>
+      <div style="display:flex;gap:32px;align-items:center">
+        ${navLinks.replace(/class="nav-link"/g, 'style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:14px;font-weight:500;transition:color 0.3s"').replace(/class="nav-link active"/g, 'style="color:white;text-decoration:none;font-size:14px;font-weight:600"')}
+      </div>
     </div>
   </nav>`;
-}
-
-// =============================================================================
-// FOOTER GENERATOR
-// =============================================================================
-
-function generateFooter(project: any, pages: string[]): string {
-  const quickLinks = pages.slice(0, 4).map(pageId => {
-    const config = PAGE_CONFIGS[pageId];
-    const href = pageId === 'home' ? 'index.html' : `${pageId}.html`;
-    return `<li><a href="${href}">${config?.name || pageId}</a></li>`;
-  }).join('\n            ');
-
-  return `
-  <footer>
-    <div class="container">
-      <div class="footer-grid">
-        <div>
-          <div class="footer-logo">${project.business_name}</div>
-          <p style="margin-bottom: 24px; max-width: 300px;">${project.description?.substring(0, 150) || 'Your trusted partner for quality services.'}</p>
-        </div>
-        <div>
-          <h4 style="margin-bottom: 20px; font-size: 16px;">Quick Links</h4>
-          <ul class="footer-links">
-            ${quickLinks}
-          </ul>
-        </div>
-        <div>
-          <h4 style="margin-bottom: 20px; font-size: 16px;">Services</h4>
-          <ul class="footer-links">
-            ${(project.primary_services || ['Service 1', 'Service 2', 'Service 3']).slice(0, 4).map((s: string) => `<li><a href="services.html">${s}</a></li>`).join('\n            ')}
-          </ul>
-        </div>
-        <div>
-          <h4 style="margin-bottom: 20px; font-size: 16px;">Contact</h4>
-          <ul class="footer-links">
-            <li>${project.contact_email || 'hello@example.com'}</li>
-            <li>${project.contact_phone || '(555) 123-4567'}</li>
-            <li>${project.address || ''}</li>
-          </ul>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>&copy; ${new Date().getFullYear()} ${project.business_name}. All rights reserved.</p>
+  } else if (style === 'elegant') {
+    return `<nav style="position:sticky;top:0;z-index:100;background:white;padding:24px 0;border-bottom:1px solid #e8e6e1">
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between">
+      <a href="index.html" style="color:#1a1a1a;font-family:'Playfair Display',serif;font-size:24px;font-weight:600;text-decoration:none">${businessName}</a>
+      <div style="display:flex;gap:36px;align-items:center">
+        ${navLinks.replace(/class="nav-link"/g, 'style="color:#5c5c5c;text-decoration:none;font-size:14px;font-weight:400;letter-spacing:0.5px;transition:color 0.3s"').replace(/class="nav-link active"/g, 'style="color:#1a1a1a;text-decoration:none;font-size:14px;font-weight:500;letter-spacing:0.5px"')}
       </div>
     </div>
-  </footer>`;
+  </nav>`;
+  } else {
+    return `<nav style="position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);padding:16px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between">
+      <a href="index.html" style="background:linear-gradient(135deg,#7c3aed,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;font-weight:800;text-decoration:none">${businessName}</a>
+      <div style="display:flex;gap:32px;align-items:center">
+        ${navLinks.replace(/class="nav-link"/g, 'style="color:#52525b;text-decoration:none;font-size:14px;font-weight:500;transition:color 0.3s"').replace(/class="nav-link active"/g, 'style="color:#7c3aed;text-decoration:none;font-size:14px;font-weight:600"')}
+      </div>
+    </div>
+  </nav>`;
+  }
 }
 
-// =============================================================================
-// PAGE-SPECIFIC PROMPTS
-// =============================================================================
+// ============================================
+// GENERATE A SINGLE PAGE
+// ============================================
 
-function getPagePrompt(pageId: string, project: any, direction: typeof DESIGN_DIRECTIONS[string], pages: string[]): string {
-  const nav = generateNavigation(project, pages, pageId);
-  const footer = generateFooter(project, pages);
-  
-  const baseContext = `
-## BUSINESS CONTEXT
-Name: ${project.business_name}
-Industry: ${project.industry}
-Description: ${project.description || 'A quality business'}
-Target Customer: ${project.target_customer || 'Not specified'}
-Unique Value: ${project.unique_value || 'Not specified'}
-Primary Services: ${project.primary_services?.join(', ') || 'Various services'}
-Brand Voice: ${project.brand_voice || 'professional'}
-CTA: ${project.call_to_action || 'Get Started'}
-
-## CONTACT INFO
-Email: ${project.contact_email || 'hello@example.com'}
-Phone: ${project.contact_phone || '(555) 123-4567'}
-Address: ${project.address || ''}
-
-## DESIGN: ${direction.name}
-${direction.characteristics}
-`;
-
-  const pagePrompts: Record<string, string> = {
-    home: `
-${baseContext}
-
-## PAGE: HOME (Landing Page)
-
-Create the main landing page with these sections:
-1. HERO - Powerful headline, subheadline, dual CTAs, stats, hero image
-2. SERVICES PREVIEW - 3-4 service cards with "View All Services" link
-3. ABOUT PREVIEW - Brief company intro with "Learn More" link
-4. TESTIMONIALS - 3 customer testimonials
-5. CTA SECTION - Final call-to-action before footer
-
-Make it impactful - this is the first page visitors see.
-`,
-
-    about: `
-${baseContext}
-
-## PAGE: ABOUT US
-
-Create an about page with these sections:
-1. ABOUT HERO - "About Us" headline with brief intro
-2. OUR STORY - Company history/founding story (2-3 paragraphs)
-3. MISSION & VALUES - Mission statement + 3-4 core values with icons
-4. TEAM - 3-4 team member cards (use https://i.pravatar.cc/200?img=X for photos)
-5. CTA - "Ready to work with us?" section
-
-Focus on building trust and showing the human side.
-`,
-
-    services: `
-${baseContext}
-
-## PAGE: SERVICES
-
-Create a services page with these sections:
-1. SERVICES HERO - "Our Services" headline
-2. SERVICES GRID - 4-6 detailed service cards, each with:
-   - Icon
-   - Service name
-   - Description (2-3 sentences)
-   - Key benefits (3 bullet points)
-   - "Learn More" or pricing indicator
-3. PROCESS - "How We Work" - 3-4 step process
-4. PRICING PREVIEW - Brief mention of pricing with link to contact
-5. CTA - "Ready to get started?" section
-
-Make each service sound valuable and differentiated.
-`,
-
-    contact: `
-${baseContext}
-
-## PAGE: CONTACT
-
-Create a contact page with these sections:
-1. CONTACT HERO - "Get in Touch" headline
-2. CONTACT GRID (2 columns):
-   - LEFT: Contact form (Name, Email, Phone, Service Interest dropdown, Message)
-   - RIGHT: Contact info cards (Email, Phone, Address, Business Hours)
-3. MAP PLACEHOLDER - Styled div for future map embed
-4. FAQ PREVIEW - 3-4 common questions with answers
-
-Make it easy to reach out. Form should look professional.
-`,
-
-    pricing: `
-${baseContext}
-
-## PAGE: PRICING
-
-Create a pricing page with these sections:
-1. PRICING HERO - "Simple, Transparent Pricing" headline
-2. PRICING CARDS - 3 tiers:
-   - Basic/Starter
-   - Professional (highlighted as popular)
-   - Enterprise/Premium
-   Each with: price, features list, CTA button
-3. FEATURES COMPARISON - Table comparing all plans
-4. FAQ - 4-5 pricing-related questions
-5. CTA - "Not sure which plan?" with contact link
-
-Make the professional plan look like the best value.
-`,
-
-    portfolio: `
-${baseContext}
-
-## PAGE: PORTFOLIO
-
-Create a portfolio page with these sections:
-1. PORTFOLIO HERO - "Our Work" headline
-2. FILTER TABS - Category filters (All, Category1, Category2, etc.)
-3. PORTFOLIO GRID - 6-9 project cards with:
-   - Image (use relevant Unsplash images)
-   - Project title
-   - Category tag
-   - Hover overlay with "View Project"
-4. CASE STUDY PREVIEW - Featured project with more detail
-5. CTA - "Have a project in mind?" section
-
-Make the work look impressive and professional.
-`,
-
-    blog: `
-${baseContext}
-
-## PAGE: BLOG
-
-Create a blog listing page with these sections:
-1. BLOG HERO - "Insights & Resources" headline
-2. FEATURED POST - Large featured article card
-3. POSTS GRID - 6 blog post cards with:
-   - Image placeholder
-   - Category tag
-   - Title
-   - Excerpt (2 lines)
-   - Date and read time
-4. CATEGORIES SIDEBAR - List of blog categories
-5. NEWSLETTER - Email signup section
-
-Create realistic placeholder content for a ${project.industry} business.
-`,
-
-    faq: `
-${baseContext}
-
-## PAGE: FAQ
-
-Create an FAQ page with these sections:
-1. FAQ HERO - "Frequently Asked Questions" headline
-2. FAQ CATEGORIES - 3-4 category tabs
-3. FAQ ACCORDION - 8-10 questions organized by category:
-   - About our services
-   - Pricing & payments
-   - Process & timeline
-   - Support & guarantees
-4. STILL HAVE QUESTIONS - Contact CTA section
-
-Write realistic FAQs for a ${project.industry} business.
-`,
-  };
-
-  return pagePrompts[pageId] || pagePrompts.home;
-}
-
-// =============================================================================
-// SINGLE PAGE GENERATOR
-// =============================================================================
-
-async function generateSinglePage(
+async function generatePage(
   project: any,
   pageId: string,
-  direction: typeof DESIGN_DIRECTIONS[string],
-  pages: string[],
-  sharedCSS: string
+  style: 'bold' | 'elegant' | 'dynamic',
+  allPages: string[],
+  referenceHtml: string | null,
 ): Promise<string> {
-  const nav = generateNavigation(project, pages, pageId);
-  const footer = generateFooter(project, pages);
-  const pagePrompt = getPagePrompt(pageId, project, direction, pages);
-  
-  const systemPrompt = `You are an elite frontend developer creating a professional multi-page website.
-Generate ONLY the HTML content between <body> tags (not including nav and footer - those are provided).
-Use the CSS classes and variables defined in the shared stylesheet.
-Add class="reveal" to sections for scroll animation.
-Output clean, semantic HTML only - no explanations.`;
+  const apiKey = process.env.ANTHROPIC_API_KEY!;
+  const config = PAGE_CONFIGS[pageId] || { name: pageId, desc: 'Custom page', sections: [] };
+  const businessName = project.business_name || 'Business';
+  const industry = project.industry || 'Professional Services';
+  const description = project.description || project.business_description || '';
+  const needs = project.metadata?.client_needs;
+  const features = needs?.features || [];
 
-  const userPrompt = `${pagePrompt}
+  // Extract CSS from reference HTML if available
+  let referenceCSS = '';
+  if (referenceHtml) {
+    const styleMatch = referenceHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+    if (styleMatch) referenceCSS = styleMatch[1].substring(0, 3000); // First 3KB of CSS
+  }
 
-## NAVIGATION (already created, for reference):
+  const nav = generateNav(businessName, allPages, pageId, style);
+
+  const systemPrompt = `You are an elite web designer creating a ${config.name} page for a multi-page website.
+The design MUST match the overall website style perfectly — same colors, fonts, spacing, and vibe.
+Output ONLY complete HTML starting with <!DOCTYPE html>. No markdown, no backticks.`;
+
+  const userPrompt = `Create the "${config.name}" page for:
+
+BUSINESS: ${businessName}
+INDUSTRY: ${industry}
+DESCRIPTION: ${description}
+${features.length > 0 ? `FEATURES: ${features.join(', ')}` : ''}
+
+PAGE PURPOSE: ${config.desc}
+SECTIONS TO INCLUDE: ${config.sections.join(', ')}
+
+${getStyleDirections(style)}
+
+NAVIGATION TO USE (copy exactly):
 ${nav}
 
-## FOOTER (already created, for reference):
-${footer}
+${referenceCSS ? `REFERENCE CSS (use these same styles/colors/fonts):
+${referenceCSS}` : ''}
 
-Generate the page content (everything between nav and footer).
-Use existing CSS classes: .container, .section-badge, .section-title, .btn, .btn-primary, .card, etc.
-Add class="reveal" to each section.
-DO NOT include <!DOCTYPE>, <html>, <head>, <body>, <nav>, or <footer> tags.
-Output ONLY the main content sections.`;
+OTHER PAGES IN THIS SITE: ${allPages.map(p => PAGE_CONFIGS[resolvePageId(p)]?.name || p).join(', ')}
+Each nav link should point to: [pagename].html (home = index.html)
 
-  const content = await callClaude(systemPrompt, userPrompt, 6000);
-  
-  // Clean up content
-  let cleanContent = content
-    .replace(/^```html?\n?/i, '')
-    .replace(/\n?```$/i, '')
-    .trim();
+REQUIREMENTS:
+1. Output ONLY complete HTML starting with <!DOCTYPE html>
+2. ALL CSS in a <style> tag — no external stylesheets except Google Fonts
+3. Fully responsive (mobile-first media queries)
+4. Include scroll-reveal animations (IntersectionObserver)
+5. Must feel like the SAME website as the home page — consistent design system
+6. Use real Unsplash images relevant to ${industry}
+7. Include realistic placeholder copy specific to this ${industry} business
+8. Include mobile hamburger menu
+9. Include a matching footer with columns, links, and copyright
+10. Sections should have proper padding (80-120px)
 
-  // Build full HTML page
-  const fullPage = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${PAGE_CONFIGS[pageId]?.name || 'Page'} | ${project.business_name}</title>
-  <style>${sharedCSS}</style>
-</head>
-<body>
-  ${nav}
-  
-  <main>
-    ${cleanContent}
-  </main>
-  
-  ${footer}
-  
-  <script>${generateSharedJS()}</script>
-</body>
-</html>`;
+Output ONLY the complete HTML.`;
 
-  return fullPage;
-}
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 12000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
 
-// =============================================================================
-// MAIN: Generate Multi-Page Website
-// =============================================================================
-
-async function generateMultiPageWebsite(project: any, requestedPages: string[]): Promise<Record<string, string>> {
-  const directionKey = project.design_direction || 'bold_modern';
-  const direction = DESIGN_DIRECTIONS[directionKey] || DESIGN_DIRECTIONS.bold_modern;
-  
-  // Always include home
-  const pages = ['home', ...requestedPages.filter(p => p !== 'home')];
-  
-  // Generate shared CSS
-  const sharedCSS = generateSharedCSS(direction);
-  
-  // Generate each page
-  const generatedPages: Record<string, string> = {};
-  
-  for (const pageId of pages) {
-    console.log(`📄 Generating ${pageId} page...`);
-    try {
-      const html = await generateSinglePage(project, pageId, direction, pages, sharedCSS);
-      generatedPages[pageId] = html;
-    } catch (error) {
-      console.error(`Error generating ${pageId}:`, error);
-      // Continue with other pages
-    }
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Claude API ${response.status}: ${err.substring(0, 200)}`);
   }
-  
-  return generatedPages;
+
+  const data = await response.json();
+  let html = data.content[0].text.trim();
+  html = html.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '');
+  const di = html.toLowerCase().indexOf('<!doctype');
+  if (di > 0) html = html.substring(di);
+
+  return html;
 }
 
-// =============================================================================
-// API HANDLERS
-// =============================================================================
+// ============================================
+// MAIN HANDLER
+// ============================================
 
 export async function POST(request: NextRequest) {
-  // Auth: only admins can trigger generation
-  // Auth handled by admin layout
+  const startTime = Date.now();
+  const debugLog: string[] = [];
 
   try {
-    const body = await request.json();
-    const { projectId, pages } = body;
+    const { projectId, pages: requestedPages } = await request.json();
 
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
     }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json({ error: 'ANTHROPIC_API_KEY not configured' }, { status: 500 });
+    }
 
-    // Fetch project
-    const { data: project, error: fetchError } = await supabase
+    // Load project
+    const { data: project, error: dbError } = await supabase
       .from('projects')
       .select('*')
       .eq('id', projectId)
       .single();
 
-    if (fetchError || !project) {
+    if (dbError || !project) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    // Check plan limits
-    const plan = project.plan || 'starter';
-    const maxPages = PLAN_PAGE_LIMITS[plan] || 1;
-    const requestedPages = pages || ['home'];
-    
-    if (requestedPages.length > maxPages) {
-      return NextResponse.json({ 
-        error: `Your ${plan} plan allows ${maxPages} page(s). Upgrade to generate more.`,
-        maxPages,
-        requestedPages: requestedPages.length
-      }, { status: 403 });
+    debugLog.push(`📋 Project: ${project.business_name}`);
+
+    // Determine pages to generate
+    let pages: string[] = requestedPages || project.metadata?.client_needs?.pages || ['Home'];
+    // Ensure Home is first
+    const homeVariants = ['home', 'Home', 'Homepage', 'homepage'];
+    if (!pages.some(p => homeVariants.includes(p))) {
+      pages = ['Home', ...pages];
+    }
+    debugLog.push(`📄 Pages to generate: ${pages.join(', ')}`);
+
+    // Determine style from selected variation or reference HTML
+    const selectedVariation = project.metadata?.selected_variation;
+    let style: 'bold' | 'elegant' | 'dynamic' = 'bold';
+    if (selectedVariation && ['bold', 'elegant', 'dynamic'].includes(selectedVariation)) {
+      style = selectedVariation as any;
+    } else if (project.generated_html) {
+      style = detectVariationStyle(project.generated_html);
+    }
+    debugLog.push(`🎨 Style: ${style} (from ${selectedVariation ? 'selected variation' : 'detection'})`);
+
+    // Get reference HTML (the selected variation)
+    let referenceHtml: string | null = null;
+    if (project.metadata?.variations?.[style]) {
+      referenceHtml = project.metadata.variations[style];
+    } else if (project.generated_html) {
+      referenceHtml = project.generated_html;
     }
 
     // Update status
+    await supabase.from('projects').update({ status: 'building' }).eq('id', projectId);
+
+    // Generate pages — 2 at a time (parallel but throttled)
+    const generatedPages: Record<string, string> = {};
+    const resolvedPages = pages.map(p => resolvePageId(p));
+    const batchSize = 2;
+
+    for (let i = 0; i < resolvedPages.length; i += batchSize) {
+      const batch = resolvedPages.slice(i, i + batchSize);
+      debugLog.push(`⏳ Generating batch ${Math.floor(i / batchSize) + 1}: ${batch.join(', ')}`);
+
+      const results = await Promise.allSettled(
+        batch.map(pageId => generatePage(project, pageId, style, pages, referenceHtml))
+      );
+
+      results.forEach((result, idx) => {
+        const pageId = batch[idx];
+        if (result.status === 'fulfilled') {
+          generatedPages[pageId] = result.value;
+          debugLog.push(`✅ ${pageId}: ${(result.value.length / 1024).toFixed(1)}KB`);
+          // Use first generated page as reference for consistency
+          if (!referenceHtml) referenceHtml = result.value;
+        } else {
+          debugLog.push(`❌ ${pageId} failed: ${result.reason?.message || 'Unknown'}`);
+        }
+      });
+    }
+
+    if (Object.keys(generatedPages).length === 0) {
+      await supabase.from('projects').update({ status: 'paid' }).eq('id', projectId);
+      return NextResponse.json({ error: 'All pages failed to generate', debugLog }, { status: 500 });
+    }
+
+    // Initialize page_status for review
+    const pageStatus: Record<string, string> = {};
+    Object.keys(generatedPages).forEach(p => { pageStatus[p] = 'ready'; });
+
+    // Save to Supabase
+    const existingMetadata = project.metadata || {};
     await supabase
       .from('projects')
-      .update({ status: 'GENERATING' })
-      .eq('id', projectId);
-
-    console.log(`🚀 Generating ${requestedPages.length} pages for ${project.business_name}...`);
-
-    // Generate pages
-    const generatedPages = await generateMultiPageWebsite(project, requestedPages);
-
-    // Save to database
-    await supabase
-      .from('projects')
-      .update({ 
-        generated_html: generatedPages.home, // Keep home as primary
-        generated_pages: generatedPages,     // Store all pages
-        status: 'PREVIEW_READY'
+      .update({
+        generated_pages: generatedPages,
+        generated_html: generatedPages.home || Object.values(generatedPages)[0],
+        status: 'review',
+        metadata: {
+          ...existingMetadata,
+          page_status: pageStatus,
+        },
+        updated_at: new Date().toISOString(),
       })
       .eq('id', projectId);
 
-    console.log(`✅ Generated ${Object.keys(generatedPages).length} pages successfully`);
+    debugLog.push(`💾 Saved ${Object.keys(generatedPages).length} pages | Status → review`);
+    debugLog.push(`⏱️ Total: ${Date.now() - startTime}ms`);
 
     return NextResponse.json({
       success: true,
       pages: Object.keys(generatedPages),
-      message: `Generated ${Object.keys(generatedPages).length} pages successfully`
+      sizes: Object.fromEntries(
+        Object.entries(generatedPages).map(([k, v]) => [k, `${(v.length / 1024).toFixed(1)}KB`])
+      ),
+      style,
+      debugLog,
+      timing: Date.now() - startTime,
     });
 
   } catch (error: any) {
-    console.error('❌ Multi-page generation error:', error);
-    
-    return NextResponse.json(
-      { error: 'Generation failed', details: error.message },
-      { status: 500 }
-    );
+    console.error('[Multi-page] Error:', error);
+    return NextResponse.json({ error: error.message, debugLog }, { status: 500 });
   }
 }
 
 export async function GET() {
   return NextResponse.json({
     availablePages: Object.entries(PAGE_CONFIGS).map(([id, config]) => ({
-      id,
-      name: config.name,
-      description: config.description,
-      icon: config.icon,
-      sections: config.sections,
+      id, name: config.name, description: config.desc, sections: config.sections,
     })),
-    planLimits: PLAN_PAGE_LIMITS,
   });
 }
