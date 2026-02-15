@@ -81,7 +81,15 @@ function LandingPage() {
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
     setSubmitting(true);
-    try { const res = await fetch('/api/leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lead) }); if (!res.ok) throw new Error('Failed'); } catch (e) { console.error('Lead submission error:', e); }
+    try {
+      const res = await fetch('/api/leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lead) });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      if (data.projectId) {
+        router.push(`/needs/${data.projectId}`);
+        return;
+      }
+    } catch (e) { console.error('Lead submission error:', e); }
     setSubmitting(false); setStep(3); window.scrollTo(0, 0);
   };
 
