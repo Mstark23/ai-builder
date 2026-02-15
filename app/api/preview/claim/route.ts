@@ -13,12 +13,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    // Link the project to the customer
+    // Link the project to the authenticated customer
+    // Note: leads API may have already set customer_id to a non-auth record,
+    // so we update it to the real auth user ID
     const { error } = await supabaseAdmin
       .from('projects')
       .update({ customer_id })
-      .eq('id', project_id)
-      .is('customer_id', null); // Only claim if not already claimed
+      .eq('id', project_id);
 
     if (error) {
       return NextResponse.json({ error: 'Failed to claim project' }, { status: 500 });
