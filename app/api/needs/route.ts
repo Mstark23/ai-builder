@@ -1,18 +1,17 @@
 export const dynamic = "force-dynamic";
 
 // POST /api/needs
-// Saves client's needs form submission (pages, features, addons, timeline, budget, notes)
+// Saves client's needs + calculates suggested price for admin review
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(request: NextRequest) {
   try {
-    const { projectId, pages, features, addons, timeline, budget, notes } = await request.json();
+    const { projectId, pages, features, addons, timeline, notes, suggestedPrice } = await request.json();
 
     if (!projectId) {
       return NextResponse.json({ error: 'Missing projectId' }, { status: 400 });
     }
-
     if (!pages || pages.length === 0) {
       return NextResponse.json({ error: 'At least one page is required' }, { status: 400 });
     }
@@ -34,10 +33,11 @@ export async function POST(request: NextRequest) {
         features: features || [],
         addons: addons || [],
         timeline: timeline || '',
-        budget: budget || '',
         notes: notes || '',
         submitted_at: new Date().toISOString(),
       },
+      // Suggested price is a FLOOR for admin — admin sets the real custom_price
+      suggested_price: suggestedPrice || 0,
     };
 
     const { error: updateErr } = await supabaseAdmin
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       .update({
         metadata: updatedMetadata,
         status: 'needs_submitted',
+        // NOTE: custom_price is NOT set here. Admin sets it from the dashboard.
       })
       .eq('id', projectId);
 
