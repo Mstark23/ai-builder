@@ -20,8 +20,7 @@ export async function middleware(request: NextRequest) {
     '/about',
     '/terms',
     '/privacy',
-    '/admin/login',
-    '/admin',           // ← admin auth handled by (protected)/layout.tsx client-side
+    '/admin',
     '/api/login',
     '/api/leads',
     '/api/square/webhook',
@@ -43,15 +42,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // FIX: Collect all cookie operations, apply to ONE response
-  //
-  // OLD BUG: set() created a new NextResponse each call, which
-  // destroyed cookies from previous set() calls. Supabase splits
-  // auth tokens into multiple chunks (token.0, token.1, etc).
-  // Only the last chunk survived → broken session every time.
-  // ═══════════════════════════════════════════════════════════════
-  const cookiesToSet: { name: string; value: string; options: CookieOptions }[] = [];
+  // Create Supabase client with cookie handling
+  let response = NextResponse.next({ request: { headers: request.headers } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -63,24 +55,20 @@ export async function middleware(request: NextRequest) {
         },
         set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({ name, value, ...options });
-          cookiesToSet.push({ name, value, options });
+          response = NextResponse.next({ request: { headers: request.headers } });
+          response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
           request.cookies.set({ name, value: '', ...options });
-          cookiesToSet.push({ name, value: '', options });
+          response = NextResponse.next({ request: { headers: request.headers } });
+          response.cookies.set({ name, value: '', ...options });
         },
       },
     }
   );
 
-  // Refresh session (may trigger multiple set() calls for token chunks)
+  // Refresh session
   const { data: { user } } = await supabase.auth.getUser();
-
-  // Build ONE response with ALL cookies
-  let response = NextResponse.next({ request: { headers: request.headers } });
-  cookiesToSet.forEach(({ name, value, options }) => {
-    response.cookies.set({ name, value, ...options });
-  });
 
   // Portal routes: require logged-in user
   if (pathname.startsWith('/portal')) {
