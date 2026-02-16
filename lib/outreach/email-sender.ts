@@ -61,20 +61,12 @@ async function sendResend(to: string, from: string, subject: string, html: strin
   }
 }
 
+// SES UPGRADE: When ready, run `npm install @aws-sdk/client-sesv2`
+// then set OUTREACH_USE_SES=true in .env and uncomment the code below.
+// For now this is a stub — you don't need SES yet.
 async function sendSES(to: string, from: string, subject: string, html: string, text: string, _emailId: string) {
-  try {
-    const { SESv2Client, SendEmailCommand } = await import('@aws-sdk/client-sesv2');
-    const ses = new SESv2Client({ region: process.env.AWS_SES_REGION || 'us-east-1' });
-    await ses.send(new SendEmailCommand({
-      FromEmailAddress: from,
-      ReplyToAddresses: [REPLY_TO],
-      Destination: { ToAddresses: [to] },
-      Content: { Simple: { Subject: { Data: subject }, Body: { Html: { Data: html }, Text: { Data: text } } } },
-    }));
-    return { ok: true };
-  } catch (e: any) {
-    return { ok: false, error: e.message };
-  }
+  console.error('[Email] SES not configured yet. Install @aws-sdk/client-sesv2 and update this function.');
+  return { ok: false, error: 'SES not configured — using Resend instead' };
 }
 
 export async function sendDueEmails(batchSize: number = 30) {
