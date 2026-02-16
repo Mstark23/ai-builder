@@ -33,9 +33,19 @@ export default function AdminLoginPage() {
       }
 
       if (data.user) {
-          // Don't check admin_users here — the (protected)/layout.tsx handles that
-          // Just redirect, layout will bounce non-admins back to login
+        const { data: adminUser } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
+
+        if (adminUser) {
           window.location.href = '/admin/dashboard';
+        } else {
+          await supabase.auth.signOut();
+          setError('You do not have admin access.');
+          setLoading(false);
+        }
       }
     } catch (err) {
       console.error('Login error:', err);
