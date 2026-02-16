@@ -23,6 +23,7 @@ export async function middleware(request: NextRequest) {
     '/api/track',
     '/api/preview',     // ← preview API is public
     '/api/needs',       // ← needs API is public
+    '/admin/login',     // ← admin login must be public
   ];
 
   const isPublic =
