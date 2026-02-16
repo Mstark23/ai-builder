@@ -114,11 +114,17 @@ export async function sendDueSms(batchSize: number = 30) {
 
       // Increment phone counter
       if (sender.id !== 'env') {
-        await supabaseAdmin.rpc('increment_phone_sent', { phone_id: sender.id }).catch(() => {
-          supabaseAdmin.from('outreach_phones')
-            .update({ daily_sent: (due as any).daily_sent + 1 })
-            .eq('id', sender.id);
-        });
+        const { data: phone } = await supabaseAdmin
+          .from('outreach_phones')
+          .select('daily_sent, total_sent')
+          .eq('id', sender.id)
+          .single();
+        if (phone) {
+          await supabaseAdmin.from('outreach_phones').update({
+            daily_sent: (phone.daily_sent || 0) + 1,
+            total_sent: (phone.total_sent || 0) + 1,
+          }).eq('id', sender.id);
+        }
       }
 
       sent++;
