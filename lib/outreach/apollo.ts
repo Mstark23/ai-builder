@@ -81,8 +81,15 @@ export async function extractLeads(params: {
         body: JSON.stringify(body),
       });
 
-      if (!res.ok) { errors++; break; }
+      console.log(`[Apollo] Request to api.apollo.io, status: ${res.status}`);
+
+      if (!res.ok) {
+        const errBody = await res.text();
+        console.error(`[Apollo] HTTP ${res.status}: ${errBody}`);
+        errors++; break;
+      }
       const data = await res.json();
+      console.log(`[Apollo] Page ${page}: ${data.people?.length || 0} people found`);
       if (!data.people?.length) break;
 
       for (const p of data.people) {
