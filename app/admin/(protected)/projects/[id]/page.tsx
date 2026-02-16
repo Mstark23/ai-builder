@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import LeadTimer from '@/components/LeadTimer';
 
 // =============================================================================
 // TYPES
@@ -1546,6 +1547,11 @@ export default function ProjectDetailPage() {
                 <span className="text-sm text-white/80">{formatDate(project.created_at)}</span>
               </div>
             </div>
+
+            {/* 1-Hour Preview Timer */}
+            {(project.status === 'pending' || project.status === 'claimed' || project.status === 'generating' || project.status === 'preview') && (
+              <LeadTimer createdAt={project.created_at} previewSentAt={project.metadata?.preview_sent_at} />
+            )}
 
             {/* Platform & Credentials */}
             <div className="bg-white rounded-2xl border border-neutral-200 p-6">
