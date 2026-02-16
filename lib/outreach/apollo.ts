@@ -65,19 +65,19 @@ export async function extractLeads(params: {
   while (imported < limit) {
     try {
       const body: Record<string, any> = {
+        api_key: APOLLO_KEY,
         page,
         per_page: Math.min(100, limit - imported),
         person_titles: ['owner', 'founder', 'ceo', 'president', 'proprietor', 'managing director', 'co-founder'],
-        employee_ranges: ['1,10', '11,50'],
-        contact_email_status: ['verified'],
+        organization_num_employees_ranges: ['1,10', '11,50'],
       };
       if (city) body.organization_locations = [city];
       if (country) body.person_locations = [country];
       if (industry) body.q_organization_keyword_tags = [industry];
 
-      const res = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+      const res = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Api-Key': APOLLO_KEY },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
 
