@@ -30,24 +30,28 @@ export default function AdminLoginPage() {
       });
 
       if (authError) {
+        console.error('Auth error:', authError.message, authError.status);
         setError('Invalid email or password');
         return;
       }
 
       if (data.user) {
+        console.log('Auth success, user:', data.user.id);
         // Check if user is admin
-        const { data: adminUser } = await supabase
+        const { data: adminUser, error: adminErr } = await supabase
           .from('admin_users')
           .select('*')
           .eq('user_id', data.user.id)
           .single();
 
+        console.log('Admin check:', { adminUser, adminErr });
+
         if (adminUser) {
-          // Supabase session is set automatically via cookies
-          // Middleware will verify on subsequent requests
+          console.log('Admin verified, redirecting...');
           router.push('/admin/dashboard');
         } else {
           // User exists but is not an admin
+          console.error('Not an admin user');
           await supabase.auth.signOut();
           setError('You do not have admin access.');
         }
