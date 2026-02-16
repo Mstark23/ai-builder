@@ -22,7 +22,9 @@ export interface LeadInfo {
 function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 
 // Full URL — no shorteners (carriers block them)
-function previewUrl(): string { return `${APP_URL}/free-preview`; }
+// Links to main landing page where they sign up FIRST
+// No AI tokens burned until they give us their info
+function previewUrl(): string { return APP_URL; }
 
 // Click-tracked URL for emails
 function trackedUrl(emailId: string): string {
@@ -55,9 +57,9 @@ export function sms1(lead: LeadInfo): string {
     `and it got a ${lead.site_score}/100 on mobile`,
   ];
   const closes = [
-    `Want to see what a faster version looks like? Free preview`,
-    `Want to see what a modern version could look like? Free, 30 sec`,
-    `Curious what a better version would look like? Free preview here`,
+    `We'll build you a better one for free — just answer 3 quick questions`,
+    `Let us build you a new one for free. Takes 30 seconds`,
+    `We can build you a better version for free. 3 questions, that's it`,
   ];
 
   return `${pick(greetings)}, ${pick(intros)}${pick(scores)}. ${pick(closes)}: ${previewUrl()}\n\nReply STOP to opt out`;
@@ -81,17 +83,17 @@ export function sms2(lead: LeadInfo): string {
     `${lead.company_name}'s site is in that range`,
   ];
 
-  return `${pick(openers)} — ${pick(stats)}. ${pick(refs)}. We build fast ${lead.industry.toLowerCase()} websites. Free preview: ${previewUrl()}\n\nReply STOP to opt out`;
+  return `${pick(openers)} — ${pick(stats)}. ${pick(refs)}. We'll build you a new ${lead.industry.toLowerCase()} website for free — 3 questions, 30 seconds: ${previewUrl()}\n\nReply STOP to opt out`;
 }
 
 // Step 3 (Day 5): Social Proof
 export function sms3(lead: LeadInfo): string {
-  return `${pick([`${lead.first_name}`, `Hey ${lead.first_name}`])} — the top ${lead.industry.toLowerCase()} websites ${pick(['load in under 2 seconds', 'are built mobile-first', 'convert 3x more visitors'])}. ${pick(["Want to see how that'd look for", "Curious what that means for"])} ${lead.company_name}? ${previewUrl()}\n\nReply STOP to opt out`;
+  return `${pick([`${lead.first_name}`, `Hey ${lead.first_name}`])} — the top ${lead.industry.toLowerCase()} websites ${pick(['load in under 2 seconds', 'are built mobile-first', 'convert 3x more visitors'])}. We'll build ${lead.company_name} one like that for free. ${pick(['Answer 3 quick questions', 'Takes 30 seconds'])}: ${previewUrl()}\n\nReply STOP to opt out`;
 }
 
 // Step 4 (Day 8): Breakup
 export function sms4(lead: LeadInfo): string {
-  return `${pick(['Last text', 'Final message'])} ${lead.first_name} — ${pick(["I know you're busy", "not trying to bug you"])}. If a new website for ${lead.company_name} isn't a priority right now, totally get it. Offer stands if you change your mind: ${previewUrl()}\n\nReply STOP to opt out`;
+  return `${pick(['Last text', 'Final message'])} ${lead.first_name} — ${pick(["I know you're busy", "not trying to bug you"])}. If a new website for ${lead.company_name} isn't a priority right now, totally get it. Free offer stands: ${previewUrl()}\n\nReply STOP to opt out`;
 }
 
 // ═══════════════════════════════════════
@@ -108,7 +110,7 @@ export function email1(lead: LeadInfo, id: string) {
   const subjects = [
     `${lead.first_name}, I checked ${lead.company_name}'s website`,
     `${lead.company_name}'s website — quick heads up`,
-    `Your website might be losing you customers, ${lead.first_name}`,
+    `Free website for ${lead.company_name}, ${lead.first_name}`,
   ];
   const issueHtml = lead.site_issues.length
     ? `<p>Issues found:</p><ul style="color:#555;">${lead.site_issues.slice(0, 3).map(i => `<li>${i}</li>`).join('')}</ul>` : '';
@@ -120,11 +122,11 @@ export function email1(lead: LeadInfo, id: string) {
       <p>I ran <strong>${lead.company_name}</strong>'s website through Google's speed test. It scored <strong style="color:#dc2626;">${lead.site_score}/100</strong> on mobile.</p>
       <p>Anything below 50 means over half your visitors leave before the page even loads.</p>
       ${issueHtml}
-      <p>Want to see what a modern ${lead.industry.toLowerCase()} website could look like for ${lead.company_name}? Free preview, takes 30 seconds:</p>
-      <p style="margin:20px 0;"><a href="${link}" style="background:#000;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">Get Your Free Preview →</a></p>
-      <p>No cost, no commitment.</p>
+      <p>We'll build ${lead.company_name} a modern ${lead.industry.toLowerCase()} website for free — just answer 3 quick questions:</p>
+      <p style="margin:20px 0;"><a href="${link}" style="background:#000;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">Get Your Free Website →</a></p>
+      <p>No cost, no commitment. We build it, you decide if you want it.</p>
     `, id),
-    text: `Hey ${lead.first_name},\n\nI ran ${lead.company_name}'s website through Google's speed test — ${lead.site_score}/100 on mobile. Anything below 50 means visitors leave.\n\nFree preview: ${previewUrl()}\n\nJhordan\nVektorLabs`,
+    text: `Hey ${lead.first_name},\n\nI ran ${lead.company_name}'s website through Google's speed test — ${lead.site_score}/100 on mobile. Anything below 50 means visitors leave.\n\nWe'll build you a new one for free. 3 questions, 30 seconds: ${previewUrl()}\n\nJhordan\nVektorLabs`,
   };
 }
 
@@ -136,10 +138,10 @@ export function email2(lead: LeadInfo, id: string) {
       <p>Hey ${lead.first_name},</p>
       <p>Quick follow-up — <strong>53% of mobile visitors leave if a site takes more than 3 seconds to load.</strong></p>
       <p>${lead.company_name}'s site is slower than that. That's customers going to competitors.</p>
-      <p>We build ${lead.industry.toLowerCase()} websites that convert. Free preview:</p>
-      <p style="margin:20px 0;"><a href="${link}" style="background:#000;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">See What's Possible →</a></p>
+      <p>We build ${lead.industry.toLowerCase()} websites that convert — and we'll do it for free. 3 questions, 30 seconds:</p>
+      <p style="margin:20px 0;"><a href="${link}" style="background:#000;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">Build My Free Website →</a></p>
     `, id),
-    text: `Hey ${lead.first_name},\n\n53% of mobile visitors leave slow sites. ${lead.company_name}'s is slower than the threshold.\n\nFree preview: ${previewUrl()}\n\nJhordan\nVektorLabs`,
+    text: `Hey ${lead.first_name},\n\n53% of mobile visitors leave slow sites. ${lead.company_name}'s is slower than the threshold.\n\nWe'll build you a better one for free: ${previewUrl()}\n\nJhordan\nVektorLabs`,
   };
 }
 
@@ -151,10 +153,10 @@ export function email3(lead: LeadInfo, id: string) {
       <p>${lead.first_name},</p>
       <p>Top ${lead.industry.toLowerCase()} businesses getting customers online:</p>
       <ol style="color:#333;"><li style="margin:6px 0;"><strong>Under 2s load time</strong></li><li style="margin:6px 0;"><strong>Mobile-first design</strong></li><li style="margin:6px 0;"><strong>Clear call to action</strong></li></ol>
-      <p>Want to see it applied to ${lead.company_name}?</p>
-      <p style="margin:20px 0;"><a href="${link}" style="background:#000;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">Free Preview →</a></p>
+      <p>We'll build this for ${lead.company_name} — free. 3 questions:</p>
+      <p style="margin:20px 0;"><a href="${link}" style="background:#000;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">Get My Free Website →</a></p>
     `, id),
-    text: `${lead.first_name},\n\nTop ${lead.industry.toLowerCase()} sites: fast, mobile-first, clear CTAs.\n\nSee it for ${lead.company_name}: ${previewUrl()}\n\nJhordan\nVektorLabs`,
+    text: `${lead.first_name},\n\nTop ${lead.industry.toLowerCase()} sites: fast, mobile-first, clear CTAs.\n\nWe'll build this for ${lead.company_name} for free: ${previewUrl()}\n\nJhordan\nVektorLabs`,
   };
 }
 
@@ -165,10 +167,10 @@ export function email4(lead: LeadInfo, id: string) {
     html: emailWrap(`
       <p>Hey ${lead.first_name},</p>
       <p>Last email. If a website upgrade isn't a priority right now, totally fine.</p>
-      <p>But if you've been meaning to look into it — free preview, 30 seconds:</p>
-      <p style="margin:20px 0;"><a href="${link}" style="background:#000;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">Get Free Preview →</a></p>
+      <p>But if you've been meaning to look into it — we'll build it for free. 3 questions, 30 seconds:</p>
+      <p style="margin:20px 0;"><a href="${link}" style="background:#000;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">Get Free Website →</a></p>
       <p>Wishing you the best with ${lead.company_name}.</p>
     `, id, true),
-    text: `Hey ${lead.first_name},\n\nLast email. Free preview if you want it: ${previewUrl()}\n\nBest with ${lead.company_name}.\n\nJhordan\nVektorLabs`,
+    text: `Hey ${lead.first_name},\n\nLast email. We'll build you a free website if you want it: ${previewUrl()}\n\nBest with ${lead.company_name}.\n\nJhordan\nVektorLabs`,
   };
 }
