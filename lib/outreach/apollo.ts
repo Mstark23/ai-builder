@@ -74,7 +74,7 @@ export async function extractLeads(params: {
       if (country) body.person_locations = [country];
       if (industry) body.q_organization_keyword_tags = [industry];
 
-      const res = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+      const res = await fetch('https://api.apollo.io/api/v1/people/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Api-Key': APOLLO_KEY },
         body: JSON.stringify(body),
