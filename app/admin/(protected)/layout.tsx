@@ -139,7 +139,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .from('admin_users')
           .select('id')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (!adminUser) {
           router.push('/admin/login');
