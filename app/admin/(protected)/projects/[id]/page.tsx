@@ -63,6 +63,7 @@ type Project = {
     uploads?: Record<string, boolean | number>;
     invoice_sent_at?: string;
     invoice_amount?: number;
+    preview_sent_at?: string;
   } | null;
   customers?: { id: string; name: string; email: string; phone: string | null } | null;
 };
