@@ -21,6 +21,7 @@ export async function middleware(request: NextRequest) {
     '/terms',
     '/privacy',
     '/admin/login',
+    '/admin',           // ← admin auth handled by (protected)/layout.tsx client-side
     '/api/login',
     '/api/leads',
     '/api/square/webhook',
@@ -88,25 +89,6 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
-    return response;
-  }
-
-  // Admin routes: require session + admin check
-  if (pathname.startsWith('/admin')) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
-
-    const { data: adminUser } = await supabase
-      .from('admin_users')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!adminUser) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
-
     return response;
   }
 
