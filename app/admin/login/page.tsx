@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
 
         if (adminUser) {
           console.log('Admin verified, redirecting...');
-          router.push('/admin/dashboard');
+          window.location.href = '/admin/dashboard';
         } else {
           // User exists but is not an admin
           console.error('Not an admin user');
