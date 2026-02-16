@@ -65,7 +65,6 @@ export async function extractLeads(params: {
   while (imported < limit) {
     try {
       const body: Record<string, any> = {
-        api_key: APOLLO_KEY,
         page,
         per_page: Math.min(100, limit - imported),
         person_titles: ['owner', 'founder', 'ceo', 'president', 'proprietor', 'managing director', 'co-founder'],
@@ -77,7 +76,7 @@ export async function extractLeads(params: {
 
       const res = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Api-Key': APOLLO_KEY },
         body: JSON.stringify(body),
       });
 
