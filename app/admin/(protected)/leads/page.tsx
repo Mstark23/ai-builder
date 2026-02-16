@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import LeadTimer from '@/components/LeadTimer';
 
 type Lead = {
   id: string;
@@ -246,6 +247,12 @@ export default function LeadsPage() {
                           <span className="font-body text-xs text-neutral-500">{lead.website_type}</span>
                           <span className="text-neutral-300">·</span>
                           <span className="font-body text-xs text-neutral-400">{timeAgo(lead.created_at)}</span>
+                          {(lead.status === 'pending' || lead.status === 'claimed' || lead.status === 'generating') && (
+                            <>
+                              <span className="text-neutral-300">·</span>
+                              <LeadTimer createdAt={lead.created_at} previewSentAt={lead.metadata?.preview_sent_at} compact />
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -287,6 +294,13 @@ export default function LeadsPage() {
                 {/* Expanded Actions */}
                 {isExpanded && (
                   <div className="border-t border-neutral-100 p-5 bg-neutral-50/50 rounded-b-2xl" onClick={e => e.stopPropagation()}>
+                    {/* Timer */}
+                    {(lead.status === 'pending' || lead.status === 'claimed' || lead.status === 'generating' || lead.status === 'preview') && (
+                      <div className="mb-5">
+                        <LeadTimer createdAt={lead.created_at} previewSentAt={lead.metadata?.preview_sent_at} />
+                      </div>
+                    )}
+
                     {/* Status Flow */}
                     <div className="mb-5">
                       <label className="font-body text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3 block">Update Status</label>
