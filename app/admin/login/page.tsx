@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -23,41 +22,24 @@ export default function AdminLoginPage() {
     setError('');
 
     try {
-      // Sign in with Supabase Auth
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.toLowerCase().trim(),
-        password: password,
+      // Use server-side API route — this sets cookies that middleware can read
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
       });
 
-      if (authError) {
-        console.error('Auth error:', authError.message, authError.status);
-        setError('Invalid email or password');
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Invalid email or password');
         return;
       }
 
-      if (data.user) {
-        console.log('Auth success, user:', data.user.id);
-        // Check if user is admin
-        const { data: adminUser, error: adminErr } = await supabase
-          .from('admin_users')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .single();
-
-        console.log('Admin check:', { adminUser, adminErr });
-
-        if (adminUser) {
-          console.log('Admin verified, redirecting...');
-          window.location.href = '/admin/dashboard';
-        } else {
-          // User exists but is not an admin
-          console.error('Not an admin user');
-          await supabase.auth.signOut();
-          setError('You do not have admin access.');
-        }
-      }
+      // Cookies are set by the API response — full reload picks them up
+      window.location.href = '/admin/dashboard';
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Login error:', err);
       setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
