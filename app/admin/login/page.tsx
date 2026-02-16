@@ -1,11 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,26 +21,36 @@ export default function AdminLoginPage() {
     setError('');
 
     try {
-      // Use server-side API route — this sets cookies that middleware can read
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase().trim(),
+        password,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Invalid email or password');
+      if (authError) {
+        setError('Invalid email or password');
+        setLoading(false);
         return;
       }
 
-      // Cookies are set by the API response — full reload picks them up
-      window.location.href = '/admin/dashboard';
+      if (data.user) {
+        const { data: adminUser } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (adminUser) {
+          // Full page reload so middleware picks up the fresh cookies
+          window.location.href = '/admin/dashboard';
+        } else {
+          await supabase.auth.signOut();
+          setError('You do not have admin access.');
+          setLoading(false);
+        }
+      }
     } catch (err) {
       console.error('Login error:', err);
       setError('Something went wrong. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
@@ -55,7 +64,6 @@ export default function AdminLoginPage() {
       `}</style>
 
       <div className="w-full max-w-md">
-        {/* LOGO */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-3 group">
             <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center transition-transform group-hover:rotate-6">
@@ -65,7 +73,6 @@ export default function AdminLoginPage() {
           </Link>
         </div>
 
-        {/* LOGIN CARD */}
         <div className="bg-white rounded-2xl border border-neutral-200 p-8">
           <div className="text-center mb-8">
             <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -84,7 +91,6 @@ export default function AdminLoginPage() {
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* EMAIL */}
             <div>
               <label className="block font-body text-sm font-medium text-black mb-2">Email Address</label>
               <input
@@ -97,7 +103,6 @@ export default function AdminLoginPage() {
               />
             </div>
 
-            {/* PASSWORD */}
             <div>
               <label className="block font-body text-sm font-medium text-black mb-2">Password</label>
               <input
@@ -109,7 +114,6 @@ export default function AdminLoginPage() {
               />
             </div>
 
-            {/* SUBMIT */}
             <button
               type="submit"
               disabled={loading}
@@ -125,10 +129,8 @@ export default function AdminLoginPage() {
               )}
             </button>
           </form>
-
         </div>
 
-        {/* FOOTER */}
         <div className="text-center mt-6">
           <p className="font-body text-sm text-neutral-500">
             <Link href="/" className="text-black font-medium hover:underline">← Back to website</Link>
