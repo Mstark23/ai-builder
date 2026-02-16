@@ -24,10 +24,10 @@ async function hasWarmedDomains(): Promise<boolean> {
 
 // SMS-ONLY sequence (Days 1-14 of your system, or forever if no email domains)
 const SMS_ONLY_STEPS = [
-  { step: 1, days: 0, channel: 'sms', smsGen: sms1 },
-  { step: 2, days: 2, channel: 'sms', smsGen: sms2 },
-  { step: 3, days: 5, channel: 'sms', smsGen: sms3 },
-  { step: 4, days: 8, channel: 'sms', smsGen: sms4 },
+  { step: 1, days: 0, channel: 'sms', smsGen: sms1, emailGen: null },
+  { step: 2, days: 2, channel: 'sms', smsGen: sms2, emailGen: null },
+  { step: 3, days: 5, channel: 'sms', smsGen: sms3, emailGen: null },
+  { step: 4, days: 8, channel: 'sms', smsGen: sms4, emailGen: null },
 ];
 
 // SMS + EMAIL sequence (after domains are warm)
