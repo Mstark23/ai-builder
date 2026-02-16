@@ -60,6 +60,8 @@ export async function extractLeads(params: {
     return { imported: 0, skipped: 0, errors: 1 };
   }
 
+  console.log(`[Apollo] Using key: ${APOLLO_KEY.slice(0, 6)}...${APOLLO_KEY.slice(-4)} (${APOLLO_KEY.length} chars)`);
+
   let imported = 0, skipped = 0, errors = 0, page = 1;
 
   while (imported < limit) {
@@ -74,7 +76,7 @@ export async function extractLeads(params: {
       if (country) body.person_locations = [country];
       if (industry) body.q_organization_keyword_tags = [industry];
 
-      const res = await fetch('https://api.apollo.io/api/v1/people/search', {
+      const res = await fetch('https://api.apollo.io/v1/people/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Api-Key': APOLLO_KEY },
         body: JSON.stringify(body),
