@@ -24,6 +24,7 @@ export async function middleware(request: NextRequest) {
     '/api/preview',     // ← preview API is public
     '/api/needs',       // ← needs API is public
     '/admin/login',     // ← admin login must be public
+    '/api/login',       // ← login API must be public
   ];
 
   const isPublic =
