@@ -13,18 +13,23 @@ export async function middleware(request: NextRequest) {
     '/reset-password',
     '/auth/callback',
     '/preview',
-    '/needs',           // ← NEW: needs form is public (no auth required)
-    '/create-account',  // ← NEW: post-payment account creation
+    '/needs',
+    '/create-account',
+    '/free-preview',
+    '/free-preview-b',
+    '/about',
     '/terms',
     '/privacy',
+    '/admin/login',
+    '/api/login',
+    '/api/leads',
     '/api/square/webhook',
     '/api/webhook',
     '/api/reports',
     '/api/track',
-    '/api/preview',     // ← preview API is public
-    '/api/needs',       // ← needs API is public
-    '/admin/login',     // ← admin login must be public
-    '/api/login',       // ← login API must be public
+    '/api/preview',
+    '/api/needs',
+    '/api/sms',
   ];
 
   const isPublic =
@@ -37,8 +42,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Create Supabase client with cookie handling
-  let response = NextResponse.next({ request: { headers: request.headers } });
+  // ═══════════════════════════════════════════════════════════════
+  // FIX: Collect all cookie operations, apply to ONE response
+  //
+  // OLD BUG: set() created a new NextResponse each call, which
+  // destroyed cookies from previous set() calls. Supabase splits
+  // auth tokens into multiple chunks (token.0, token.1, etc).
+  // Only the last chunk survived → broken session every time.
+  // ═══════════════════════════════════════════════════════════════
+  const cookiesToSet: { name: string; value: string; options: CookieOptions }[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,20 +62,24 @@ export async function middleware(request: NextRequest) {
         },
         set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({ name, value, ...options });
-          response = NextResponse.next({ request: { headers: request.headers } });
-          response.cookies.set({ name, value, ...options });
+          cookiesToSet.push({ name, value, options });
         },
         remove(name: string, options: CookieOptions) {
           request.cookies.set({ name, value: '', ...options });
-          response = NextResponse.next({ request: { headers: request.headers } });
-          response.cookies.set({ name, value: '', ...options });
+          cookiesToSet.push({ name, value: '', options });
         },
       },
     }
   );
 
-  // Refresh session
+  // Refresh session (may trigger multiple set() calls for token chunks)
   const { data: { user } } = await supabase.auth.getUser();
+
+  // Build ONE response with ALL cookies
+  let response = NextResponse.next({ request: { headers: request.headers } });
+  cookiesToSet.forEach(({ name, value, options }) => {
+    response.cookies.set({ name, value, ...options });
+  });
 
   // Portal routes: require logged-in user
   if (pathname.startsWith('/portal')) {
@@ -75,8 +91,8 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Admin routes (except /admin/login): require session + admin check
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+  // Admin routes: require session + admin check
+  if (pathname.startsWith('/admin')) {
     if (!user) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
