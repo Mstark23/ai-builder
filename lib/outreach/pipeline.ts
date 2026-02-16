@@ -8,9 +8,47 @@
 
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { extractLeads } from './apollo';
+import { scrapeGoogleMaps } from './google-scraper';
 import { scoreNewLeads } from './scorer';
 import { assignSequences } from './sequence';
 import { checkWarmupStatus } from './email-sender';
+
+// Run ALL available lead sources — Google Maps + Apollo
+async function importLeads(params: {
+  industry?: string;
+  city?: string;
+  country?: string;
+  limit?: number;
+  campaign?: string;
+}): Promise<{ imported: number; skipped: number; errors: number }> {
+  let totalImported = 0, totalSkipped = 0, totalErrors = 0;
+  const halfLimit = Math.ceil((params.limit || 25) / 2);
+
+  // Source 1: Google Maps (free $200/month credit)
+  if (process.env.GOOGLE_PLACES_API_KEY) {
+    console.log('[Pipeline] Source: Google Maps');
+    const g = await scrapeGoogleMaps({ ...params, limit: halfLimit });
+    totalImported += g.imported;
+    totalSkipped += g.skipped;
+    totalErrors += g.errors;
+  }
+
+  // Source 2: Apollo (paid)
+  if (process.env.APOLLO_API_KEY) {
+    console.log('[Pipeline] Source: Apollo');
+    const a = await extractLeads({ ...params, limit: halfLimit });
+    totalImported += a.imported;
+    totalSkipped += a.skipped;
+    totalErrors += a.errors;
+  }
+
+  if (!process.env.GOOGLE_PLACES_API_KEY && !process.env.APOLLO_API_KEY) {
+    console.error('[Pipeline] No lead source configured. Set GOOGLE_PLACES_API_KEY or APOLLO_API_KEY');
+    return { imported: 0, skipped: 0, errors: 1 };
+  }
+
+  return { imported: totalImported, skipped: totalSkipped, errors: totalErrors };
+}
 
 export async function runMorningPipeline() {
   console.log('═══ OUTREACH MORNING PIPELINE ═══');
@@ -30,7 +68,7 @@ export async function runMorningPipeline() {
 
   if (campaigns?.length) {
     for (const c of campaigns) {
-      const result = await extractLeads({
+      const result = await importLeads({
         industry: c.industry,
         city: c.city,
         country: c.country || 'United States',
@@ -48,7 +86,7 @@ export async function runMorningPipeline() {
     }
   } else {
     // No campaigns in DB yet — use env fallback
-    const result = await extractLeads({
+    const result = await importLeads({
       industry: process.env.OUTREACH_DEFAULT_INDUSTRY || 'restaurant',
       city: process.env.OUTREACH_DEFAULT_CITY || 'Montreal',
       limit: 50,
