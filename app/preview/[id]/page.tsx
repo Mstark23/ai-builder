@@ -81,7 +81,7 @@ export default function PreviewPage() {
       });
       if (res.ok) {
         // Redirect to needs form
-        router.push(`/needs/${projectId}`);
+        router.push(`/growth/${projectId}`);
       }
     } catch (err) {
       console.error('Error selecting variation:', err);
@@ -198,7 +198,7 @@ export default function PreviewPage() {
             fontFamily: "'Inter', sans-serif", opacity: selecting ? 0.7 : 1,
           }}
         >
-          {selecting ? 'Selecting...' : 'I Want This Website →'}
+          {selecting ? 'Selecting...' : 'Want This Live? Let's Talk →'}
         </button>
       </div>
 
@@ -285,7 +285,7 @@ export default function PreviewPage() {
             fontFamily: "'Inter', sans-serif",
           }}
         >
-          {selecting ? 'Selecting...' : 'Get This Website →'}
+          {selecting ? 'Selecting...' : 'Want This Live? Book a Call →'}
         </button>
       </div>
     </>
