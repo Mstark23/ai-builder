@@ -22,18 +22,23 @@ export async function GET(request: NextRequest) {
       console.log('═══ OUTREACH MORNING PIPELINE ═══');
       const start = Date.now();
 
-      // 1. Apollo import (skip errors gracefully)
+      // 1. Apollo import
       let totalImported = 0, totalErrors = 0;
       if (process.env.APOLLO_API_KEY) {
         try {
           const { extractLeads } = await import('@/lib/outreach/apollo');
           const { data: campaigns } = await supabase
+            .from('outreach_leads')
+            .select('*')
+            .limit(0);
+
+          const { data: camps } = await supabase
             .from('outreach_campaigns')
             .select('*')
             .eq('is_active', true);
 
-          if (campaigns?.length) {
-            for (const c of campaigns) {
+          if (camps?.length) {
+            for (const c of camps) {
               console.log(`[Pipeline] Source: Apollo for ${c.name}`);
               const result = await extractLeads({
                 industry: c.industry,
@@ -53,25 +58,19 @@ export async function GET(request: NextRequest) {
       }
       console.log(`[Pipeline] Import: ${totalImported} leads`);
 
-      // DEBUG: Check if table is readable
-      const { count } = await supabase.from('outreach_leads').select('*', { count: 'exact', head: true });
-      console.log(`[DEBUG] Total leads in table: ${count}`);
-      const { data: rawTest } = await supabase.from('outreach_leads').select('id, status').limit(3);
-      console.log(`[DEBUG] Raw select: ${JSON.stringify(rawTest)}`);
-
-      // 2. Score leads
-      const { data: newLeads, error: scoreErr } = await supabase
+      // 2. Score leads — fetch ALL then filter in JS to debug
+      const { data: allLeads, error: fetchErr } = await supabase
         .from('outreach_leads')
-        .select('id, company_website, company_name')
-        .eq('status', 'new')
-        .order('created_at')
-        .limit(50);
+        .select('id, company_website, company_name, status');
 
-      console.log(`[Scorer] Found ${newLeads?.length || 0} new leads${scoreErr ? `, error: ${scoreErr.message}` : ''}`);
+      console.log(`[DEBUG] All leads fetched: ${allLeads?.length || 0}, error: ${fetchErr?.message || 'none'}`);
+      
+      const newLeads = (allLeads || []).filter(l => l.status === 'new');
+      console.log(`[Scorer] Found ${newLeads.length} new leads (filtered from ${allLeads?.length || 0} total)`);
 
       let scored = 0, qualified = 0, disqualified = 0;
 
-      if (newLeads?.length) {
+      if (newLeads.length) {
         for (const lead of newLeads) {
           await supabase.from('outreach_leads').update({ status: 'scoring' }).eq('id', lead.id);
 
@@ -94,13 +93,13 @@ export async function GET(request: NextRequest) {
             issues.push('Site timed out');
           }
 
-          let priority: string, status: string;
-          if (perf < 40) { priority = 'hot'; status = 'qualified'; qualified++; }
-          else if (perf < 70) { priority = 'warm'; status = 'qualified'; qualified++; }
-          else { priority = 'low'; status = 'disqualified'; disqualified++; }
+          let priority: string, leadStatus: string;
+          if (perf < 40) { priority = 'hot'; leadStatus = 'qualified'; qualified++; }
+          else if (perf < 70) { priority = 'warm'; leadStatus = 'qualified'; qualified++; }
+          else { priority = 'low'; leadStatus = 'disqualified'; disqualified++; }
 
           await supabase.from('outreach_leads').update({
-            site_score: perf, site_issues: issues.length ? issues : ['Could use a refresh'], priority, status,
+            site_score: perf, site_issues: issues.length ? issues : ['Could use a refresh'], priority, status: leadStatus,
             updated_at: new Date().toISOString(),
           }).eq('id', lead.id);
 
