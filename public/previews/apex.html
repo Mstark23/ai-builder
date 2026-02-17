@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Développement Apex — Vivez l'Extraordinaire</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,200;0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#06080b;--bg2:#0b0e13;--bg3:#10141a;--bg4:#161b24;
+  --gold:#c8a55c;--gold-l:#e8d5a3;--gold-d:#8b7340;--gold-glow:rgba(200,165,92,0.15);
+  --blue:#1e3a5f;--blue-l:#2d5a8a;
+  --txt:#ede8df;--txt2:#a09889;--txt3:#635d54;--txt4:#3a362f;
+  --serif:'Playfair Display',Georgia,serif;--sans:'DM Sans',system-ui,sans-serif;
+  --ease:cubic-bezier(.16,1,.3,1);--ease2:cubic-bezier(.65,0,.35,1);
+}
+html{scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--gold-d) var(--bg)}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--gold-d);border-radius:3px}
+a{text-decoration:none;color:inherit}img{max-width:100%;display:block}
+
+/* ═══ PROGRESS BAR ═══ */
+.pbar{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold-l));z-index:9999;width:0;transition:width .1s}
+
+/* ═══ PRELOADER ═══ */
+.preloader{position:fixed;inset:0;z-index:10000;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;transition:clip-path 1s var(--ease)}
+.preloader.done{clip-path:inset(0 0 100% 0)}
+.pl-logo{display:flex;align-items:center;gap:1.5rem;margin-bottom:2rem}
+.pl-logo svg{animation:breathe 2s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.4}50%{opacity:1}}
+.pl-logo span{font-family:var(--serif);font-size:2.5rem;color:var(--gold);letter-spacing:.2em;font-weight:400}
+.pl-bar{width:200px;height:1px;background:var(--txt4);position:relative;overflow:hidden}
+.pl-bar i{position:absolute;left:0;top:0;height:100%;width:100%;background:var(--gold);animation:plFill 2.2s var(--ease2) forwards}
+@keyframes plFill{0%{transform:translateX(-100%)}100%{transform:translateX(0)}}
+
+/* ═══ CURSOR ═══ */
+.cur{width:10px;height:10px;background:var(--gold);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;mix-blend-mode:difference;transition:transform .15s}
+.cur-o{width:44px;height:44px;border:1.5px solid rgba(200,165,92,.3);border-radius:50%;position:fixed;pointer-events:none;z-index:9997;transition:width .4s var(--ease),height .4s var(--ease),border-color .3s}
+.cur-o.active{width:70px;height:70px;border-color:var(--gold)}
+@media(pointer:coarse){.cur,.cur-o{display:none}}
+
+/* ═══ NAV ═══ */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:1.6rem 4rem;display:flex;align-items:center;justify-content:space-between;transition:all .5s var(--ease)}
+nav.scrolled{padding:.9rem 4rem;background:rgba(6,8,11,.93);backdrop-filter:blur(30px);border-bottom:1px solid rgba(200,165,92,.06)}
+.logo{display:flex;align-items:center;gap:1rem}
+.logo-svg{transition:transform .4s var(--ease)}.logo:hover .logo-svg{transform:rotate(5deg)}
+.logo-text{font-family:var(--serif);font-size:1.1rem;font-weight:500;letter-spacing:.08em;color:var(--txt)}
+.logo-text small{display:block;font-family:var(--sans);font-size:.55rem;font-weight:300;letter-spacing:.3em;text-transform:uppercase;color:var(--txt3);margin-top:2px}
+.nav-r{display:flex;align-items:center;gap:3rem}
+.nav-links{display:flex;gap:2.5rem}
+.nav-links a{font-size:.72rem;font-weight:400;letter-spacing:.18em;text-transform:uppercase;color:var(--txt2);position:relative;padding-bottom:4px;transition:color .3s}
+.nav-links a::after{content:'';position:absolute;bottom:0;left:50%;width:0;height:1px;background:var(--gold);transition:all .4s var(--ease);transform:translateX(-50%)}
+.nav-links a:hover{color:var(--gold)}.nav-links a:hover::after{width:100%}
+.nav-cta{padding:.7rem 2rem;border:1px solid var(--gold);background:transparent;color:var(--gold);font-family:var(--sans);font-size:.68rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;position:relative;overflow:hidden;transition:color .4s}
+.nav-cta::before{content:'';position:absolute;inset:0;background:var(--gold);transform:translateY(101%);transition:transform .4s var(--ease)}
+.nav-cta:hover::before{transform:translateY(0)}.nav-cta span{position:relative;z-index:1}.nav-cta:hover span{color:var(--bg)}
+
+/* ═══ HERO ═══ */
+.hero{height:100vh;min-height:750px;position:relative;display:flex;align-items:center;overflow:hidden}
+.hero-vid{position:absolute;inset:0;z-index:0}
+.hero-vid video{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.8s ease}
+.hero-vid video.loaded{opacity:1}
+.hero-vid-ov{position:absolute;inset:0;background:linear-gradient(135deg,rgba(6,8,11,.75) 0%,rgba(6,8,11,.4) 40%,rgba(6,8,11,.6) 100%);z-index:1}
+.hero-vid-grain{position:absolute;inset:0;z-index:2;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.hero-content{position:relative;z-index:5;padding:0 4rem;max-width:1400px;width:100%;margin:0 auto;display:grid;grid-template-columns:1.1fr .9fr;gap:4rem;align-items:center}
+.hero-overline{display:flex;align-items:center;gap:1rem;margin-bottom:2rem;opacity:0;transform:translateY(40px)}
+.hero-overline .ln{width:40px;height:1px;background:var(--gold)}
+.hero-overline span{font-size:.62rem;letter-spacing:.4em;text-transform:uppercase;color:var(--gold)}
+.hero-h1{font-family:var(--serif);font-weight:400;font-size:clamp(2.8rem,5.2vw,5.2rem);line-height:1.08;margin-bottom:1.5rem;opacity:0;transform:translateY(50px)}
+.hero-h1 em{font-style:italic;color:var(--gold-l)}
+.hero-p{font-size:1rem;line-height:1.85;color:var(--txt2);font-weight:300;max-width:520px;margin-bottom:2.5rem;opacity:0;transform:translateY(40px)}
+.hero-btns{display:flex;gap:1.5rem;flex-wrap:wrap;opacity:0;transform:translateY(30px)}
+.btn{display:inline-flex;align-items:center;gap:.6rem;padding:1.1rem 2.8rem;font-family:var(--sans);font-size:.72rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;transition:all .4s var(--ease);position:relative;overflow:hidden;border:none}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);transform:translateX(-100%);transition:transform .7s}
+.btn-gold:hover::after{transform:translateX(100%)}
+.btn-gold:hover{box-shadow:0 15px 50px rgba(200,165,92,.3);transform:translateY(-2px)}
+.btn-outline{background:transparent;border:1px solid var(--txt4);color:var(--txt2)}.btn-outline:hover{border-color:var(--gold-d);color:var(--gold-l)}
+.arr{font-size:.85rem;transition:transform .3s}.btn:hover .arr{transform:translateX(4px)}
+
+/* ═══ HERO CARD ═══ */
+.hero-right{position:relative;display:flex;justify-content:center;align-items:center}
+.hero-card{width:100%;max-width:420px;border:1px solid rgba(200,165,92,.12);position:relative;overflow:hidden;opacity:0;transform:translateY(60px)}
+.hero-card-img{width:100%;aspect-ratio:4/3;object-fit:cover;transition:transform .6s var(--ease)}
+.hero-card:hover .hero-card-img{transform:scale(1.03)}
+.hero-card-ov{position:absolute;inset:0;background:linear-gradient(0deg,rgba(6,8,11,.85) 0%,rgba(6,8,11,.15) 50%,transparent 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:2rem}
+.hero-card-badge{position:absolute;top:1.2rem;right:1.2rem;background:var(--gold);color:var(--bg);padding:.45rem 1rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;font-weight:600}
+.hero-card h3{font-family:var(--serif);font-size:1.4rem;font-weight:400;margin-bottom:.3rem}
+.hero-card .card-sub{font-size:.78rem;color:var(--txt2)}
+.hero-card-price{margin-top:.8rem;font-family:var(--serif);font-size:1.8rem;color:var(--gold);font-weight:400}
+.hero-card-price small{font-size:.65rem;color:var(--txt3);font-family:var(--sans);letter-spacing:.08em;display:block;margin-top:.2rem}
+
+/* ═══ HERO SCROLL ═══ */
+.hero-scroll{position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.hero-scroll span{font-size:.55rem;letter-spacing:.35em;text-transform:uppercase;color:var(--txt3)}
+.scroll-i{width:20px;height:32px;border:1.5px solid var(--txt4);border-radius:10px;position:relative}
+.scroll-i::after{content:'';width:3px;height:6px;background:var(--gold);border-radius:2px;position:absolute;top:5px;left:50%;transform:translateX(-50%);animation:sBob 2s ease-in-out infinite}
+@keyframes sBob{0%,100%{transform:translateX(-50%) translateY(0);opacity:1}50%{transform:translateX(-50%) translateY(10px);opacity:.3}}
+
+/* ═══ TICKER ═══ */
+.ticker{padding:1.2rem 0;background:var(--bg2);border-top:1px solid rgba(200,165,92,.05);border-bottom:1px solid rgba(200,165,92,.05);overflow:hidden}
+.tick-track{display:flex;gap:2.5rem;animation:tick 28s linear infinite;width:max-content}
+.tick-item{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--txt4);white-space:nowrap;display:flex;align-items:center;gap:2.5rem}
+.tick-item::after{content:'✦';color:var(--gold-d);font-size:.4rem}
+@keyframes tick{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* ═══ REVEAL SYSTEM ═══ */
+.rv{opacity:0;transform:translateY(70px);transition:opacity 1s var(--ease),transform 1s var(--ease)}.rv.vis{opacity:1;transform:translateY(0)}
+.rv-d1{transition-delay:.12s}.rv-d2{transition-delay:.24s}.rv-d3{transition-delay:.36s}.rv-d4{transition-delay:.48s}
+.rv-l{opacity:0;transform:translateX(-60px);transition:opacity 1s var(--ease),transform 1s var(--ease)}.rv-l.vis{opacity:1;transform:translateX(0)}
+.rv-r{opacity:0;transform:translateX(60px);transition:opacity 1s var(--ease),transform 1s var(--ease)}.rv-r.vis{opacity:1;transform:translateX(0)}
+
+/* ═══ SECTION UTILS ═══ */
+.sec{padding:8rem 4rem;position:relative}
+.sec-label{display:inline-flex;align-items:center;gap:1rem;font-size:.62rem;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem}
+.sec-label::before{content:'';width:30px;height:1px;background:var(--gold)}
+.sec-head{font-family:var(--serif);font-weight:400;font-size:clamp(2rem,4vw,3.5rem);line-height:1.12;margin-bottom:1.5rem}
+.sec-head em{font-style:italic;color:var(--gold-l)}
+.sec-desc{font-size:.95rem;line-height:1.85;color:var(--txt2);font-weight:300;max-width:600px}
+
+/* ═══ PROJECT GALLERY — REAL IMAGES ═══ */
+.showcase{background:var(--bg2)}
+.showcase-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:1.2rem;max-width:1400px;margin:0 auto}
+.sc-item{position:relative;overflow:hidden;border:1px solid rgba(200,165,92,.06);cursor:pointer;transition:border-color .4s}
+.sc-item:hover{border-color:rgba(200,165,92,.25)}
+.sc-item img{width:100%;height:100%;object-fit:cover;transition:transform .7s var(--ease)}
+.sc-item:hover img{transform:scale(1.05)}
+.sc-ov{position:absolute;inset:0;background:linear-gradient(0deg,rgba(6,8,11,.7) 0%,transparent 50%);display:flex;flex-direction:column;justify-content:flex-end;padding:1.5rem;z-index:2;opacity:0;transition:opacity .4s}
+.sc-item:hover .sc-ov{opacity:1}
+.sc-ov h4{font-family:var(--serif);font-size:1.1rem;font-weight:400}
+.sc-ov span{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-top:.2rem;display:block}
+.sc-1{grid-column:1/8;aspect-ratio:16/9}.sc-2{grid-column:8/13;aspect-ratio:4/3}
+.sc-3{grid-column:1/5;aspect-ratio:4/3}.sc-4{grid-column:5/9;aspect-ratio:4/3}.sc-5{grid-column:9/13;aspect-ratio:4/3}
+
+/* ═══ SPLIT SECTION ═══ */
+.split{overflow:hidden}
+.split-grid{display:grid;grid-template-columns:1fr 1fr;min-height:70vh}
+.split-img{position:relative;overflow:hidden}
+.split-img img{width:100%;height:100%;object-fit:cover;transition:transform .7s var(--ease)}
+.split-img:hover img{transform:scale(1.03)}
+.split-body{padding:5rem;display:flex;flex-direction:column;justify-content:center}
+.split-body .sec-desc{margin-bottom:2rem}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;padding-top:2.5rem;border-top:1px solid rgba(200,165,92,.08)}
+.metric{text-align:center}
+.metric-val{font-family:var(--serif);font-size:2.3rem;font-weight:400;color:var(--gold);line-height:1}
+.metric-lbl{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt3);margin-top:.4rem}
+
+/* ═══ FEATURES ═══ */
+.features{background:var(--bg)}
+.features-header{text-align:center;max-width:700px;margin:0 auto 5rem}
+.features-header .sec-label{justify-content:center}.features-header .sec-label::before{display:none}
+.features-header .sec-desc{margin:0 auto}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(200,165,92,.04);max-width:1200px;margin:0 auto}
+.feat{background:var(--bg);padding:3rem 2.5rem;position:relative;overflow:hidden;transition:background .5s}
+.feat:hover{background:var(--bg3)}
+.feat::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,var(--gold),transparent);transform:scaleX(0);transform-origin:left;transition:transform .6s var(--ease)}
+.feat:hover::before{transform:scaleX(1)}
+.feat-num{font-family:var(--serif);font-size:3rem;font-weight:400;color:var(--gold);opacity:.08;position:absolute;top:1.5rem;right:1.5rem}
+.feat-icon{width:46px;height:46px;border:1px solid var(--gold-d);display:flex;align-items:center;justify-content:center;margin-bottom:1.3rem;color:var(--gold);font-size:1.1rem;transition:background .4s,border-color .4s}
+.feat:hover .feat-icon{background:var(--gold-glow);border-color:var(--gold)}
+.feat h3{font-family:var(--serif);font-size:1.2rem;font-weight:400;margin-bottom:.6rem}
+.feat p{font-size:.83rem;line-height:1.7;color:var(--txt2);font-weight:300}
+
+/* ═══ PRICING ═══ */
+.pricing{background:var(--bg);text-align:center;position:relative;overflow:hidden}
+.pricing-glow{position:absolute;top:50%;left:50%;width:600px;height:600px;background:radial-gradient(circle,var(--gold-glow),transparent 70%);transform:translate(-50%,-50%);pointer-events:none}
+.pricing-content{position:relative;z-index:2;max-width:850px;margin:0 auto}
+.price-big{font-family:var(--serif);font-size:clamp(4rem,10vw,7.5rem);font-weight:400;color:var(--gold);line-height:1;margin:1.5rem 0 .4rem}
+.price-big sup{font-size:.3em;vertical-align:super;color:var(--gold-l)}
+.price-sub{font-size:.82rem;letter-spacing:.2em;text-transform:uppercase;color:var(--txt3);margin-bottom:1.5rem}
+.price-note{font-family:var(--serif);font-style:italic;font-size:1.15rem;color:var(--gold-l);margin-bottom:2.5rem}
+.pills{display:flex;flex-wrap:wrap;justify-content:center;gap:.8rem;margin-bottom:3rem}
+.pill{padding:.5rem 1.3rem;border:1px solid var(--txt4);font-size:.72rem;letter-spacing:.05em;color:var(--txt2);transition:all .3s}
+.pill:hover{border-color:var(--gold-d);color:var(--gold-l);background:var(--gold-glow)}
+
+/* ═══ LOCATION ═══ */
+.location{background:var(--bg2)}
+.loc-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:5rem;max-width:1300px;margin:0 auto;align-items:center}
+.loc-map{aspect-ratio:16/10;position:relative;overflow:hidden;border:1px solid rgba(200,165,92,.08)}
+.loc-map img{width:100%;height:100%;object-fit:cover}
+.loc-map-ov{position:absolute;inset:0;background:rgba(6,8,11,.35);display:flex;align-items:center;justify-content:center}
+.loc-pin{width:20px;height:20px;background:var(--gold);border-radius:50%;box-shadow:0 0 0 8px rgba(200,165,92,.15),0 0 0 16px rgba(200,165,92,.06);position:relative}
+.loc-pin::after{content:'';position:absolute;inset:-20px;border:2px solid var(--gold);border-radius:50%;animation:rip 2s ease-out infinite}
+@keyframes rip{0%{transform:scale(.5);opacity:1}100%{transform:scale(2);opacity:0}}
+.loc-pin-label{position:absolute;top:calc(50% + 30px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.loc-details h3{font-family:var(--serif);font-size:2rem;font-weight:400;margin-bottom:.4rem}
+.loc-details h3 em{color:var(--gold-l);font-style:italic}
+.loc-sub{font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:2rem}
+.loc-list{list-style:none;display:flex;flex-direction:column;gap:.9rem}
+.loc-list li{display:flex;align-items:flex-start;gap:1rem;font-size:.88rem;color:var(--txt2);line-height:1.6;font-weight:300}
+.loc-list li::before{content:'→';color:var(--gold);flex-shrink:0;font-weight:500}
+
+/* ═══ CTA ═══ */
+.cta-sec{background:var(--bg);text-align:center;position:relative;overflow:hidden}
+.cta-sec::before{content:'';position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(0deg,rgba(30,58,95,.08),transparent)}
+.cta-inner{position:relative;z-index:2;max-width:750px;margin:0 auto}
+.cta-inner p{font-size:1rem;color:var(--txt2);line-height:1.8;font-weight:300;margin-bottom:3rem}
+.cta-btns{display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap}
+
+/* ═══ FOOTER ═══ */
+footer{background:var(--bg2);border-top:1px solid rgba(200,165,92,.05);padding:4rem 4rem 2rem}
+.ft-top{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:3rem;max-width:1300px;margin:0 auto 3rem}
+.ft-tagline{font-family:var(--serif);font-style:italic;color:var(--txt3);font-size:.85rem;margin-top:.8rem}
+.ft-col h5{font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem}
+.ft-col a{display:block;font-size:.8rem;color:var(--txt3);margin-bottom:.5rem;transition:color .3s}.ft-col a:hover{color:var(--txt2)}
+.ft-bottom{max-width:1300px;margin:0 auto;padding-top:2rem;border-top:1px solid rgba(200,165,92,.04);display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.ft-copy{font-size:.66rem;color:var(--txt4);letter-spacing:.05em}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:1024px){
+  .hero-content{grid-template-columns:1fr;text-align:center}.hero-p{margin:0 auto 2.5rem}.hero-btns{justify-content:center}
+  .hero-right{display:none}.split-grid{grid-template-columns:1fr}.split-img{min-height:350px}
+  .feat-grid{grid-template-columns:repeat(2,1fr)}.loc-grid{grid-template-columns:1fr}
+  .sc-1{grid-column:1/7}.sc-2{grid-column:7/13}.sc-3{grid-column:1/5}.sc-4{grid-column:5/9}.sc-5{grid-column:9/13}
+  .ft-top{grid-template-columns:1fr 1fr}
+}
+@media(max-width:768px){
+  .sec{padding:5rem 1.5rem}nav{padding:1rem 1.5rem}.nav-links{display:none}
+  .feat-grid{grid-template-columns:1fr;background:none;gap:0}.feat{border-bottom:1px solid rgba(200,165,92,.04)}
+  .showcase-grid{grid-template-columns:1fr}.sc-1,.sc-2,.sc-3,.sc-4,.sc-5{grid-column:auto;aspect-ratio:16/9}
+  .metrics{grid-template-columns:repeat(3,1fr);gap:1rem}.metric-val{font-size:1.8rem}
+  .split-body{padding:3rem 1.5rem}.ft-top{grid-template-columns:1fr}
+  .hero-btns{flex-direction:column;align-items:center}.cta-btns{flex-direction:column;align-items:center}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ PRELOADER ═══ -->
+<div class="preloader" id="preloader">
+  <div class="pl-logo">
+    <svg width="48" height="48" viewBox="0 0 42 42" fill="none"><rect x="1" y="1" width="40" height="40" stroke="#c8a55c" stroke-width="1"/><path d="M21 8L31 28H11L21 8Z" stroke="#c8a55c" stroke-width="1.2" fill="none"/><line x1="11" y1="32" x2="31" y2="32" stroke="#c8a55c" stroke-width=".8" opacity=".5"/></svg>
+    <span>APEX</span>
+  </div>
+  <div class="pl-bar"><i></i></div>
+</div>
+
+<div class="pbar" id="pbar"></div>
+<div class="cur" id="cur"></div>
+<div class="cur-o" id="curO"></div>
+
+<!-- ═══ NAV ═══ -->
+<nav id="nav">
+  <a href="#" class="logo">
+    <svg class="logo-svg" width="42" height="42" viewBox="0 0 42 42" fill="none"><rect x="1" y="1" width="40" height="40" stroke="#c8a55c" stroke-width="1"/><path d="M21 8L31 28H11L21 8Z" stroke="#c8a55c" stroke-width="1.2" fill="none"/><path d="M15 28L21 16L27 28" stroke="#e8d5a3" stroke-width=".8" fill="none" opacity=".4"/><line x1="11" y1="32" x2="31" y2="32" stroke="#c8a55c" stroke-width=".8" opacity=".5"/><line x1="13" y1="34" x2="29" y2="34" stroke="#c8a55c" stroke-width=".5" opacity=".3"/></svg>
+    <div class="logo-text">Apex<small>Développement</small></div>
+  </a>
+  <div class="nav-r">
+    <div class="nav-links">
+      <a href="#projet">Le Projet</a>
+      <a href="#features">Détails</a>
+      <a href="#gallery">Galerie</a>
+      <a href="#pricing">Prix</a>
+      <a href="#location">Emplacement</a>
+    </div>
+    <button class="nav-cta" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})"><span>Réserver</span></button>
+  </div>
+</nav>
+
+<!-- ═══ HERO — DRONE APARTMENT BUILDING VIDEO ═══ -->
+<section class="hero" id="hero">
+  <div class="hero-vid">
+    <video autoplay muted loop playsinline id="heroVid">
+      <source src="https://videos.pexels.com/video-files/13761469/13761469-hd_1920_1080_30fps.mp4" type="video/mp4">
+    </video>
+    <div class="hero-vid-ov"></div>
+    <div class="hero-vid-grain"></div>
+  </div>
+  <div class="hero-content">
+    <div>
+      <div class="hero-overline" id="hOv"><div class="ln"></div><span>Salaberry-de-Valleyfield · Chemin du Bord de l'Eau</span></div>
+      <h1 class="hero-h1" id="hH1">Nouveau développement <em>au bord de l'eau</em></h1>
+      <p class="hero-p" id="hP">Logements spacieux de 3 chambres à coucher — 1 150 pi². Nouvelle construction avec comptoirs de quartz, plafonds de 9 pieds et planchers en béton pour une insonorisation supérieure.</p>
+      <div class="hero-btns" id="hBtns">
+        <a href="https://www.developpementapex.com/contactez-nous" target="_blank" class="btn btn-gold">Demander plus d'informations <span class="arr">→</span></a>
+        <a href="#gallery" class="btn btn-outline">Explorer le projet <span class="arr">→</span></a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-card" id="hCard">
+        <img class="hero-card-img" src="https://images.squarespace-cdn.com/content/v1/68c09414711e8b2d97eac859/d4395952-53ac-4ce0-989a-eeac646fa552/Ext%C3%A9rieur+fa%C3%A7ades+3D+-+Valleyfield.jpg?format=750w" alt="Façade 3D — Développement Apex Valleyfield">
+        <div class="hero-card-ov">
+          <div class="hero-card-badge">Disponible</div>
+          <h3>Résidence — 3 chambres</h3>
+          <div class="card-sub">1 150 pi² · Vue sur l'eau · Quartz & Béton</div>
+          <div class="hero-card-price">1 700<sup>$/mois</sup><small>Prix de lancement · 12 premiers locataires</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll"><span>Explorer</span><div class="scroll-i"></div></div>
+</section>
+
+<!-- ═══ TICKER ═══ -->
+<div class="ticker">
+  <div class="tick-track">
+    <span class="tick-item">Bord de l'Eau</span><span class="tick-item">3 Chambres</span><span class="tick-item">1 150 pi²</span><span class="tick-item">Plafonds 9 Pieds</span><span class="tick-item">Comptoirs Quartz</span><span class="tick-item">Planchers Béton</span><span class="tick-item">Animaux Acceptés</span><span class="tick-item">Parc & Parc à Chiens</span><span class="tick-item">1 700$/mois</span>
+    <span class="tick-item">Bord de l'Eau</span><span class="tick-item">3 Chambres</span><span class="tick-item">1 150 pi²</span><span class="tick-item">Plafonds 9 Pieds</span><span class="tick-item">Comptoirs Quartz</span><span class="tick-item">Planchers Béton</span><span class="tick-item">Animaux Acceptés</span><span class="tick-item">Parc & Parc à Chiens</span><span class="tick-item">1 700$/mois</span>
+  </div>
+</div>
+
+<!-- ═══ PROJECT GALLERY — ALL REAL 3D RENDERS ═══ -->
+<section class="showcase sec" id="gallery">
+  <div style="max-width:700px;margin:0 auto 4rem;text-align:center">
+    <div class="sec-label rv" style="justify-content:center"><span>Notre Projet</span></div>
+    <h2 class="sec-head rv rv-d1">Découvrez <em>votre futur chez-vous</em></h2>
+  </div>
+  <div class="showcase-grid">
+    <div class="sc-item sc-1 rv">
+      <img src="https://images.squarespace-cdn.com/content/v1/68c09414711e8b2d97eac859/d4395952-53ac-4ce0-989a-eeac646fa552/Ext%C3%A9rieur+fa%C3%A7ades+3D+-+Valleyfield.jpg?format=1500w" alt="Façades extérieures 3D">
+      <div class="sc-ov"><h4>Façades Extérieures</h4><span>Architecture Moderne</span></div>
+    </div>
+    <div class="sc-item sc-2 rv rv-d1">
+      <img src="https://images.squarespace-cdn.com/content/v1/68c09414711e8b2d97eac859/0dccdad5-bff8-4f1c-98f0-f34e1f0fcc5e/Int%C3%A9rieur+Salon+-+3D+-+Valleyfield.png?format=1500w" alt="Intérieur Salon 3D">
+      <div class="sc-ov"><h4>Salon & Séjour</h4><span>Lumineux · Plafonds 9 pieds</span></div>
+    </div>
+    <div class="sc-item sc-3 rv rv-d1">
+      <img src="https://images.squarespace-cdn.com/content/v1/68c09414711e8b2d97eac859/89f807c0-f918-4199-b5ac-7d88c0a1c47c/Int%C3%A9rieur+Salle+%C3%A0+manger+-+3D+-+Valleyfield.png?format=1000w" alt="Salle à manger 3D">
+      <div class="sc-ov"><h4>Salle à Manger</h4><span>Comptoirs Quartz</span></div>
+    </div>
+    <div class="sc-item sc-4 rv rv-d2">
+      <img src="https://images.squarespace-cdn.com/content/v1/68c09414711e8b2d97eac859/a422d5dc-839b-427e-8a1a-3ca2779c5839/Ext%C3%A9rieur+Vue+d%27ensemble+2+-++3D+-+Valleyfield.jpg?format=1000w" alt="Vue d'ensemble du projet">
+      <div class="sc-ov"><h4>Vue d'Ensemble</h4><span>Projet Complet</span></div>
+    </div>
+    <div class="sc-item sc-5 rv rv-d3">
+      <img src="https://images.squarespace-cdn.com/content/v1/68c09414711e8b2d97eac859/93dcb344-5d23-472d-9384-fddf6d5a5794/Ext%C3%A9rieur+Parc+3D+-+Valleyfield.jpg?format=1000w" alt="Parc extérieur 3D">
+      <div class="sc-ov"><h4>Parc Aménagé</h4><span>Espaces Verts & Parc à Chiens</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SPLIT — SALON INTERIOR + ABOUT ═══ -->
+<section class="split" id="projet" style="background:var(--bg2)">
+  <div class="split-grid">
+    <div class="split-img rv-l">
+      <img src="https://images.squarespace-cdn.com/content/v1/68c09414711e8b2d97eac859/0dccdad5-bff8-4f1c-98f0-f34e1f0fcc5e/Int%C3%A9rieur+Salon+-+3D+-+Valleyfield.png?format=1500w" alt="Intérieur salon">
+    </div>
+    <div class="split-body">
+      <div class="sec-label rv">Le Projet</div>
+      <h2 class="sec-head rv rv-d1">Nouvelle construction face <em>au lac Saint-François</em></h2>
+      <p class="sec-desc rv rv-d2">Situé sur le chemin du Bord de l'Eau à Salaberry-de-Valleyfield, ce développement résidentiel offre des logements spacieux de 3 chambres dans un cadre exceptionnel face au lac Saint-François. Le projet inclut un parc aménagé et un parc à chiens.</p>
+      <p class="sec-desc rv rv-d3" style="margin-top:.6rem">Chaque unité est pensée pour offrir le maximum de confort — planchers en béton pour une insonorisation supérieure, comptoirs de quartz et plafonds de 9 pieds. Animaux acceptés dans la moitié des immeubles.</p>
+      <div class="metrics rv rv-d4">
+        <div class="metric"><div class="metric-val" data-count="1150">0</div><div class="metric-lbl">Pieds Carrés</div></div>
+        <div class="metric"><div class="metric-val">9 pi</div><div class="metric-lbl">Plafonds</div></div>
+        <div class="metric"><div class="metric-val" data-count="3">0</div><div class="metric-lbl">Chambres</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FEATURES ═══ -->
+<section class="features sec" id="features">
+  <div class="features-header">
+    <div class="sec-label rv">Prestations Premium</div>
+    <h2 class="sec-head rv rv-d1">Chaque détail fait<br>toute la <em>différence</em></h2>
+  </div>
+  <div class="feat-grid">
+    <div class="feat rv"><div class="feat-num">01</div><div class="feat-icon">◈</div><h3>Comptoirs Quartz</h3><p>Surfaces nobles et résistantes dans toutes les cuisines, alliant beauté naturelle et durabilité au quotidien.</p></div>
+    <div class="feat rv rv-d1"><div class="feat-num">02</div><div class="feat-icon">◉</div><h3>Planchers Béton</h3><p>Insonorisation supérieure grâce aux planchers en béton entre chaque étage. Vivez en toute tranquillité.</p></div>
+    <div class="feat rv rv-d2"><div class="feat-num">03</div><div class="feat-icon">△</div><h3>Plafonds 9 Pieds</h3><p>Espaces ouverts et lumineux avec une hauteur de plafond généreuse qui amplifie la sensation d'espace.</p></div>
+    <div class="feat rv rv-d1"><div class="feat-num">04</div><div class="feat-icon">◆</div><h3>Vue sur l'Eau</h3><p>Emplacement privilégié sur le chemin du Bord de l'Eau, face au lac Saint-François. À 5 minutes de tous les services.</p></div>
+    <div class="feat rv rv-d2"><div class="feat-num">05</div><div class="feat-icon">✦</div><h3>Animaux Bienvenus</h3><p>La moitié de nos immeubles acceptent les animaux de compagnie, avec un parc à chiens dédié sur le site.</p></div>
+    <div class="feat rv rv-d3"><div class="feat-num">06</div><div class="feat-icon">◐</div><h3>Parc Intégré</h3><p>Un parc paysager et un parc à chiens au cœur du projet. La nature fait partie de votre quotidien.</p></div>
+  </div>
+</section>
+
+<!-- ═══ SPLIT 2 — FACADES B + ARCHITECTURE ═══ -->
+<section class="split" style="background:var(--bg)">
+  <div class="split-grid" style="direction:rtl">
+    <div class="split-img rv-r" style="direction:ltr">
+      <img src="https://images.squarespace-cdn.com/content/v1/68c09414711e8b2d97eac859/d0a84aeb-f804-490e-88d7-448719fb35d9/Ext%C3%A9rieur+fa%C3%A7ades+B+-++3D+-+Valleyfield.jpg?format=1500w" alt="Façades B extérieur">
+    </div>
+    <div class="split-body" style="direction:ltr">
+      <div class="sec-label rv">Architecture</div>
+      <h2 class="sec-head rv rv-d1">Un design <em>contemporain</em> qui se démarque</h2>
+      <p class="sec-desc rv rv-d2">L'architecture de nos immeubles allie modernité et intégration au paysage naturel de Valleyfield. Les façades sont conçues pour maximiser la lumière naturelle tout en offrant une esthétique distinctive dans le quartier.</p>
+      <div style="margin-top:2rem" class="rv rv-d3">
+        <a href="https://www.developpementapex.com/contactez-nous" target="_blank" class="btn btn-gold">Réservez votre place <span class="arr">→</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRICING ═══ -->
+<section class="pricing sec" id="pricing">
+  <div class="pricing-glow"></div>
+  <div class="pricing-content">
+    <div class="sec-label rv" style="justify-content:center"><span>Offre de Lancement</span></div>
+    <h2 class="sec-head rv rv-d1">Un prix <em>exceptionnel</em></h2>
+    <div class="price-big rv rv-d2">1 700<sup>$</sup></div>
+    <div class="price-sub rv rv-d2">par mois</div>
+    <div class="price-note rv rv-d3">Prix exclusif pour les 12 premiers locataires</div>
+    <div class="pills rv rv-d3">
+      <span class="pill">3 Chambres</span><span class="pill">1 150 pi²</span><span class="pill">Quartz</span><span class="pill">Béton</span><span class="pill">9 pi plafonds</span><span class="pill">Bord de l'eau</span><span class="pill">Parc</span><span class="pill">Animaux</span>
+    </div>
+    <div class="rv rv-d4"><a href="https://www.developpementapex.com/contactez-nous" target="_blank" class="btn btn-gold">Réserver au prix de lancement <span class="arr">→</span></a></div>
+  </div>
+</section>
+
+<!-- ═══ LOCATION — WITH MAP IMAGE ═══ -->
+<section class="location sec" id="location">
+  <div class="loc-grid">
+    <div class="loc-map rv-l">
+      <img src="https://images.squarespace-cdn.com/content/v1/68c09414711e8b2d97eac859/9049ec94-7b85-4219-a9b6-26c18d5db379/image+%284%29.png?format=1500w" alt="Carte localisation projet Apex">
+      <div class="loc-map-ov">
+        <div class="loc-pin"></div>
+        <div class="loc-pin-label">Chemin du Bord de l'Eau · Valleyfield</div>
+      </div>
+    </div>
+    <div class="loc-details rv-r">
+      <div class="sec-label">Emplacement</div>
+      <h3>La <em>Venise</em> du Québec</h3>
+      <div class="loc-sub">Salaberry-de-Valleyfield</div>
+      <ul class="loc-list">
+        <li>Face au lac Saint-François sur le chemin du Bord de l'Eau</li>
+        <li>Nouvelle construction — Livraison 2025</li>
+        <li>À 5 minutes de tous les services essentiels</li>
+        <li>Accès rapide aux autoroutes 30 et 530</li>
+        <li>À seulement 25 km de l'île de Montréal</li>
+        <li>Capitale du nautisme — marinas et sports nautiques</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<section class="cta-sec sec" id="cta">
+  <div class="cta-inner">
+    <div class="sec-label rv" style="justify-content:center"><span>Passez à l'Action</span></div>
+    <h2 class="sec-head rv rv-d1">Votre nouveau <em>chez-vous</em> vous attend</h2>
+    <p class="rv rv-d2">Les places au prix de lancement de 1 700$/mois sont réservées aux 12 premiers locataires. Contactez-nous maintenant pour sécuriser votre unité dans ce projet d'exception au bord de l'eau.</p>
+    <div class="cta-btns rv rv-d3">
+      <a href="https://www.developpementapex.com/contactez-nous" target="_blank" class="btn btn-gold">Demander plus d'informations <span class="arr">→</span></a>
+      <a href="https://www.developpementapex.com" target="_blank" class="btn btn-outline">Visiter le site officiel <span class="arr">→</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="ft-top">
+    <div>
+      <div class="logo" style="margin-bottom:.5rem">
+        <svg width="36" height="36" viewBox="0 0 42 42" fill="none"><rect x="1" y="1" width="40" height="40" stroke="#c8a55c" stroke-width="1"/><path d="M21 8L31 28H11L21 8Z" stroke="#c8a55c" stroke-width="1.2" fill="none"/><line x1="11" y1="32" x2="31" y2="32" stroke="#c8a55c" stroke-width=".8" opacity=".5"/></svg>
+        <div class="logo-text">Apex<small>Développement</small></div>
+      </div>
+      <div class="ft-tagline">L'art de vivre au bord de l'eau</div>
+    </div>
+    <div class="ft-col"><h5>Navigation</h5><a href="#projet">Le Projet</a><a href="#features">Détails</a><a href="#gallery">Galerie</a><a href="#pricing">Prix</a></div>
+    <div class="ft-col"><h5>Projet</h5><a href="#">Bord de l'Eau, Valleyfield</a><a href="#">3 Chambres · 1 150 pi²</a><a href="#">Disponible maintenant</a></div>
+    <div class="ft-col"><h5>Contact</h5><a href="https://www.developpementapex.com/contactez-nous" target="_blank">Formulaire de contact</a><a href="#">Salaberry-de-Valleyfield, QC</a><a href="https://www.developpementapex.com" target="_blank">developpementapex.com</a></div>
+  </div>
+  <div class="ft-bottom">
+    <div class="ft-copy">© 2025 Développement Apex — Tous droits réservés</div>
+    <div class="ft-copy">Conçu avec excellence</div>
+  </div>
+</footer>
+
+<script>
+// ═══ PRELOADER ═══
+window.addEventListener('load',()=>{setTimeout(()=>{document.getElementById('preloader').classList.add('done');startHero()},2200)});
+function startHero(){
+  const items=[{el:'#hOv',d:200},{el:'#hH1',d:400},{el:'#hP',d:700},{el:'#hBtns',d:1000},{el:'#hCard',d:500}];
+  items.forEach(({el,d})=>{setTimeout(()=>{const e=document.querySelector(el);if(e){e.style.transition='opacity 1s cubic-bezier(.16,1,.3,1),transform 1s cubic-bezier(.16,1,.3,1)';e.style.opacity='1';e.style.transform='translateY(0)'}},d)});
+}
+
+// ═══ VIDEO ═══
+const v=document.getElementById('heroVid');
+if(v){v.addEventListener('canplay',()=>v.classList.add('loaded'));if(v.readyState>=3)v.classList.add('loaded')}
+
+// ═══ CURSOR ═══
+const cur=document.getElementById('cur'),curO=document.getElementById('curO');
+let cx=0,cy=0,ox=0,oy=0;
+document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY;cur.style.left=cx-5+'px';cur.style.top=cy-5+'px'});
+(function oC(){ox+=(cx-ox)*.1;oy+=(cy-oy)*.1;curO.style.left=ox+'px';curO.style.top=oy+'px';requestAnimationFrame(oC)})();
+document.querySelectorAll('a,button,.feat,.sc-item,.pill').forEach(el=>{
+  el.addEventListener('mouseenter',()=>curO.classList.add('active'));
+  el.addEventListener('mouseleave',()=>curO.classList.remove('active'));
+});
+
+// ═══ NAV SCROLL ═══
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').classList.toggle('scrolled',scrollY>80);
+  document.getElementById('pbar').style.width=(scrollY/(document.documentElement.scrollHeight-innerHeight)*100)+'%';
+});
+
+// ═══ REVEAL ═══
+const rvObs=new IntersectionObserver(en=>{en.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis')})},{threshold:.12,rootMargin:'0px 0px -50px 0px'});
+document.querySelectorAll('.rv,.rv-l,.rv-r').forEach(el=>rvObs.observe(el));
+
+// ═══ COUNTER ═══
+const cObs=new IntersectionObserver(en=>{en.forEach(e=>{if(e.isIntersecting){const el=e.target,t=+el.dataset.count;if(!t)return;let c=0;const s=t/45;const iv=setInterval(()=>{c+=s;if(c>=t){c=t;clearInterval(iv)}el.textContent=Math.floor(c).toLocaleString()},25);cObs.unobserve(el)}})},{threshold:.5});
+document.querySelectorAll('[data-count]').forEach(c=>cObs.observe(c));
+
+// ═══ SMOOTH SCROLL ═══
+document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',function(e){e.preventDefault();const t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});
+</script>
+</body>
+</html>
