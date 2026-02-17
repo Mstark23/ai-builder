@@ -53,7 +53,13 @@ export async function GET(request: NextRequest) {
       }
       console.log(`[Pipeline] Import: ${totalImported} leads`);
 
-      // 2. Score — directly in handler
+      // DEBUG: Check if table is readable
+      const { count } = await supabase.from('outreach_leads').select('*', { count: 'exact', head: true });
+      console.log(`[DEBUG] Total leads in table: ${count}`);
+      const { data: rawTest } = await supabase.from('outreach_leads').select('id, status').limit(3);
+      console.log(`[DEBUG] Raw select: ${JSON.stringify(rawTest)}`);
+
+      // 2. Score leads
       const { data: newLeads, error: scoreErr } = await supabase
         .from('outreach_leads')
         .select('id, company_website, company_name')
