@@ -198,7 +198,7 @@ export default function PreviewPage() {
             fontFamily: "'Inter', sans-serif", opacity: selecting ? 0.7 : 1,
           }}
         >
-          {selecting ? 'Selecting...' : 'Want This Live? Let's Talk →'}
+          {selecting ? 'Selecting...' : "Want This Live? Let's Talk →"}
         </button>
       </div>
 
