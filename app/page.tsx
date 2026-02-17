@@ -154,10 +154,10 @@ function LandingPage() {
           <div className="absolute top-24 left-0 right-0 z-30 flex justify-center pointer-events-none">
             <p
               key={quoteIdx}
-              className="font-d text-sm sm:text-base italic text-neutral-400/70 tracking-wide"
+              className="font-d text-lg sm:text-2xl italic text-black/60 tracking-wide"
               style={{ animation: 'ghostFloat 5s ease-in-out forwards' }}
             >
-              {QUOTES[quoteIdx].text}
+              &ldquo;{QUOTES[quoteIdx].text}&rdquo;
             </p>
           </div>
           <div className="absolute top-1/4 -right-64 w-[800px] h-[800px] bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-full blur-3xl opacity-60" style={{ animation: 'float 6s ease-in-out infinite' }} />
