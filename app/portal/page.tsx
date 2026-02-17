@@ -146,7 +146,7 @@ export default function PortalDashboard() {
       QUEUED: "queued", IN_PROGRESS: "progress", PREVIEW_READY: "preview",
       REVISION_REQUESTED: "revision", PAID: "paid", DELIVERED: "delivered",
     };
-    return types[status]
+    return types[status] || 'update'
   };
 
   const getActivityMessage = (status: string, name: string) => {
@@ -168,7 +168,7 @@ export default function PortalDashboard() {
       PAID: `Payment received for ${name}`,
       DELIVERED: `${name} has been delivered`,
     };
-    return messages[status]
+    return messages[status] || `${name} updated`
   };
 
   const getActivityIcon = (type: string) => {
@@ -203,7 +203,7 @@ export default function PortalDashboard() {
       PAID: { label: "Paid", color: "text-emerald-700", bg: "bg-emerald-100", progress: 90 },
       DELIVERED: { label: "Delivered", color: "text-emerald-700", bg: "bg-emerald-100", progress: 100 },
     };
-    return configs[status]
+    return configs[status] || { label: status, color: "text-neutral-700", bg: "bg-neutral-100", progress: 0 }
   };
 
   const getPlanPrice = (plan: string) => {
