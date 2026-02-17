@@ -142,7 +142,7 @@ function LandingPage() {
                 The business<br />you keep<br /><span className="gradient-text">picturing?</span><br />Let&apos;s build it.
               </h1>
               <p className="slide-up font-b text-lg sm:text-xl text-neutral-500 max-w-lg leading-relaxed mt-6" style={{ animationDelay: '0.2s' }}>
-                We studied the fastest-growing businesses in 44 industries and reverse-engineered why customers choose them. Then we built it for yours — free, under 60&nbsp;minutes.
+                We studied the fastest-growing businesses in 44 industries and reverse-engineered why customers choose them. Then we built it for yours — free, in under 24&nbsp;hours.
               </p>
               <div className="slide-up mt-8" style={{ animationDelay: '0.3s' }}>
                 <a href="#pain" className="inline-flex items-center gap-2 px-8 py-4 font-b text-sm font-medium text-neutral-600 hover:text-black transition-colors">
@@ -150,7 +150,7 @@ function LandingPage() {
                 </a>
               </div>
               <div className="slide-up grid grid-cols-3 gap-8 mt-12 pt-12 border-t border-neutral-200" style={{ animationDelay: '0.4s' }}>
-                {[{ v: '44', l: 'Industries Studied' }, { v: '200+', l: 'Winners Mapped' }, { v: '<1hr', l: 'Your Preview' }].map(s => (
+                {[{ v: '44', l: 'Industries Studied' }, { v: '200+', l: 'Winners Mapped' }, { v: '24h', l: 'Your Preview' }].map(s => (
                   <div key={s.l}><div className="font-d text-3xl sm:text-4xl font-semibold text-black">{s.v}</div><div className="font-b text-xs text-neutral-400 mt-1 tracking-wide">{s.l}</div></div>
                 ))}
               </div>
@@ -180,9 +180,9 @@ function LandingPage() {
                   <input type="text" placeholder="What are you building?" value={lead.businessName} onChange={e => { setLead({ ...lead, businessName: e.target.value }); setErrors({ ...errors, businessName: false }); }} className={`w-full px-4 py-3.5 border rounded-xl font-b text-[15px] outline-none transition-colors ${errors.businessName ? 'border-red-500' : 'border-neutral-200 focus:border-black'}`} />
                 </div>
                 <button onClick={goToCapture} className="w-full py-4 bg-black text-white rounded-full font-b text-sm font-medium tracking-wide flex items-center justify-center gap-2.5 hover:shadow-xl hover:shadow-black/20 transition-all mt-2">
-                  Get My Free Preview <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                  Get My Free Preview in 24 Hours <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                 </button>
-                <p className="text-center mt-3 font-b text-xs text-neutral-400">Free. Built in under 1 hour. No call. No credit card.</p>
+                <p className="text-center mt-3 font-b text-xs text-neutral-400">Free. Under 24 hours. No call. No credit card.</p>
               </div>
               <div className="hidden lg:flex absolute -top-6 -right-6 bg-white rounded-2xl p-4 shadow-lg shadow-neutral-200/50 items-center gap-3" style={{ animation: 'float 6s ease-in-out 1s infinite' }}>
                 <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center"><svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></div>
@@ -190,7 +190,7 @@ function LandingPage() {
               </div>
               <div className="hidden lg:flex absolute -bottom-4 -left-8 bg-white rounded-2xl p-4 shadow-lg shadow-neutral-200/50 items-center gap-3" style={{ animation: 'float 6s ease-in-out 2s infinite' }}>
                 <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center"><svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
-                <div><div className="font-b text-xs font-medium text-black">Ready in under 1 hour</div><div className="font-b text-xs text-neutral-400">Your name on it</div></div>
+                <div><div className="font-b text-xs font-medium text-black">Ready in 24 hours</div><div className="font-b text-xs text-neutral-400">Your name on it</div></div>
               </div>
             </div>
           </div>
@@ -247,7 +247,7 @@ function LandingPage() {
                 {[
                   { icon: '◆', name: '44 Industries Dissected', desc: 'From e-commerce to restaurants, fitness to real estate, salons to construction — we studied the businesses that are dominating, not the ones with the biggest budgets.', pills: ['200+ brands', '44+ industries', '12 layers'] },
                   { icon: '◇', name: 'The Psychology Extracted', desc: 'We broke down exactly why a stranger lands on their page and thinks "this is the one" within 3 seconds. The trust signals, the flow, the words that convert.' },
-                  { icon: '▣', name: 'Built For Your Business', desc: 'Within 60 minutes we build a live preview using the exact strategies driving growth for the top performers in your space. Three custom versions. Your name.' },
+                  { icon: '▣', name: 'Built For Your Business', desc: 'Within 24 hours we build a live preview using the exact strategies driving growth for the top performers in your space. Three custom versions. Your name.' },
                 ].map(c => (
                   <div key={c.name} className="bg-white rounded-3xl p-6 border border-transparent hover:border-neutral-200 transition-all">
                     <div className="flex items-center gap-3 mb-3"><div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white text-sm">{c.icon}</div><span className="font-d text-base font-medium">{c.name}</span></div>
@@ -274,8 +274,8 @@ function LandingPage() {
             <p className="font-b text-lg text-neutral-400 leading-relaxed mt-8 max-w-[600px] mx-auto">Not thinking about it. Not planning it. Building it. Right now. While you&apos;re reading this, they&apos;re getting the customers you should be getting, taking the spot in your market that should be yours.</p>
             <p className="font-b text-lg text-neutral-400 leading-relaxed mt-6 max-w-[600px] mx-auto">A year from now, one of two things will be true. Either you&apos;ll look back at this moment and think <em className="text-white italic">&ldquo;that&apos;s when everything changed.&rdquo;</em> Or you&apos;ll still be exactly where you are right now — except a year further behind.</p>
             <div className="mt-10">
-              <button onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => document.getElementById('sel-industry')?.focus(), 700); }} className="px-10 py-5 bg-white text-black font-b text-sm font-semibold tracking-wide rounded-full hover:shadow-xl hover:shadow-white/20 transition-all">Get My Free Preview →</button>
-              <p className="font-b text-sm text-neutral-500 mt-4">Free. Under 60 minutes. No call. No credit card.</p>
+              <button onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => document.getElementById('sel-industry')?.focus(), 700); }} className="px-10 py-5 bg-white text-black font-b text-sm font-semibold tracking-wide rounded-full hover:shadow-xl hover:shadow-white/20 transition-all">Get My Free Preview in 24 Hours →</button>
+              <p className="font-b text-sm text-neutral-500 mt-4">Free. Under 24 hours. No call. No credit card.</p>
             </div>
           </div>
         </section>
@@ -311,15 +311,15 @@ function LandingPage() {
             <div className="flex items-center gap-2.5 mb-8"><div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center"><span className="text-white font-d text-lg font-semibold">V</span></div><span className="font-b text-sm font-semibold tracking-wide text-black">VEKTORLABS</span></div>
             <div className="w-16 h-16 bg-neutral-50 rounded-2xl flex items-center justify-center mb-6 text-3xl">🚀</div>
             <h2 className="font-d text-[28px] font-medium text-black mb-2">Almost there.</h2>
-            <p className="font-b text-[15px] text-neutral-500 leading-relaxed mb-7">We&apos;ll build your custom preview and <strong className="text-black">text you the link</strong> when it&apos;s ready — usually under 60&nbsp;minutes.</p>
+            <p className="font-b text-[15px] text-neutral-500 leading-relaxed mb-7">We&apos;ll build your custom preview and <strong className="text-black">text you the link</strong> when it&apos;s ready — usually under 24&nbsp;hours.</p>
             <div className="flex flex-wrap gap-2 mb-6">{[lead.industry, lead.websiteType, lead.businessName].map(v => (<span key={v} className="px-3.5 py-1.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-medium text-neutral-600">{v}</span>))}</div>
             <div className="mb-3.5"><label className="block font-b text-xs font-semibold tracking-[0.08em] uppercase text-neutral-400 mb-1.5">Email</label><input type="email" placeholder="you@business.com" value={lead.email} onChange={e => { setLead({ ...lead, email: e.target.value }); setErrors({ ...errors, email: false }); }} className={`w-full px-4 py-3.5 border rounded-xl font-b text-[15px] outline-none transition-colors ${errors.email ? 'border-red-500' : 'border-neutral-200 focus:border-black'}`} /></div>
             <div className="mb-3.5"><label className="block font-b text-xs font-semibold tracking-[0.08em] uppercase text-neutral-400 mb-1.5">Phone Number</label><input type="tel" placeholder="(514) 555-1234" value={lead.phone} onChange={e => { setLead({ ...lead, phone: e.target.value }); setErrors({ ...errors, phone: false }); }} className={`w-full px-4 py-3.5 border rounded-xl font-b text-[15px] outline-none transition-colors ${errors.phone ? 'border-red-500' : 'border-neutral-200 focus:border-black'}`} /></div>
             <button onClick={submitLead} disabled={submitting} className="w-full py-4 bg-black text-white rounded-full font-b text-sm font-medium tracking-wide flex items-center justify-center gap-2.5 hover:shadow-xl hover:shadow-black/20 transition-all mt-2 disabled:opacity-50">
               {submitting ? 'Sending...' : 'Build My Preview'}<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             </button>
-            <p className="text-center mt-4 font-b text-xs text-neutral-400">Free preview. Plans start at $299. No payment until you love it.</p>
-            <div className="flex items-center justify-center gap-4 mt-5 pt-5 border-t border-neutral-100">{['Free preview', 'Under 1 hour', 'No spam'].map(t => (<span key={t} className="font-b text-[11px] text-neutral-400 flex items-center gap-1"><svg className="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{t}</span>))}</div>
+            <p className="text-center mt-4 font-b text-xs text-neutral-400">Free preview. No commitment required.</p>
+            <div className="flex items-center justify-center gap-4 mt-5 pt-5 border-t border-neutral-100">{['Free preview', 'Under 24 hours', 'No spam'].map(t => (<span key={t} className="font-b text-[11px] text-neutral-400 flex items-center gap-1"><svg className="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{t}</span>))}</div>
           </div>
         </div>
       )}
@@ -334,7 +334,7 @@ function LandingPage() {
             <h2 className="font-d text-[32px] font-medium text-black mb-2">We&apos;re on it.</h2>
             <p className="font-b text-base text-neutral-500 leading-relaxed mb-8">Your custom preview is being built right now. We&apos;ll <strong className="text-black">text you the link</strong> when it&apos;s ready.</p>
             <div className="text-left max-w-[340px] mx-auto mb-8">
-              {[{ icon: '✓', active: true, title: 'Request received', desc: 'We have your business details' }, { icon: '⚡', active: true, title: 'Building your preview', desc: 'Using intelligence from top brands in your space' }, { icon: '📱', active: false, title: 'Text you the preview link', desc: 'Usually under 60 minutes' }].map((s, i) => (
+              {[{ icon: '✓', active: true, title: 'Request received', desc: 'We have your business details' }, { icon: '⚡', active: true, title: 'Building your preview', desc: 'Using intelligence from top brands in your space' }, { icon: '📱', active: false, title: 'Text you the preview link', desc: 'Usually under 24 hours' }].map((s, i) => (
                 <div key={s.title} className="flex gap-4 py-3 relative">
                   {i < 2 && <div className="absolute left-[15px] top-10 bottom-0 w-[1.5px] bg-neutral-200" />}
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm z-10 ${s.active ? 'bg-emerald-50 text-emerald-600' : 'bg-neutral-100 text-neutral-400'}`}>{s.icon}</div>
