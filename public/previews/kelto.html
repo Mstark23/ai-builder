@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trouvez l'hypothèque parfaite pour vous | Kelto</title>
+<meta name="description" content="Découvrez nos solutions hypothécaires, options de refinancement, services de renouvellement et outils comme l'estimateur de valeur et le calculateur de paiements.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1a2f51;
+    --navy-deep: #222e48;
+    --teal: #1faddb;
+    --teal-dark: #1899c4;
+    --teal-glow: rgba(31,173,219,0.1);
+    --white: #ffffff;
+    --cream: #f8f9fa;
+    --gray-50: #f5f6f8;
+    --gray-100: #ebecef;
+    --gray-200: #dfe0e4;
+    --gray-300: #c1c4cc;
+    --gray-500: #6a7283;
+    --gray-900: #212529;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-lg: 24px;
+    --shadow-sm: 0 2px 12px rgba(26,47,81,0.06);
+    --shadow-md: 0 8px 32px rgba(26,47,81,0.08);
+    --shadow-lg: 0 16px 48px rgba(26,47,81,0.12);
+    --shadow-xl: 0 24px 64px rgba(26,47,81,0.16);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{font-family:'Outfit',-apple-system,sans-serif;color:var(--gray-900);background:var(--white);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+  img{max-width:100%;display:block;}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  @keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(31,173,219,0.4)}70%{box-shadow:0 0 0 12px rgba(31,173,219,0)}100%{box-shadow:0 0 0 0 rgba(31,173,219,0)}}
+  .anim{opacity:0;animation:fadeUp .7s ease forwards}
+  .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}.d5{animation-delay:.5s}
+
+  /* NAV */
+  nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 48px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(26,47,81,.06);transition:box-shadow .3s}
+  nav.scrolled{box-shadow:var(--shadow-sm)}
+  .logo{display:flex;align-items:center;text-decoration:none}
+  .logo img{height:38px}
+  .nav-links{display:flex;align-items:center;gap:32px;list-style:none}
+  .nav-links a{text-decoration:none;color:var(--gray-500);font-size:15px;font-weight:500;transition:color .2s;position:relative}
+  .nav-links a:hover{color:var(--navy)}
+  .nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--teal);transition:width .3s}
+  .nav-links a:hover::after{width:100%}
+  .nav-right{display:flex;align-items:center;gap:16px}
+  .nav-phone{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--navy);font-weight:600;font-size:14px}
+  .nav-phone svg{color:var(--teal)}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:50px;font-size:15px;font-weight:600;font-family:'Outfit',sans-serif;text-decoration:none;border:none;cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1)}
+  .btn-primary{background:var(--teal);color:#fff;box-shadow:0 4px 16px rgba(31,173,219,.3)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(31,173,219,.4);background:var(--teal-dark)}
+  .btn-outline{background:transparent;color:var(--navy);border:2px solid var(--gray-200)}
+  .btn-outline:hover{border-color:var(--teal);background:var(--teal-glow)}
+  .btn-sm{padding:10px 22px;font-size:14px}
+  .btn-white{background:#fff;color:var(--navy)}
+  .btn-white:hover{background:var(--cream);transform:translateY(-2px)}
+  .btn-white-outline{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.25)}
+  .btn-white-outline:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+
+  /* HERO */
+  .hero{padding:120px 48px 80px;max-width:1300px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;min-height:92vh}
+  .hero-label{display:inline-flex;align-items:center;gap:8px;padding:6px 16px 6px 8px;background:var(--teal-glow);border:1px solid rgba(31,173,219,.2);border-radius:50px;font-size:13px;font-weight:600;color:var(--teal-dark);margin-bottom:24px}
+  .hero-label-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);animation:pulse-ring 2s infinite}
+  .hero h1{font-family:'DM Serif Display',serif;font-size:clamp(38px,4.6vw,58px);line-height:1.08;color:var(--navy);margin-bottom:20px;letter-spacing:-.5px}
+  .hero h1 em{font-style:italic;color:var(--teal)}
+  .hero-desc{font-size:17px;line-height:1.7;color:var(--gray-500);max-width:490px;margin-bottom:32px}
+  .hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:40px}
+  .hero-trust{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .hero-trust-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray-500);font-weight:500}
+
+  /* RATE CARD */
+  .rate-card-wrap{position:relative}
+  .rate-card-glow{position:absolute;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(31,173,219,.12),transparent 70%);top:-80px;right:-80px;z-index:0;animation:float 6s ease-in-out infinite}
+  .rate-card{position:relative;z-index:1;background:#fff;border-radius:var(--radius-lg);padding:40px;box-shadow:var(--shadow-xl);border:1px solid var(--gray-100)}
+  .rate-card::before{content:'';position:absolute;top:0;left:24px;right:24px;height:3px;background:linear-gradient(90deg,var(--teal),var(--navy),var(--teal));background-size:200% 100%;animation:gradientShift 4s ease infinite;border-radius:0 0 3px 3px}
+  .rate-card-title{font-family:'DM Serif Display',serif;font-size:22px;color:var(--navy);margin-bottom:4px}
+  .rate-card-sub{font-size:14px;color:var(--gray-300);margin-bottom:24px}
+  .rate-tabs{display:flex;background:var(--gray-50);border-radius:12px;padding:4px;margin-bottom:24px}
+  .rate-tab{flex:1;padding:10px 14px;border:none;background:none;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--gray-300);cursor:pointer;border-radius:10px;transition:.3s}
+  .rate-tab.active{background:#fff;color:var(--navy);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  .rate-boxes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+  .rate-box{background:var(--gray-50);border-radius:var(--radius-sm);padding:18px;text-align:center;border:2px solid transparent;cursor:pointer;transition:.3s}
+  .rate-box:hover,.rate-box.sel{border-color:var(--teal);background:var(--teal-glow)}
+  .rate-box .lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gray-300);margin-bottom:4px}
+  .rate-box .val{font-family:'DM Serif Display',serif;font-size:34px;color:var(--navy);line-height:1}
+  .rate-box .val span{font-size:18px;color:var(--gray-300)}
+  .rate-box .term{font-size:12px;color:var(--gray-500);margin-top:4px}
+  .rate-select{margin-bottom:20px}
+  .rate-select label{display:block;font-size:13px;font-weight:600;color:var(--gray-500);margin-bottom:6px}
+  .rate-select select{width:100%;padding:12px 16px;border:2px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'Outfit',sans-serif;font-size:15px;color:var(--navy);background:#fff;cursor:pointer;appearance:none;transition:border-color .2s;background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236a7283' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+  .rate-select select:focus{outline:none;border-color:var(--teal)}
+  .rate-card .btn{width:100%;justify-content:center}
+  .rate-lock{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--gray-300)}
+
+  /* TRUST BAR */
+  .trust-bar{background:var(--cream);border-top:1px solid var(--gray-100);border-bottom:1px solid var(--gray-100);padding:28px 48px}
+  .trust-inner{max-width:1300px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap}
+  .trust-item{display:flex;align-items:center;gap:12px}
+  .trust-icon{width:48px;height:48px;background:var(--teal-glow);border-radius:12px;display:flex;align-items:center;justify-content:center}
+  .trust-icon svg{color:var(--teal)}
+  .trust-text strong{display:block;font-size:15px;color:var(--navy)}
+  .trust-text span{font-size:13px;color:var(--gray-300)}
+  .trust-div{width:1px;height:40px;background:var(--gray-200)}
+
+  /* SECTIONS */
+  section{padding:100px 48px;max-width:1300px;margin:0 auto}
+  .sec-label{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--teal);margin-bottom:14px}
+  .sec-label::before{content:'';width:20px;height:2px;background:var(--teal)}
+  .sec-title{font-family:'DM Serif Display',serif;font-size:clamp(30px,3.8vw,46px);color:var(--navy);line-height:1.12;margin-bottom:14px;max-width:620px}
+  .sec-sub{font-size:16px;color:var(--gray-500);max-width:540px;line-height:1.7;margin-bottom:48px}
+
+  /* IMAGE HERO BANNER (under rate card area) */
+  .hero-img-strip{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+    padding:0 48px 0;max-width:1300px;margin:-20px auto 0;
+  }
+  .hero-img-card{
+    border-radius:var(--radius);overflow:hidden;position:relative;height:220px;
+  }
+  .hero-img-card img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
+  .hero-img-card:hover img{transform:scale(1.05)}
+  .hero-img-overlay{
+    position:absolute;bottom:0;left:0;right:0;padding:20px;
+    background:linear-gradient(transparent,rgba(26,47,81,.7));
+    color:#fff;
+  }
+  .hero-img-overlay h4{font-size:16px;font-weight:700;margin-bottom:2px}
+  .hero-img-overlay p{font-size:13px;opacity:.8}
+
+  /* ABOUT SECTION */
+  .about-section{background:var(--gray-50);padding:100px 48px;max-width:none;margin:0}
+  .about-inner{max-width:1300px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+  .about-img{border-radius:var(--radius-lg);overflow:hidden;position:relative}
+  .about-img img{width:100%;height:400px;object-fit:cover}
+  .about-img-badge{
+    position:absolute;bottom:24px;left:24px;background:#fff;border-radius:14px;
+    padding:16px 20px;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:12px;
+  }
+  .about-img-badge .num{font-family:'DM Serif Display',serif;font-size:32px;color:var(--teal);line-height:1}
+  .about-img-badge .txt{font-size:13px;color:var(--gray-500);font-weight:600;line-height:1.3}
+
+  /* FEATURES */
+  .feat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+  .feat-card{background:#fff;border-radius:var(--radius);padding:32px;border:1px solid var(--gray-100);transition:all .4s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden}
+  .feat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--teal);transform:scaleX(0);transition:transform .4s}
+  .feat-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-md);border-color:transparent}
+  .feat-card:hover::after{transform:scaleX(1)}
+  .feat-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;background:var(--teal-glow)}
+  .feat-icon svg{color:var(--teal)}
+  .feat-card h4{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:8px}
+  .feat-card p{font-size:14px;color:var(--gray-500);line-height:1.65}
+
+  /* HOW IT WORKS */
+  .how-section{background:var(--navy);padding:100px 48px;max-width:none;margin:0;position:relative;overflow:hidden}
+  .how-section::before{content:'';position:absolute;top:-200px;right:-200px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(31,173,219,.06),transparent 70%)}
+  .how-inner{max-width:1300px;margin:0 auto}
+  .how-section .sec-label{color:var(--teal)}
+  .how-section .sec-title{color:#fff}
+  .how-section .sec-sub{color:rgba(255,255,255,.5)}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;position:relative}
+  .steps::before{content:'';position:absolute;top:36px;left:12%;right:12%;height:2px;background:linear-gradient(90deg,transparent,rgba(31,173,219,.25),rgba(31,173,219,.25),transparent)}
+  .step{text-align:center;position:relative}
+  .step-num{width:72px;height:72px;border-radius:50%;background:var(--navy-deep);border:2px solid rgba(31,173,219,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;font-family:'DM Serif Display',serif;font-size:28px;color:var(--teal);position:relative;z-index:1;transition:.3s}
+  .step:hover .step-num{background:var(--teal);color:#fff;border-color:var(--teal);transform:scale(1.08)}
+  .step h4{font-size:17px;font-weight:700;color:#fff;margin-bottom:8px}
+  .step p{font-size:14px;color:rgba(255,255,255,.45);line-height:1.65}
+  .step-img{border-radius:var(--radius);overflow:hidden;margin-top:20px;height:160px}
+  .step-img img{width:100%;height:100%;object-fit:cover;opacity:.6;transition:opacity .3s}
+  .step:hover .step-img img{opacity:.85}
+
+  /* STATS */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:56px}
+  .stat{background:#fff;border-radius:var(--radius);padding:32px;text-align:center;border:1px solid var(--gray-100);transition:.3s}
+  .stat:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+  .stat-val{font-family:'DM Serif Display',serif;font-size:44px;color:var(--teal);line-height:1;margin-bottom:6px}
+  .stat-lbl{font-size:14px;color:var(--gray-500);font-weight:500}
+
+  /* TOOLS */
+  .tools-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  .calc-visual{background:#fff;border-radius:var(--radius-lg);padding:36px;box-shadow:var(--shadow-lg);border:1px solid var(--gray-100)}
+  .calc-head{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+  .calc-head span{font-size:15px;font-weight:600;color:var(--gray-300)}
+  .calc-row{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--gray-50)}
+  .calc-row:last-of-type{border-bottom:none}
+  .calc-row .cl{font-size:14px;color:var(--gray-300)}
+  .calc-row .cv{font-size:17px;font-weight:700;color:var(--navy)}
+  .calc-row.highlight .cv{font-family:'DM Serif Display',serif;font-size:28px;color:var(--teal);line-height:1}
+  .calc-bar{height:8px;background:var(--gray-50);border-radius:4px;margin-top:20px;overflow:hidden}
+  .calc-bar-fill{height:100%;width:68%;background:linear-gradient(90deg,var(--teal),var(--navy));border-radius:4px}
+  .tool-links{display:flex;flex-direction:column;gap:14px;max-width:380px}
+
+  /* TESTIMONIALS */
+  .test-section{background:var(--gray-50);padding:100px 48px;max-width:none;margin:0}
+  .test-inner{max-width:1300px;margin:0 auto}
+  .test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .test-card{background:#fff;border-radius:var(--radius);padding:32px;border:1px solid var(--gray-100);transition:.3s}
+  .test-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+  .test-quote{font-family:'DM Serif Display',serif;font-size:56px;color:var(--teal);line-height:1;margin-bottom:-8px;opacity:.3}
+  .test-stars{display:flex;gap:2px;margin-bottom:14px}
+  .test-stars svg{width:16px;height:16px;fill:#f5c542}
+  .test-card>p{font-size:14px;color:var(--gray-500);line-height:1.7;margin-bottom:18px;font-style:italic}
+  .test-author{display:flex;align-items:center;gap:12px}
+  .test-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--navy));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px}
+  .test-info strong{display:block;font-size:14px;color:var(--navy)}
+  .test-info span{font-size:12px;color:var(--gray-300)}
+
+  /* CTA */
+  .cta-wrap{padding:0 48px 100px;max-width:1300px;margin:0 auto}
+  .cta{border-radius:var(--radius-lg);overflow:hidden;position:relative;min-height:420px;display:flex;align-items:center;justify-content:center}
+  .cta-bg{position:absolute;inset:0;z-index:0}
+  .cta-bg img{width:100%;height:100%;object-fit:cover}
+  .cta-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(26,47,81,.92),rgba(34,46,72,.85))}
+  .cta-content{position:relative;z-index:1;text-align:center;padding:72px 48px}
+  .cta h2{font-family:'DM Serif Display',serif;font-size:clamp(28px,3.5vw,44px);color:#fff;margin-bottom:14px}
+  .cta p{font-size:17px;color:rgba(255,255,255,.55);margin-bottom:32px;max-width:500px;margin-left:auto;margin-right:auto}
+  .cta-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+  /* FOOTER */
+  footer{background:var(--navy);padding:72px 48px 36px;color:rgba(255,255,255,.5)}
+  .footer-inner{max-width:1300px;margin:0 auto}
+  .footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px}
+  .footer-brand p{font-size:14px;line-height:1.7;max-width:280px;margin:16px 0 20px}
+  .footer-brand .logo img{filter:brightness(10)}
+  .footer-col h5{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,.3);margin-bottom:18px}
+  .footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .footer-col a{color:rgba(255,255,255,.5);text-decoration:none;font-size:14px;transition:color .2s}
+  .footer-col a:hover{color:var(--teal)}
+  .footer-social{display:flex;gap:10px}
+  .footer-social a{width:36px;height:36px;background:rgba(255,255,255,.06);border-radius:10px;display:flex;align-items:center;justify-content:center;transition:.2s}
+  .footer-social a:hover{background:rgba(31,173,219,.15)}
+  .footer-social a svg{color:rgba(255,255,255,.5)}
+  .footer-bottom{border-top:1px solid rgba(255,255,255,.06);padding-top:24px;display:flex;justify-content:space-between;font-size:13px;flex-wrap:wrap;gap:12px}
+
+  /* RESPONSIVE */
+  @media(max-width:1024px){
+    .hero{grid-template-columns:1fr;padding:100px 24px 60px;min-height:auto}
+    .rate-card-wrap{max-width:500px}
+    .feat-grid,.stats{grid-template-columns:repeat(2,1fr)}
+    .test-grid{grid-template-columns:1fr}
+    .steps{grid-template-columns:1fr}.steps::before{display:none}
+    .tools-grid,.about-inner{grid-template-columns:1fr}
+    .hero-img-strip{grid-template-columns:1fr;padding:0 24px}
+    .hero-img-card{height:180px}
+    .footer-grid{grid-template-columns:repeat(2,1fr)}
+    nav{padding:0 24px}
+    .nav-links{display:none}
+  }
+  @media(max-width:640px){
+    .hero{padding:90px 20px 40px}
+    .feat-grid,.stats{grid-template-columns:1fr}
+    .cta-content{padding:48px 24px}
+    .cta-wrap{padding:0 20px 60px}
+    .cta-btns{flex-direction:column;align-items:center}
+    .trust-inner{justify-content:center}.trust-div{display:none}
+    footer{padding:48px 20px 24px}
+    .footer-grid{grid-template-columns:1fr}
+    section{padding:60px 20px}
+    .how-section,.test-section,.about-section{padding:60px 20px}
+    .rate-boxes{grid-template-columns:1fr}
+    .hero-img-strip{padding:0 20px}
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <a href="#" class="logo"><img src="https://www.kelto.ca/logo.png" alt="Kelto"/></a>
+  <ul class="nav-links">
+    <li><a href="#services">Services</a></li>
+    <li><a href="#how">Comment ça marche</a></li>
+    <li><a href="#about">À propos</a></li>
+    <li><a href="#reviews">Témoignages</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="tel:15146606655" class="nav-phone">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+      1 (514) 660-6655
+    </a>
+    <a href="#rates" class="btn btn-primary btn-sm">Obtenir une soumission</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div>
+    <div class="hero-label anim d1"><div class="hero-label-dot"></div> Experts hypothécaires de confiance au Québec</div>
+    <h1 class="anim d2">Trouvez l'hypothèque <em>parfaite</em> pour vous</h1>
+    <p class="hero-desc anim d3">Découvrez nos solutions hypothécaires, options de refinancement, services de renouvellement et outils professionnels. Des conseils personnalisés par des experts qui placent vos intérêts en priorité.</p>
+    <div class="hero-btns anim d4">
+      <a href="#rates" class="btn btn-primary">Nouvelle hypothèque</a>
+      <a href="#" class="btn btn-outline">Renouvellement / Refinancement</a>
+    </div>
+    <div class="hero-trust anim d5">
+      <div class="hero-trust-item">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1faddb" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        5 étoiles sur Google
+      </div>
+      <div class="hero-trust-item">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1faddb" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Licencié au Québec
+      </div>
+      <div class="hero-trust-item">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1faddb" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Service 100% gratuit
+      </div>
+    </div>
+  </div>
+  <div class="rate-card-wrap anim d3" id="rates">
+    <div class="rate-card-glow"></div>
+    <div class="rate-card">
+      <div class="rate-card-title">Explorez votre meilleur taux</div>
+      <p class="rate-card-sub">Soumissions hypothécaires personnalisées en quelques secondes</p>
+      <div class="rate-tabs">
+        <button class="rate-tab active" onclick="switchTab(this)">Achat</button>
+        <button class="rate-tab" onclick="switchTab(this)">Renouvellement</button>
+        <button class="rate-tab" onclick="switchTab(this)">Refinancement</button>
+      </div>
+      <div class="rate-boxes">
+        <div class="rate-box sel" onclick="selectRate(this)">
+          <div class="lbl">Taux fixe</div>
+          <div class="val">4,24<span>%</span></div>
+          <div class="term">Fixe 5 ans</div>
+        </div>
+        <div class="rate-box" onclick="selectRate(this)">
+          <div class="lbl">Taux variable</div>
+          <div class="val">3,90<span>%</span></div>
+          <div class="term">Variable 5 ans</div>
+        </div>
+      </div>
+      <div class="rate-select">
+        <label>Province</label>
+        <select><option>Québec</option><option>Ontario</option><option>Colombie-Britannique</option><option>Alberta</option></select>
+      </div>
+      <a href="#" class="btn btn-primary" style="font-size:16px">Obtenir mon taux personnalisé →</a>
+      <div class="rate-lock">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Garantissez votre taux jusqu'à 120 jours
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- IMAGE STRIP -->
+<div class="hero-img-strip">
+  <div class="hero-img-card">
+    <img src="https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&q=80&auto=format" alt="Maison résidentielle"/>
+    <div class="hero-img-overlay"><h4>Achat résidentiel</h4><p>Trouvez votre chez-vous</p></div>
+  </div>
+  <div class="hero-img-card">
+    <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&q=80&auto=format" alt="Clés de maison"/>
+    <div class="hero-img-overlay"><h4>Première propriété</h4><p>On vous accompagne</p></div>
+  </div>
+  <div class="hero-img-card">
+    <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80&auto=format" alt="Maison de luxe"/>
+    <div class="hero-img-overlay"><h4>Investissement immobilier</h4><p>Maximisez votre rendement</p></div>
+  </div>
+</div>
+
+<!-- TRUST BAR -->
+<div class="trust-bar" style="margin-top:48px">
+  <div class="trust-inner">
+    <div class="trust-item">
+      <div class="trust-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="trust-text"><strong>Sécurité bancaire</strong><span>Cryptage 256 bits</span></div>
+    </div>
+    <div class="trust-div"></div>
+    <div class="trust-item">
+      <div class="trust-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+      <div class="trust-text"><strong>5 étoiles Google</strong><span>Avis vérifiés</span></div>
+    </div>
+    <div class="trust-div"></div>
+    <div class="trust-item">
+      <div class="trust-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+      <div class="trust-text"><strong>Service personnalisé</strong><span>Conseillers dédiés</span></div>
+    </div>
+    <div class="trust-div"></div>
+    <div class="trust-item">
+      <div class="trust-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+      <div class="trust-text"><strong>100% en ligne</strong><span>Postulez de partout</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="sec-label">Nos services</div>
+  <h2 class="sec-title">Des solutions hypothécaires complètes, adaptées à vous</h2>
+  <p class="sec-sub">De l'achat d'une première maison aux prêts commerciaux, nos experts vous accompagnent à chaque étape.</p>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <h4>Nouvelle hypothèque</h4>
+      <p>Obtenez une pré-approbation et sécurisez le meilleur taux pour votre propriété de rêve avec un accompagnement expert.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.78 7.78 5.5 5.5 0 017.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></div>
+      <h4>Refinancement</h4>
+      <p>Accédez à la valeur nette de votre propriété pour des rénovations, consolidation de dettes ou investissements.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></div>
+      <h4>Renouvellement</h4>
+      <p>N'acceptez pas l'offre de votre banque sans comparer. On magasine le marché pour vous trouver un meilleur taux.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+      <h4>Prêts commerciaux</h4>
+      <p>Financement flexible pour propriétés d'investissement, immobilier commercial et croissance d'entreprise.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<div class="about-section" id="about">
+  <div class="about-inner">
+    <div class="about-img">
+      <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=700&q=80&auto=format" alt="Équipe Kelto en réunion"/>
+      <div class="about-img-badge">
+        <div class="num">10+</div>
+        <div class="txt">Années<br>d'expérience</div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-label">À propos de Kelto</div>
+      <h2 class="sec-title">Votre partenaire hypothécaire de confiance au Québec</h2>
+      <p style="font-size:16px;color:var(--gray-500);line-height:1.7;margin-bottom:24px;">Chez Kelto, nous croyons que chaque Québécois mérite d'avoir accès aux meilleurs taux hypothécaires et à des conseils financiers transparents. Notre équipe d'experts dédiés travaille pour vous — pas pour les banques.</p>
+      <p style="font-size:16px;color:var(--gray-500);line-height:1.7;margin-bottom:32px;">Nous comparons les offres de plus de 30 prêteurs pour vous garantir le meilleur produit adapté à votre situation financière unique. Notre service est entièrement gratuit — les prêteurs nous rémunèrent pour vous avoir trouvé.</p>
+      <div style="display:flex;gap:32px;flex-wrap:wrap;">
+        <div><div style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--teal);">30+</div><div style="font-size:13px;color:var(--gray-500);font-weight:600;">Prêteurs partenaires</div></div>
+        <div><div style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--teal);">5,0</div><div style="font-size:13px;color:var(--gray-500);font-weight:600;">Note Google</div></div>
+        <div><div style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--teal);">100%</div><div style="font-size:13px;color:var(--gray-500);font-weight:600;">Service gratuit</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="how-section" id="how">
+  <div class="how-inner">
+    <div class="sec-label">Comment ça marche</div>
+    <h2 class="sec-title">Trois étapes simples vers votre hypothèque idéale</h2>
+    <p class="sec-sub">Notre processus simplifié rend l'obtention d'une hypothèque plus facile que jamais.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h4>Faites votre demande</h4>
+        <p>Remplissez une demande rapide en ligne ou appelez-nous. Nous évaluerons vos besoins et vous jumèlerons avec le bon produit.</p>
+        <div class="step-img"><img src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500&q=80&auto=format" alt="Formulaire en ligne"/></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h4>Rencontrez un expert</h4>
+        <p>Votre conseiller dédié analyse vos finances et magasine le marché pour trouver le meilleur taux et les meilleures conditions.</p>
+        <div class="step-img"><img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=500&q=80&auto=format" alt="Rencontre avec un conseiller"/></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h4>Approbation et clôture</h4>
+        <p>Téléversez vos documents, obtenez votre approbation et concluez votre hypothèque. Bienvenue chez vous.</p>
+        <div class="step-img"><img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=500&q=80&auto=format" alt="Clés de votre nouvelle maison"/></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<section>
+  <div style="text-align:center">
+    <div class="sec-label" style="justify-content:center">Kelto en chiffres</div>
+    <h2 class="sec-title" style="margin:0 auto 14px;text-align:center">Une expertise hypothécaire de confiance au Québec</h2>
+    <p class="sec-sub" style="margin:0 auto 48px;text-align:center">Service professionnel, taux compétitifs et attention personnalisée pour chaque client.</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-val">5,0</div><div class="stat-lbl">Note Google</div></div>
+    <div class="stat"><div class="stat-val">30+</div><div class="stat-lbl">Prêteurs partenaires</div></div>
+    <div class="stat"><div class="stat-val">100%</div><div class="stat-lbl">Service gratuit</div></div>
+    <div class="stat"><div class="stat-val">120</div><div class="stat-lbl">Jours de garantie de taux</div></div>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section style="padding-top:0">
+  <div class="tools-grid">
+    <div>
+      <div class="sec-label">Outils intelligents</div>
+      <h2 class="sec-title">Sachez exactement ce que vous pouvez vous permettre</h2>
+      <p class="sec-sub">Utilisez nos outils professionnels pour planifier votre hypothèque en toute confiance.</p>
+      <div class="tool-links">
+        <a href="#" class="btn btn-outline" style="justify-content:space-between">Calculateur de paiements <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></a>
+        <a href="#" class="btn btn-outline" style="justify-content:space-between">Estimateur de valeur résidentielle <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></a>
+        <a href="#" class="btn btn-outline" style="justify-content:space-between">Calculateur de refinancement <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></a>
+      </div>
+    </div>
+    <div class="calc-visual">
+      <div class="calc-head">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1faddb" stroke-width="2" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+        <span>Exemple de calcul</span>
+      </div>
+      <div class="calc-row"><span class="cl">Prix de la propriété</span><span class="cv">450 000 $</span></div>
+      <div class="calc-row"><span class="cl">Mise de fonds (20%)</span><span class="cv">90 000 $</span></div>
+      <div class="calc-row"><span class="cl">Taux d'intérêt</span><span class="cv">4,24 %</span></div>
+      <div class="calc-row"><span class="cl">Amortissement</span><span class="cv">25 ans</span></div>
+      <div class="calc-row highlight"><span class="cl">Paiement mensuel</span><span class="cv">1 952 $</span></div>
+      <div class="calc-bar"><div class="calc-bar-fill"></div></div>
+      <p style="font-size:12px;color:var(--gray-300);margin-top:10px;text-align:center">Capital et intérêts seulement. Taxes et assurances non incluses.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<div class="test-section" id="reviews">
+  <div class="test-inner">
+    <div style="text-align:center">
+      <div class="sec-label" style="justify-content:center">Témoignages</div>
+      <h2 class="sec-title" style="margin:0 auto 14px;text-align:center">Ce que nos clients disent de Kelto</h2>
+      <p class="sec-sub" style="margin:0 auto 48px;text-align:center">Des histoires réelles de vrais propriétaires à travers le Québec.</p>
+    </div>
+    <div class="test-grid">
+      <div class="test-card">
+        <div class="test-quote">"</div>
+        <div class="test-stars"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></div>
+        <p>Kelto a rendu l'achat de notre première maison tellement plus facile. Ils nous ont trouvé un taux incroyable et nous ont accompagnés à chaque étape. Je les recommande fortement!</p>
+        <div class="test-author"><div class="test-avatar">ML</div><div class="test-info"><strong>Marie L.</strong><span>Première acheteuse, Montréal</span></div></div>
+      </div>
+      <div class="test-card">
+        <div class="test-quote">"</div>
+        <div class="test-stars"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></div>
+        <p>Je renouvelais mon hypothèque et j'allais presque accepter l'offre de ma banque. Kelto m'a fait économiser des milliers de dollars en négociant un bien meilleur taux.</p>
+        <div class="test-author"><div class="test-avatar">JB</div><div class="test-info"><strong>Jean-Baptiste R.</strong><span>Renouvellement, Laval</span></div></div>
+      </div>
+      <div class="test-card">
+        <div class="test-quote">"</div>
+        <div class="test-stars"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></div>
+        <p>Excellent service pour notre propriété commerciale. Professionnels, rapides, et ils ont trouvé des options de financement qu'on ne connaissait même pas. Équipe A+.</p>
+        <div class="test-author"><div class="test-avatar">SK</div><div class="test-info"><strong>Sophie K.</strong><span>Prêt commercial, Québec</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-wrap" id="contact">
+  <div class="cta">
+    <div class="cta-bg">
+      <img src="https://images.unsplash.com/photo-1449844908441-8829872d2607?w=1400&q=80&auto=format" alt="Belle maison"/>
+    </div>
+    <div class="cta-content">
+      <h2>Prêt à trouver votre<br>hypothèque parfaite?</h2>
+      <p>Obtenez des conseils hypothécaires personnalisés et experts, sans frais. Appelez-nous ou faites votre demande en ligne dès aujourd'hui.</p>
+      <div class="cta-btns">
+        <a href="#rates" class="btn btn-primary" style="font-size:16px;padding:16px 36px">Obtenir une soumission gratuite</a>
+        <a href="tel:15146606655" class="btn btn-white-outline" style="font-size:16px;padding:16px 36px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+          Appeler le 1 (514) 660-6655
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="logo"><img src="https://www.kelto.ca/logo.png" alt="Kelto"/></a>
+        <p>Solutions hypothécaires personnalisées, options de refinancement et expertise professionnelle pour les propriétaires québécois.</p>
+        <div class="footer-social">
+          <a href="#" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+          <a href="#" aria-label="Facebook"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></a>
+          <a href="#" aria-label="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>Hypothèques</h5>
+        <ul>
+          <li><a href="#">Nouvelle hypothèque</a></li>
+          <li><a href="#">Refinancement</a></li>
+          <li><a href="#">Renouvellement</a></li>
+          <li><a href="#">Prêts commerciaux</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Outils</h5>
+        <ul>
+          <li><a href="#">Obtenir un taux</a></li>
+          <li><a href="#">Calculateur de paiements</a></li>
+          <li><a href="#">Estimateur de valeur</a></li>
+          <li><a href="#">Capacité d'emprunt</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Contact</h5>
+        <ul>
+          <li><a href="tel:15146606655">1 (514) 660-6655</a></li>
+          <li><a href="#">Québec, Canada</a></li>
+          <li><a href="#">Politique de confidentialité</a></li>
+          <li><a href="#">Conditions d'utilisation</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>Droits d'auteur © 2026 Kelto. Tous droits réservés.</span>
+      <span>Courtage hypothécaire licencié — Québec</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+window.addEventListener('scroll',()=>{document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>20)});
+function switchTab(el){document.querySelectorAll('.rate-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active')}
+function selectRate(el){document.querySelectorAll('.rate-box').forEach(b=>b.classList.remove('sel'));el.classList.add('sel')}
+const obs=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('visible')})},{threshold:.1});
+document.querySelectorAll('.feat-card,.step,.stat,.test-card,.hero-img-card').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
