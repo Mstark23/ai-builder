@@ -38,12 +38,14 @@ async function getScore(url: string): Promise<{ score: number; issues: string[] 
 }
 
 export async function scoreNewLeads(batchSize: number = 50) {
-  const { data: leads } = await supabaseAdmin
+  const { data: leads, error: queryErr } = await supabaseAdmin
     .from('outreach_leads')
     .select('id, company_website, company_name')
     .eq('status', 'new')
     .order('created_at')
     .limit(batchSize);
+
+  console.log(`[Scorer] Query: found ${leads?.length || 0} leads with status=new${queryErr ? `, error: ${queryErr.message}` : ''}`);
 
   if (!leads?.length) return { scored: 0, qualified: 0, disqualified: 0 };
 
