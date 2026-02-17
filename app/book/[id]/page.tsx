@@ -99,7 +99,7 @@ export default function BookPage() {
             */}
             <div
               className="calendly-inline-widget"
-              data-url="https://calendly.com/vektorlabs/strategy-call"
+              data-url="https://calendly.com/jhordanedouard/30min"
               style={{ minWidth: 320, height: 700 }}
             />
             {!loaded && (
