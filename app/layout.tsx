@@ -2,8 +2,9 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { TrackerProvider } from '@/components/TrackerProvider';
 import { ExitIntentPopup } from '@/components/ExitIntentPopup';
+import Chatbot from '@/components/Chatbot';
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vektorlabs.com';
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vektorlabs.ai';
 const baseUrl = appUrl.startsWith('http') ? appUrl : `https://${appUrl}`;
 
 export const metadata: Metadata = {
@@ -53,6 +54,7 @@ export default function RootLayout({
         <TrackerProvider>
           {children}
           <ExitIntentPopup />
+          <Chatbot />
         </TrackerProvider>
       </body>
     </html>
