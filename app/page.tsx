@@ -51,6 +51,8 @@ function LandingPage() {
   const [lead, setLead] = useState<LeadData>({ industry: '', websiteType: '', businessName: '', email: '', phone: '' });
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [quoteIdx, setQuoteIdx] = useState(0);
+  const [quoteFade, setQuoteFade] = useState(true);
 
   useEffect(() => {
     const shop = searchParams.get('shop');
@@ -62,6 +64,24 @@ function LandingPage() {
     const fn = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', fn);
     return () => window.removeEventListener('scroll', fn);
+  }, []);
+
+  const QUOTES = [
+    { text: 'Success is a decision away.', author: '' },
+    { text: 'If you think you can or if you think you can\u2019t, either way you\u2019re correct.', author: 'Henry Ford' },
+    { text: 'Don\u2019t let anyone steal your dream.', author: '' },
+    { text: 'Believe you can succeed and you will.', author: '' },
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setQuoteFade(false);
+      setTimeout(() => {
+        setQuoteIdx(prev => (prev + 1) % QUOTES.length);
+        setQuoteFade(true);
+      }, 600);
+    }, 5000);
+    return () => clearInterval(timer);
   }, []);
 
   const goToCapture = () => {
@@ -105,6 +125,9 @@ function LandingPage() {
         @keyframes checkIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
         .card-in { animation: cardIn 0.4s ease; }
         .check-in { animation: checkIn 0.4s ease 0.2s both; }
+        .quote-fade { transition: opacity 0.6s ease, transform 0.6s ease; }
+        .quote-visible { opacity: 1; transform: translateY(0); }
+        .quote-hidden { opacity: 0; transform: translateY(12px); }
       `}</style>
       <div className="noise" />
 
@@ -228,6 +251,30 @@ function LandingPage() {
                   <h3 className="font-d text-xl font-medium text-black mb-3">{c.title}</h3>
                   <p className="font-b text-[14px] text-neutral-500 leading-relaxed">{c.desc}</p>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── QUOTES ── */}
+        <section className="py-20 lg:py-28 bg-neutral-950 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+          <div className="relative max-w-[700px] mx-auto px-8 text-center">
+            <div className="w-px h-12 bg-gradient-to-b from-transparent via-neutral-600 to-transparent mx-auto mb-10" />
+            <div className={`quote-fade ${quoteFade ? 'quote-visible' : 'quote-hidden'}`}>
+              <p className="font-d text-2xl sm:text-3xl lg:text-[34px] font-medium text-white italic leading-snug">&ldquo;{QUOTES[quoteIdx].text}&rdquo;</p>
+              <div className="mt-6 flex items-center justify-center gap-3">
+                {QUOTES[quoteIdx].author && (<>
+                  <div className="w-8 h-px bg-neutral-700" />
+                  <span className="font-b text-xs font-medium tracking-[0.15em] uppercase text-neutral-500">{QUOTES[quoteIdx].author}</span>
+                  <div className="w-8 h-px bg-neutral-700" />
+                </>)}
+              </div>
+            </div>
+            <div className="w-px h-12 bg-gradient-to-b from-transparent via-neutral-600 to-transparent mx-auto mt-10" />
+            <div className="flex justify-center gap-1.5 mt-6">
+              {QUOTES.map((_, i) => (
+                <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i === quoteIdx ? 'bg-white w-6' : 'bg-neutral-700'}`} />
               ))}
             </div>
           </div>
