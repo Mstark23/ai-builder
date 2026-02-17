@@ -20,7 +20,7 @@ function getPreviewMessage(businessName: string, previewUrl: string): string {
 }
 
 function getNeedsFollowUp(businessName: string, needsUrl: string): string {
-  return `Hey! Just following up on your ${businessName} website preview. 🔥\n\nReady to move forward? Fill out your needs here:\n${needsUrl}\n\nTakes 2 min — we'll send you a custom quote right after.\n\n— VektorLabs Team`;
+  return `Hey! Just following up on your ${businessName} website preview. 🔥\n\nWant it live? Let's talk about growing your business:\n${needsUrl}\n\nTakes 2 min — then book a free strategy call.\n\n— VektorLabs Team`;
 }
 
 function getInvoiceReminder(businessName: string): string {
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     const formattedPhone = formatPhone(rawPhone);
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://vektorlabs.com';
+    const baseUrl = 'https://vektorlabs.ai';
 
     // Build message based on template
     let message: string;
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         message = getPreviewMessage(businessName, `${baseUrl}/preview/${project.id}`);
         break;
       case 'needs':
-        message = getNeedsFollowUp(businessName, `${baseUrl}/needs/${project.id}`);
+        message = getNeedsFollowUp(businessName, `${baseUrl}/growth/${project.id}`);
         break;
       case 'invoice':
         message = getInvoiceReminder(businessName);
