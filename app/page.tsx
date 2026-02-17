@@ -128,6 +128,7 @@ function LandingPage() {
         .quote-fade { transition: opacity 0.6s ease, transform 0.6s ease; }
         .quote-visible { opacity: 1; transform: translateY(0); }
         .quote-hidden { opacity: 0; transform: translateY(12px); }
+        @keyframes ghostFloat { 0% { opacity: 0; transform: translateY(8px); } 15% { opacity: 0.7; transform: translateY(0); } 85% { opacity: 0.7; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-8px); } }
       `}</style>
       <div className="noise" />
 
@@ -149,6 +150,16 @@ function LandingPage() {
 
         {/* ── HERO ── */}
         <section className="relative min-h-screen flex items-center pt-20">
+          {/* Ghost Quote */}
+          <div className="absolute top-24 left-0 right-0 z-30 flex justify-center pointer-events-none">
+            <p
+              key={quoteIdx}
+              className="font-d text-sm sm:text-base italic text-neutral-400/70 tracking-wide"
+              style={{ animation: 'ghostFloat 5s ease-in-out forwards' }}
+            >
+              {QUOTES[quoteIdx].text}
+            </p>
+          </div>
           <div className="absolute top-1/4 -right-64 w-[800px] h-[800px] bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-full blur-3xl opacity-60" style={{ animation: 'float 6s ease-in-out infinite' }} />
           <div className="absolute -bottom-32 -left-64 w-[600px] h-[600px] bg-gradient-to-tr from-neutral-100 to-neutral-200 rounded-full blur-3xl opacity-40" />
           <div className="relative max-w-[1400px] mx-auto px-8 lg:px-12 py-24 lg:py-32 grid lg:grid-cols-2 gap-16 items-center">
@@ -251,30 +262,6 @@ function LandingPage() {
                   <h3 className="font-d text-xl font-medium text-black mb-3">{c.title}</h3>
                   <p className="font-b text-[14px] text-neutral-500 leading-relaxed">{c.desc}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── QUOTES ── */}
-        <section className="py-20 lg:py-28 bg-neutral-950 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
-          <div className="relative max-w-[700px] mx-auto px-8 text-center">
-            <div className="w-px h-12 bg-gradient-to-b from-transparent via-neutral-600 to-transparent mx-auto mb-10" />
-            <div className={`quote-fade ${quoteFade ? 'quote-visible' : 'quote-hidden'}`}>
-              <p className="font-d text-2xl sm:text-3xl lg:text-[34px] font-medium text-white italic leading-snug">&ldquo;{QUOTES[quoteIdx].text}&rdquo;</p>
-              <div className="mt-6 flex items-center justify-center gap-3">
-                {QUOTES[quoteIdx].author && (<>
-                  <div className="w-8 h-px bg-neutral-700" />
-                  <span className="font-b text-xs font-medium tracking-[0.15em] uppercase text-neutral-500">{QUOTES[quoteIdx].author}</span>
-                  <div className="w-8 h-px bg-neutral-700" />
-                </>)}
-              </div>
-            </div>
-            <div className="w-px h-12 bg-gradient-to-b from-transparent via-neutral-600 to-transparent mx-auto mt-10" />
-            <div className="flex justify-center gap-1.5 mt-6">
-              {QUOTES.map((_, i) => (
-                <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i === quoteIdx ? 'bg-white w-6' : 'bg-neutral-700'}`} />
               ))}
             </div>
           </div>
