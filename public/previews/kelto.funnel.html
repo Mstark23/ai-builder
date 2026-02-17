@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Refinancement hypothécaire | Kelto</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1a2f51;--navy-deep:#0f1d33;--navy-mid:#1e3a5f;
+  --teal:#1faddb;--teal-dark:#1899c4;--teal-light:rgba(31,173,219,.12);
+  --teal-glow:rgba(31,173,219,.06);
+  --white:#fff;--glass:rgba(255,255,255,.06);--glass-border:rgba(255,255,255,.1);
+  --text-primary:#f0f2f5;--text-secondary:rgba(255,255,255,.55);--text-muted:rgba(255,255,255,.35);
+  --green:#34d399;--green-glow:rgba(52,211,153,.15);
+  --card-bg:#fff;--card-text:#1a2f51;--card-sub:#6a7283;--card-border:#edeef1;
+  --opt-bg:#f7f8fa;--opt-border:#e2e4e8;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;min-height:100vh;background:var(--navy-deep);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* === FULL-PAGE GRADIENT BG === */
+.page-bg{position:fixed;inset:0;z-index:0;background:linear-gradient(145deg,#0f1d33 0%,#1a2f51 40%,#1e3a5f 70%,#0f1d33 100%)}
+.page-bg::before{content:'';position:absolute;top:-30%;right:-20%;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(31,173,219,.08),transparent 65%);animation:float 20s ease-in-out infinite}
+.page-bg::after{content:'';position:absolute;bottom:-25%;left:-15%;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(31,173,219,.05),transparent 65%);animation:float 25s ease-in-out infinite reverse}
+@keyframes float{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-40px)}}
+
+.page-wrap{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* === TOP BAR === */
+.topbar{padding:16px 28px;display:flex;align-items:center;justify-content:space-between}
+.topbar-logo img{height:30px;filter:brightness(0) invert(1);opacity:.9}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.topbar-phone{display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--text-secondary);font-size:13px;font-weight:500;transition:color .2s}
+.topbar-phone:hover{color:var(--teal)}
+.topbar-phone svg{color:var(--teal);width:14px;height:14px}
+.topbar-lock{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);font-weight:500}
+.topbar-lock svg{color:var(--green);width:12px;height:12px}
+
+/* === MAIN AREA === */
+.main{flex:1;display:flex;align-items:center;justify-content:center;padding:20px}
+
+/* === CARD === */
+.card{background:var(--card-bg);border-radius:28px;width:100%;max-width:520px;box-shadow:0 32px 80px rgba(0,0,0,.25),0 0 0 1px rgba(255,255,255,.05);overflow:hidden;position:relative}
+
+/* === DOT STEPPER === */
+.dots{display:flex;align-items:center;justify-content:center;gap:8px;padding:24px 0 4px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--opt-border);transition:all .3s}
+.dot.active{background:var(--teal);box-shadow:0 0 8px rgba(31,173,219,.5);width:28px;border-radius:5px}
+.dot.done{background:var(--teal);opacity:.4}
+
+/* === STEP === */
+.step{display:none;padding:28px 36px 36px;animation:cardIn .4s ease}
+.step.active{display:block}
+@keyframes cardIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.q-num{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--teal);margin-bottom:12px}
+.q-title{font-family:'DM Serif Display',serif;font-size:24px;color:var(--card-text);line-height:1.2;margin-bottom:6px}
+.q-sub{font-size:14px;color:var(--card-sub);line-height:1.5;margin-bottom:24px}
+
+/* === GRID OPTIONS (icon cards) === */
+.opt-grid{display:grid;gap:10px}
+.opt-grid.cols-1{grid-template-columns:1fr}
+.opt-grid.cols-2{grid-template-columns:1fr 1fr}
+.opt-item{
+  background:var(--opt-bg);border:2px solid var(--opt-border);border-radius:14px;
+  padding:16px;cursor:pointer;transition:all .22s;display:flex;align-items:center;gap:12px;
+}
+.opt-item:hover{border-color:var(--teal);background:rgba(31,173,219,.04);transform:translateY(-2px);box-shadow:0 4px 16px rgba(31,173,219,.08)}
+.opt-item.picked{border-color:var(--teal);background:rgba(31,173,219,.08);box-shadow:0 0 0 3px rgba(31,173,219,.12)}
+.opt-item.picked .opt-check{background:var(--teal);border-color:var(--teal)}
+.opt-item.picked .opt-check svg{opacity:1}
+.opt-check{
+  width:24px;height:24px;border-radius:7px;border:2px solid var(--opt-border);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.opt-check svg{width:14px;height:14px;stroke:#fff;stroke-width:3;fill:none;opacity:0;transition:opacity .2s}
+.opt-label{font-size:14px;font-weight:500;color:var(--card-text);line-height:1.3}
+
+/* === SLIDER === */
+.slider-wrap{margin:8px 0 4px}
+.slider-display{text-align:center;margin-bottom:20px}
+.slider-amount{font-family:'DM Serif Display',serif;font-size:44px;color:var(--teal);line-height:1}
+.range-track{position:relative;padding:8px 0}
+input[type="range"]{-webkit-appearance:none;width:100%;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--teal) 0%,var(--opt-border) 0%);outline:none;cursor:pointer;transition:background .1s}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:var(--card-bg);border:4px solid var(--teal);box-shadow:0 2px 10px rgba(31,173,219,.3);cursor:pointer;transition:box-shadow .2s,transform .2s}
+input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.12);box-shadow:0 4px 20px rgba(31,173,219,.4)}
+input[type="range"]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;background:var(--card-bg);border:4px solid var(--teal);box-shadow:0 2px 10px rgba(31,173,219,.3);cursor:pointer}
+.range-labels{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--card-sub);margin-top:6px}
+.almost-msg{text-align:center;margin-top:20px;padding:10px 16px;background:var(--green-glow);border-radius:10px;color:#059669;font-weight:700;font-size:15px}
+
+/* === FORM === */
+.form-field{margin-bottom:16px}
+.form-field input{
+  width:100%;padding:16px 20px;border:2px solid var(--opt-border);border-radius:14px;
+  font-family:'Outfit',sans-serif;font-size:15px;color:var(--card-text);background:var(--opt-bg);
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.form-field input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(31,173,219,.1);background:#fff}
+.form-field input::placeholder{color:#b0b5c0}
+.consent{font-size:12px;color:var(--card-sub);line-height:1.5;margin-top:12px}
+
+/* === NAV === */
+.step-nav{display:flex;align-items:center;justify-content:space-between;margin-top:28px}
+.nav-back{
+  background:none;border:none;color:var(--teal);font-family:'Outfit',sans-serif;
+  font-size:14px;font-weight:600;cursor:pointer;padding:10px 0;display:flex;align-items:center;gap:4px;transition:opacity .2s;
+}
+.nav-back:hover{opacity:.7}
+.nav-forward{
+  display:inline-flex;align-items:center;gap:8px;padding:14px 28px;
+  background:var(--teal);color:#fff;border:none;border-radius:50px;
+  font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;
+  transition:all .3s;box-shadow:0 4px 20px rgba(31,173,219,.35);
+}
+.nav-forward:hover{background:var(--teal-dark);transform:translateY(-2px);box-shadow:0 8px 28px rgba(31,173,219,.45)}
+
+/* === INTRO === */
+.intro-content{text-align:center;padding:44px 36px 36px}
+.intro-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(31,173,219,.1);border-radius:50px;font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.8px;margin-bottom:20px}
+.intro-pulse{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(31,173,219,.4)}50%{box-shadow:0 0 0 8px rgba(31,173,219,0)}}
+.intro-content .q-title{font-size:clamp(26px,5vw,34px);margin-bottom:12px}
+.intro-content .q-sub{max-width:380px;margin:0 auto 28px;font-size:15px}
+.intro-btn{width:100%;justify-content:center;padding:16px;font-size:16px}
+.intro-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px;padding-top:24px;border-top:1px solid var(--card-border)}
+.stat-val{font-family:'DM Serif Display',serif;font-size:22px;color:var(--teal);margin-bottom:2px;display:flex;align-items:center;justify-content:center;gap:4px}
+.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--card-sub)}
+
+/* === THANK YOU === */
+.ty-wrap{text-align:center;padding:44px 36px 36px}
+.ty-check{width:68px;height:68px;border-radius:50%;background:var(--green-glow);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.ty-check svg{color:var(--green)}
+.ty-h{font-family:'DM Serif Display',serif;font-size:28px;color:var(--card-text);margin-bottom:8px}
+.ty-p{font-size:14px;color:var(--card-sub);line-height:1.6;margin-bottom:20px}
+.ty-summary{background:var(--opt-bg);border-radius:14px;padding:20px;text-align:left;margin-bottom:20px}
+.ty-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--card-border);font-size:13px;gap:8px}
+.ty-row:last-child{border-bottom:none}
+.ty-row .tl{color:var(--card-sub);flex-shrink:0}
+.ty-row .tv{color:var(--card-text);font-weight:600;text-align:right}
+.ty-call{
+  display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;
+  background:var(--teal);color:#fff;border:none;border-radius:50px;width:100%;
+  font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;
+  text-decoration:none;transition:all .3s;box-shadow:0 4px 20px rgba(31,173,219,.35);
+}
+.ty-call:hover{background:var(--teal-dark);transform:translateY(-2px)}
+
+/* === BOTTOM TRUST === */
+.bottom-trust{display:flex;align-items:center;justify-content:center;gap:20px;padding:16px 20px;flex-wrap:wrap}
+.bt-item{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--text-muted)}
+.bt-item svg{color:var(--green);width:13px;height:13px}
+
+.footer{text-align:center;padding:12px 20px 24px;font-size:11px;color:var(--text-muted)}
+.footer a{color:var(--text-secondary);text-decoration:none}
+
+@media(max-width:560px){
+  .main{padding:12px}
+  .card{border-radius:22px}
+  .step{padding:24px 24px 28px}
+  .intro-content{padding:32px 24px 28px}
+  .ty-wrap{padding:32px 24px 28px}
+  .opt-grid.cols-2{grid-template-columns:1fr}
+  .topbar-phone span{display:none}
+  .topbar-lock span{display:none}
+  .slider-amount{font-size:36px}
+}
+</style>
+</head>
+<body>
+
+<div class="page-bg"></div>
+
+<div class="page-wrap">
+
+  <div class="topbar">
+    <a href="https://www.kelto.ca" class="topbar-logo"><img src="https://www.kelto.ca/logo.png" alt="Kelto"/></a>
+    <div class="topbar-right">
+      <a href="tel:15146606655" class="topbar-phone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        <span>1 (514) 660-6655</span>
+      </a>
+      <div class="topbar-lock">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span>256-bit</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="card">
+
+      <!-- DOT STEPPER -->
+      <div class="dots" id="dots"></div>
+
+      <!-- INTRO -->
+      <div class="step active" data-step="0">
+        <div class="intro-content">
+          <div class="intro-badge"><div class="intro-pulse"></div> Soumission gratuite</div>
+          <h1 class="q-title">Découvrez combien vous pourriez <em style="font-style:italic;color:var(--teal)">économiser</em></h1>
+          <p class="q-sub">Répondez à 7 questions rapides et recevez une soumission personnalisée — gratuit et sans engagement.</p>
+          <button class="nav-forward intro-btn" onclick="goTo(1)">Commencer <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></button>
+          <div class="intro-stats">
+            <div><div class="stat-val">5,0 <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--teal)" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="stat-lbl">Google</div></div>
+            <div><div class="stat-val">30+</div><div class="stat-lbl">Prêteurs</div></div>
+            <div><div class="stat-val">100%</div><div class="stat-lbl">Gratuit</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q1 -->
+      <div class="step" data-step="1">
+        <div class="q-num">Question 1 de 7</div>
+        <h2 class="q-title">De quoi avez-vous principalement besoin d'aide ?</h2>
+        <div class="q-sub"></div>
+        <div class="opt-grid cols-1">
+          <div class="opt-item" onclick="pick(this,1)">
+            <div class="opt-check"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="opt-label">Refinancer mon hypothèque pour obtenir des fonds</span>
+          </div>
+          <div class="opt-item" onclick="pick(this,1)">
+            <div class="opt-check"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="opt-label">Renouveler mon hypothèque pour obtenir des taux plus bas</span>
+          </div>
+          <div class="opt-item" onclick="pick(this,1)">
+            <div class="opt-check"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="opt-label">J'ai besoin d'aide avec mes préoccupations hypothécaires.</span>
+          </div>
+        </div>
+        <div class="step-nav"><div></div><button class="nav-forward" onclick="goTo(2)">Suivant →</button></div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="step" data-step="2">
+        <div class="q-num">Question 2 de 7</div>
+        <h2 class="q-title">Raison de renouveler votre hypothèque ?</h2>
+        <div class="q-sub"></div>
+        <div class="opt-grid cols-1">
+          <div class="opt-item" onclick="pick(this,2)">
+            <div class="opt-check"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="opt-label">Réduire mon paiement mensuel</span>
+          </div>
+          <div class="opt-item" onclick="pick(this,2)">
+            <div class="opt-check"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="opt-label">La banque m'a fait une mauvaise offre hypothécaire.</span>
+          </div>
+          <div class="opt-item" onclick="pick(this,2)">
+            <div class="opt-check"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="opt-label">Changer mon prêt à taux variable pour un prêt à taux fixe</span>
+          </div>
+          <div class="opt-item" onclick="pick(this,2)">
+            <div class="opt-check"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="opt-label">Voir les taux hypothécaires actuels</span>
+          </div>
+        </div>
+        <div class="step-nav"><button class="nav-back" onclick="goTo(1)">← Retour</button><button class="nav-forward" onclick="goTo(3)">Suivant →</button></div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="step" data-step="3">
+        <div class="q-num">Question 3 de 7</div>
+        <h2 class="q-title">Quand renouvelez-vous votre hypothèque ?</h2>
+        <div class="q-sub"></div>
+        <div class="opt-grid cols-2">
+          <div class="opt-item" onclick="pick(this,3)" style="flex-direction:column;text-align:center;padding:20px 14px;gap:8px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="opt-label">Dans moins de 30 jours</span>
+          </div>
+          <div class="opt-item" onclick="pick(this,3)" style="flex-direction:column;text-align:center;padding:20px 14px;gap:8px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="opt-label">Entre 1 et 5 mois</span>
+          </div>
+          <div class="opt-item" onclick="pick(this,3)" style="flex-direction:column;text-align:center;padding:20px 14px;gap:8px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            <span class="opt-label">Après 5 mois</span>
+          </div>
+          <div class="opt-item" onclick="pick(this,3)" style="flex-direction:column;text-align:center;padding:20px 14px;gap:8px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span class="opt-label">Je ne sais pas</span>
+          </div>
+        </div>
+        <div class="step-nav"><button class="nav-back" onclick="goTo(2)">← Retour</button><button class="nav-forward" onclick="goTo(4)">Suivant →</button></div>
+      </div>
+
+      <!-- Q4: HOME VALUE -->
+      <div class="step" data-step="4">
+        <div class="q-num">Question 4 de 7</div>
+        <h2 class="q-title">Quelle est la valeur estimée de votre maison ?</h2>
+        <p class="q-sub">Si vendu aujourd'hui.</p>
+        <div class="slider-wrap">
+          <div class="slider-display"><div class="slider-amount" id="homeVal">$730,905</div></div>
+          <div class="range-track"><input type="range" min="100000" max="2000000" step="1" value="730905" id="homeSlider" oninput="updateSlider('homeVal','homeSlider')"></div>
+          <div class="range-labels"><span>100k</span><span>2M</span></div>
+        </div>
+        <div class="step-nav"><button class="nav-back" onclick="goTo(3)">← Retour</button><button class="nav-forward" onclick="goTo(5)">Suivant →</button></div>
+      </div>
+
+      <!-- Q5: BALANCE -->
+      <div class="step" data-step="5">
+        <div class="q-num">Question 5 de 7</div>
+        <h2 class="q-title">Solde restant approximatif de votre hypothèque ?</h2>
+        <p class="q-sub">Si vous ne connaissez pas le montant exact, une estimation suffira.</p>
+        <div class="slider-wrap">
+          <div class="slider-display"><div class="slider-amount" id="balVal">$841,587</div></div>
+          <div class="range-track"><input type="range" min="100000" max="2000000" step="1" value="841587" id="balSlider" oninput="updateSlider('balVal','balSlider')"></div>
+          <div class="range-labels"><span>100k</span><span>2M</span></div>
+          <div class="almost-msg">Vous y êtes presque !</div>
+        </div>
+        <div class="step-nav"><button class="nav-back" onclick="goTo(4)">← Retour</button><button class="nav-forward" onclick="goTo(6)">Suivant →</button></div>
+      </div>
+
+      <!-- Q6: CREDIT -->
+      <div class="step" data-step="6">
+        <div class="q-num">Question 6 de 7</div>
+        <h2 class="q-title">Au cours des 7 dernières années, avez-vous eu des problèmes de crédit ?</h2>
+        <div class="q-sub"></div>
+        <div class="opt-grid cols-2">
+          <div class="opt-item" onclick="pick(this,6)" style="flex-direction:column;text-align:center;padding:20px 14px;gap:8px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span class="opt-label">Aucun problème de crédit</span>
+          </div>
+          <div class="opt-item" onclick="pick(this,6)" style="flex-direction:column;text-align:center;padding:20px 14px;gap:8px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span class="opt-label">Quelques retards / paiements manqués</span>
+          </div>
+          <div class="opt-item" onclick="pick(this,6)" style="flex-direction:column;text-align:center;padding:20px 14px;gap:8px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span class="opt-label">Proposition de consommateur</span>
+          </div>
+          <div class="opt-item" onclick="pick(this,6)" style="flex-direction:column;text-align:center;padding:20px 14px;gap:8px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <span class="opt-label">Faillite</span>
+          </div>
+        </div>
+        <div class="step-nav"><button class="nav-back" onclick="goTo(5)">← Retour</button><button class="nav-forward" onclick="goTo(7)">Suivant →</button></div>
+      </div>
+
+      <!-- Q7: EMAIL -->
+      <div class="step" data-step="7">
+        <div class="q-num">Dernière étape</div>
+        <h2 class="q-title">Comment partageons-nous vos résultats ?</h2>
+        <div class="q-sub"></div>
+        <form onsubmit="submitForm(event)">
+          <div class="form-field"><input type="email" id="emailInput" placeholder="Email*" required></div>
+          <p class="consent">En cliquant sur « Suivant », vous acceptez de recevoir des communications de notre part concernant votre demande.</p>
+          <div class="step-nav"><button type="button" class="nav-back" onclick="goTo(6)">← Retour</button><button type="submit" class="nav-forward">Suivant →</button></div>
+        </form>
+      </div>
+
+      <!-- THANK YOU -->
+      <div class="step" data-step="8">
+        <div class="ty-wrap">
+          <div class="ty-check"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <h2 class="ty-h">Merci !</h2>
+          <p class="ty-p">Un conseiller Kelto vous contactera dans les prochaines <strong>24 heures</strong> avec votre soumission personnalisée.</p>
+          <div class="ty-summary" id="tyDetails"></div>
+          <a href="tel:15146606655" class="ty-call">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            Appeler le 1 (514) 660-6655
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="bottom-trust">
+    <div class="bt-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Cryptage 256-bit</div>
+    <div class="bt-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Licencié au Québec</div>
+    <div class="bt-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> Aucun frais</div>
+  </div>
+
+  <div class="footer">
+    © 2026 Kelto · Courtage hypothécaire — Québec · <a href="#">Confidentialité</a> · <a href="#">Conditions</a>
+  </div>
+
+</div>
+
+<script>
+const TOTAL=7;let cur=0;const ans={};
+
+function buildDots(){
+  const d=document.getElementById('dots');d.innerHTML='';
+  for(let i=0;i<=TOTAL;i++){
+    const dot=document.createElement('div');dot.className='dot';
+    if(i<cur)dot.classList.add('done');
+    if(i===cur)dot.classList.add('active');
+    d.appendChild(dot);
+  }
+}
+
+function goTo(s){
+  document.querySelectorAll('.step').forEach(el=>{el.classList.remove('active');el.style.display='none'});
+  const t=document.querySelector(`[data-step="${s}"]`);
+  if(t){t.style.display='block';void t.offsetWidth;t.classList.add('active')}
+  cur=s;buildDots();
+  document.getElementById('dots').style.display=s>TOTAL?'none':'flex';
+}
+
+function pick(el,step){
+  el.closest('.opt-grid').querySelectorAll('.opt-item').forEach(o=>o.classList.remove('picked'));
+  el.classList.add('picked');
+  ans['s'+step]=el.querySelector('.opt-label').textContent;
+}
+
+function updateSlider(dId,sId){
+  const v=parseInt(document.getElementById(sId).value);
+  document.getElementById(dId).textContent='$'+v.toLocaleString('en-US');
+  ans[sId]=v;
+  const sl=document.getElementById(sId);
+  const pct=((v-sl.min)/(sl.max-sl.min))*100;
+  sl.style.background=`linear-gradient(90deg,var(--teal) ${pct}%,var(--opt-border) ${pct}%)`;
+}
+
+function submitForm(e){
+  e.preventDefault();ans.email=document.getElementById('emailInput').value;
+  const hv=ans.homeSlider?'$'+parseInt(ans.homeSlider).toLocaleString('en-US'):'$730,905';
+  const bv=ans.balSlider?'$'+parseInt(ans.balSlider).toLocaleString('en-US'):'$841,587';
+  document.getElementById('tyDetails').innerHTML=
+    `<div class="ty-row"><span class="tl">Besoin</span><span class="tv">${ans.s1||'—'}</span></div>`+
+    `<div class="ty-row"><span class="tl">Raison</span><span class="tv">${ans.s2||'—'}</span></div>`+
+    `<div class="ty-row"><span class="tl">Échéance</span><span class="tv">${ans.s3||'—'}</span></div>`+
+    `<div class="ty-row"><span class="tl">Valeur</span><span class="tv">${hv}</span></div>`+
+    `<div class="ty-row"><span class="tl">Solde</span><span class="tv">${bv}</span></div>`+
+    `<div class="ty-row"><span class="tl">Crédit</span><span class="tv">${ans.s6||'—'}</span></div>`+
+    `<div class="ty-row"><span class="tl">Courriel</span><span class="tv">${ans.email}</span></div>`;
+  goTo(8);
+}
+
+// Init sliders gradient
+document.addEventListener('DOMContentLoaded',()=>{
+  buildDots();
+  ['homeSlider','balSlider'].forEach(id=>{
+    const sl=document.getElementById(id);
+    if(sl){const pct=((sl.value-sl.min)/(sl.max-sl.min))*100;sl.style.background=`linear-gradient(90deg,var(--teal) ${pct}%,var(--opt-border) ${pct}%)`}
+  });
+});
+</script>
+</body>
+</html>
