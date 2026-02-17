@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centre Dentaire Familial du Richelieu</title>
+<meta name="description" content="Centre dentaire familial du Richelieu — 4 dentistes, 20+ professionnels, soins chaleureux pour toute la famille depuis plus de 20 ans. (450) 447-7776">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,200;0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,200;1,9..144,300;1,9..144,400;1,9..144,500&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Dentist","name":"Centre Dentaire Familial du Richelieu","telephone":"+1-450-447-7776","address":{"@type":"PostalAddress","streetAddress":"1300 chemin des Patriotes","addressLocality":"Richelieu","addressRegion":"QC","postalCode":"J3L 4S6","addressCountry":"CA"},"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":"Monday","opens":"09:00","closes":"20:30"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Tuesday","opens":"08:30","closes":"20:30"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Wednesday","opens":"08:00","closes":"20:30"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Thursday","opens":"08:30","closes":"16:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Friday","opens":"08:30","closes":"16:00"}]}</script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#F7F5F0;--white:#FFF;--cream:#EFECE4;--sand:#E2DED5;--stone:#D0CBC0;--warm:#B8B2A5;
+--ink:#141413;--ink2:#2A2A28;--ink-m:#4A4A46;--ink-l:#8A8A82;--ink-xl:#B0AFA6;
+--teal:#2A9D8F;--teal-d:#1E7A6E;--teal-deep:#155C53;--teal-g:rgba(42,157,143,.05);
+--blush:#C07A65;--blush-s:#D9A08B;
+--h:'Fraunces',Georgia,serif;--b:'Outfit',system-ui,sans-serif;
+--e:cubic-bezier(.25,.46,.45,.94);--eo:cubic-bezier(.16,1,.3,1);--ex:cubic-bezier(.19,1,.22,1)
+}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:var(--b);background:var(--bg);color:var(--ink);overflow-x:hidden}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+::selection{background:var(--teal);color:var(--white)}
+
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;opacity:.02;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ═══ CURSOR ═══ */
+.cur{position:fixed;width:10px;height:10px;border-radius:50%;border:1.5px solid var(--teal);pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .4s var(--eo),height .4s var(--eo),background .3s,opacity .3s;opacity:0}
+.cur.v{opacity:1}.cur.h{width:56px;height:56px;background:rgba(42,157,143,.06)}
+@media(pointer:coarse){.cur{display:none}}
+
+/* ═══ LOADER ═══ */
+.loader{position:fixed;inset:0;z-index:10000;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px;transition:opacity .8s var(--ex) .2s,visibility .8s .2s}
+.loader.done{opacity:0;visibility:hidden;pointer-events:none}
+.loader-mark{font-family:var(--h);color:var(--ink);overflow:hidden;display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.loader-mark span{display:inline-block;transform:translateY(110%);animation:lUp .8s var(--eo) .1s forwards}
+.loader-t1{font-size:clamp(10px,1.2vw,12px);font-weight:400;color:var(--ink-l);letter-spacing:.14em;text-transform:uppercase;transform:translateY(110%);animation:lUp .8s var(--eo) .1s forwards}
+.loader-t2{font-size:clamp(20px,2.8vw,30px);font-weight:300;letter-spacing:.01em;transform:translateY(110%);animation:lUp .8s var(--eo) .25s forwards}
+.loader-mark em{font-style:italic;color:var(--teal);font-weight:400}
+.loader-bar{width:120px;height:1px;background:var(--sand);overflow:hidden;border-radius:1px}
+.loader-bar::after{content:'';display:block;width:100%;height:100%;background:var(--teal);animation:lBar 1.6s var(--ex) forwards}
+@keyframes lUp{to{transform:none}}
+@keyframes lBar{from{transform:translateX(-100%)}to{transform:none}}
+
+/* ═══ NAV ═══ */
+.nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 clamp(24px,5vw,72px);height:76px;display:flex;align-items:center;justify-content:space-between;opacity:0;animation:fadeIn .6s var(--eo) 1.8s forwards}
+.nav::before{content:'';position:absolute;inset:0;background:rgba(247,245,240,.96);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid rgba(0,0,0,.04);opacity:0;transition:opacity .5s}
+.nav.solid::before{opacity:1}
+.nav>*{position:relative;z-index:1}
+.n-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.n-logo-tooth{width:24px;height:28px;flex-shrink:0;transition:transform .4s var(--eo)}
+.n-logo:hover .n-logo-tooth{transform:scale(1.08) rotate(-4deg)}
+.n-logo-txt{display:flex;flex-direction:column;line-height:1.15}
+.n-logo-t1{font-family:var(--h);font-size:10px;font-weight:400;color:var(--ink-l);letter-spacing:.12em;text-transform:uppercase}
+.n-logo-t2{font-family:var(--h);font-size:16px;font-weight:300;color:var(--ink);letter-spacing:.01em}
+.n-logo-t2 em{font-style:italic;color:var(--teal);font-weight:400}
+.n-logo em{font-style:italic;color:var(--teal);font-weight:400;opacity:.7}
+.n-links{display:flex;gap:32px;list-style:none}
+.n-links a{font-size:10px;font-weight:500;color:var(--ink-l);letter-spacing:.1em;text-transform:uppercase;position:relative;padding:4px 0}
+.n-links a::after{content:'';position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--teal);transition:width .5s var(--eo)}
+.n-links a:hover{color:var(--ink)}.n-links a:hover::after{width:100%}
+.n-right{display:flex;align-items:center;gap:20px}
+.n-tel{font-size:11px;color:var(--ink-l);font-weight:400;letter-spacing:.02em;transition:color .3s}.n-tel:hover{color:var(--teal)}
+.n-cta{padding:10px 24px;border-radius:100px;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--white);background:var(--ink);transition:all .4s var(--e)}
+.n-cta:hover{background:var(--teal);box-shadow:0 8px 24px rgba(42,157,143,.15)}
+
+.ham{display:none;background:none;border:none;cursor:pointer;width:24px;height:16px;position:relative;z-index:1002}
+.ham s{display:block;width:100%;height:1.5px;background:var(--ink);position:absolute;left:0;transition:all .4s var(--eo);text-decoration:none}
+.ham s:nth-child(1){top:0}.ham s:nth-child(2){top:50%;transform:translateY(-50%)}.ham s:nth-child(3){bottom:0}
+.ham.open s:nth-child(1){top:50%;transform:translateY(-50%) rotate(45deg)}.ham.open s:nth-child(2){opacity:0}.ham.open s:nth-child(3){top:50%;transform:translateY(-50%) rotate(-45deg)}
+.mm{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;opacity:0;pointer-events:none;transition:opacity .5s}
+.mm.open{opacity:1;pointer-events:all}
+.mm a{font-family:var(--h);font-size:clamp(28px,6vw,44px);color:var(--ink);font-weight:300;padding:6px 0;opacity:0;transform:translateY(24px);transition:all .5s var(--eo)}
+.mm.open a{opacity:1;transform:none}.mm a:hover{color:var(--teal)}
+.mm.open a:nth-child(1){transition-delay:0s}.mm.open a:nth-child(2){transition-delay:.04s}.mm.open a:nth-child(3){transition-delay:.08s}.mm.open a:nth-child(4){transition-delay:.12s}.mm.open a:nth-child(5){transition-delay:.16s}
+.mm-bottom{margin-top:40px;font-size:14px;color:var(--teal);font-weight:400;opacity:0;transition:all .4s var(--eo) .24s}
+.mm.open .mm-bottom{opacity:1}
+
+/* ═══ HERO ═══ */
+.hero{min-height:100vh;display:flex;align-items:flex-end;position:relative;overflow:hidden;padding:0 clamp(24px,5vw,72px) clamp(48px,8vh,80px)}
+.hero-bg{position:absolute;inset:0}
+.hero-vid{width:100%;height:100%;object-fit:cover;object-position:center 20%;opacity:0;animation:heroImg 2s var(--ex) .3s forwards,heroZoom 25s var(--e) 2s forwards}
+@keyframes heroImg{from{opacity:0;transform:scale(1.12)}to{opacity:1;transform:scale(1.06)}}
+@keyframes heroZoom{to{transform:scale(1)}}
+.hero-grad{position:absolute;inset:0;background:
+  linear-gradient(to top,rgba(247,245,240,1) 0%,rgba(247,245,240,.55) 25%,rgba(247,245,240,.2) 50%,rgba(247,245,240,.35) 100%)}
+.hero-inner{position:relative;z-index:2;max-width:680px}
+.hero-tag{font-size:10px;font-weight:500;letter-spacing:.25em;text-transform:uppercase;color:var(--teal);margin-bottom:24px;overflow:hidden}
+.hero-tag span{display:block;transform:translateY(120%);animation:lUp .7s var(--eo) 1.9s forwards}
+.hero-h1{font-family:var(--h);font-size:clamp(48px,7vw,96px);font-weight:200;line-height:.9;letter-spacing:-.03em;color:var(--ink);margin-bottom:28px}
+.hero-h1 .ln{display:block;overflow:hidden;padding-bottom:.06em}
+.hero-h1 .ln span{display:block;transform:translateY(120%);animation:lUp 1.2s var(--ex) forwards}
+.hero-h1 .ln:nth-child(2) span{animation-delay:.08s}
+.hero-h1 em{font-style:italic;color:var(--teal);font-weight:400}
+.hero-sub{font-size:15px;line-height:1.8;color:var(--ink-m);max-width:420px;font-weight:300;opacity:0;animation:sUp .8s var(--eo) .5s forwards}
+.hero-acts{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:32px;opacity:0;animation:sUp .8s var(--eo) .65s forwards}
+.btn-p{display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:var(--white);padding:16px 36px;border-radius:100px;font-size:12px;font-weight:500;letter-spacing:.02em;position:relative;overflow:hidden;transition:transform .4s var(--eo),box-shadow .4s}
+.btn-p::before{content:'';position:absolute;inset:0;background:var(--teal);transform:translateY(100%);transition:transform .5s var(--eo)}
+.btn-p:hover::before{transform:none}.btn-p span,.btn-p svg{position:relative;z-index:1}
+.btn-p svg{width:14px;height:14px;transition:transform .3s}.btn-p:hover svg{transform:translateX(4px)}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(42,157,143,.15)}
+.btn-g{font-size:12px;font-weight:400;color:var(--ink-l);transition:color .3s}.btn-g:hover{color:var(--teal)}
+
+.hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;animation:fadeIn 1s var(--eo) 1.6s forwards}
+.hero-scroll span{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-xl);font-weight:500}
+.scrl{width:1px;height:44px;background:var(--sand);position:relative;overflow:hidden}
+.scrl::after{content:'';position:absolute;top:-100%;left:0;width:100%;height:40%;background:var(--teal);animation:sAnim 2.2s var(--e) infinite}
+@keyframes sAnim{0%{top:-40%}100%{top:140%}}
+@keyframes sUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{to{opacity:1}}
+
+/* ═══ STORY SECTIONS (Arbor-inspired) ═══ */
+.story{display:grid;grid-template-columns:1fr 1fr;min-height:90vh;overflow:hidden}
+.story-media{position:relative;overflow:hidden}
+.story-media img{width:100%;height:100%;object-fit:cover;object-position:top;transition:transform 1.4s var(--e)}
+.story-media:hover img{transform:scale(1.04)}
+.story-media::after{content:'';position:absolute;inset:0}
+.story-text{display:flex;flex-direction:column;justify-content:center;padding:clamp(48px,8vw,120px) clamp(32px,5vw,80px)}
+
+.story-label{font-size:9px;font-weight:600;letter-spacing:.25em;text-transform:uppercase;color:var(--teal);margin-bottom:20px}
+.story-h{font-family:var(--h);font-size:clamp(32px,3.5vw,56px);font-weight:200;line-height:1;color:var(--ink);letter-spacing:-.02em;margin-bottom:20px}
+.story-h em{font-style:italic;color:var(--teal);font-weight:400}
+.story-p{font-size:15px;line-height:1.85;color:var(--ink-l);font-weight:300;max-width:440px;margin-bottom:28px}
+.story-link{font-size:11px;font-weight:500;color:var(--teal);display:inline-flex;align-items:center;gap:8px;letter-spacing:.04em;transition:gap .3s}
+.story-link:hover{gap:14px}
+.story-link svg{width:14px;height:14px}
+
+/* Alternating */
+.story.flip{direction:rtl}.story.flip>*{direction:ltr}
+
+/* With tinted bg */
+.story-cream .story-text{background:var(--cream)}
+.story-white .story-text{background:var(--white)}
+
+/* ═══ HORIZONTAL MARQUEE ═══ */
+.marq{padding:20px 0;border-top:1px solid var(--sand);border-bottom:1px solid var(--sand);overflow:hidden;white-space:nowrap}
+.marq-track{display:flex;gap:48px;animation:marqS 35s linear infinite;will-change:transform}
+.marq-i{font-size:11px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-l);flex-shrink:0;display:flex;align-items:center;gap:12px}
+.marq-dot{width:4px;height:4px;border-radius:50%;background:var(--teal);opacity:.5}
+@keyframes marqS{to{transform:translateX(-50%)}}
+
+/* ═══ TEAM — EDITORIAL STRIP ═══ */
+.team-s{padding:clamp(100px,14vw,200px) clamp(24px,5vw,72px)}
+.team-s-head{max-width:1340px;margin:0 auto clamp(48px,6vw,80px)}
+.team-s-head h2{font-family:var(--h);font-size:clamp(40px,5vw,72px);font-weight:200;line-height:.92;color:var(--ink);letter-spacing:-.02em}
+.team-s-head h2 em{font-style:italic;color:var(--teal);font-weight:400}
+.team-s-sub{font-size:14px;color:var(--ink-l);font-weight:300;margin-top:14px;max-width:380px}
+
+.team-row{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1340px;margin:0 auto}
+.tc{border-radius:20px;overflow:hidden;background:var(--white);border:1px solid transparent;transition:all .7s var(--e);cursor:pointer}
+.tc:hover{transform:translateY(-12px);box-shadow:0 40px 80px rgba(0,0,0,.06);border-color:rgba(42,157,143,.1)}
+.tc-img{position:relative;overflow:hidden}
+.tc-img img{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:top;transition:transform 1.2s var(--e)}
+.tc:hover .tc-img img{transform:scale(1.04)}
+.tc-info{padding:22px 22px 28px}
+.tc-nm{font-family:var(--h);font-size:18px;font-weight:500;color:var(--ink)}
+.tc-rl{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-top:4px}
+.tc-bio{font-size:12px;color:var(--ink-l);line-height:1.6;margin-top:10px;font-weight:300}
+
+/* ═══ SERVICES MOSAIC ═══ */
+.svc{padding:clamp(100px,14vw,200px) clamp(24px,5vw,72px);background:var(--white)}
+.svc-head{max-width:1340px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px;margin-bottom:clamp(48px,6vw,72px)}
+.svc-head h2{font-family:var(--h);font-size:clamp(40px,5vw,72px);font-weight:200;color:var(--ink);letter-spacing:-.02em}
+.svc-head h2 em{font-style:italic;color:var(--teal);font-weight:400}
+.svc-all{font-size:11px;font-weight:500;color:var(--teal);display:inline-flex;align-items:center;gap:8px;transition:gap .3s}.svc-all:hover{gap:14px}
+.svc-all svg{width:14px;height:14px}
+
+.svc-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:16px;max-width:1340px;margin:0 auto}
+.svc-big{position:relative;border-radius:20px;overflow:hidden;min-height:clamp(340px,38vw,560px);cursor:pointer}
+.svc-big img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--e)}
+.svc-big:hover img{transform:scale(1.04)}
+.svc-big::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(20,20,19,.6) 0%,transparent 55%)}
+.svc-big-body{position:absolute;bottom:0;left:0;right:0;padding:clamp(28px,3.5vw,52px);z-index:2}
+.svc-big-body h3{font-family:var(--h);font-size:clamp(28px,3vw,44px);font-weight:300;color:var(--white);margin-bottom:6px}
+.svc-big-body p{font-size:14px;color:rgba(255,255,255,.5);line-height:1.6;font-weight:300;max-width:360px}
+.svc-tag{position:absolute;top:20px;left:20px;z-index:2;font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:var(--white);padding:8px 16px;border-radius:100px}
+.svc-stack{display:flex;flex-direction:column;gap:16px}
+.svc-sm{border-radius:20px;overflow:hidden;position:relative;flex:1;min-height:160px;cursor:pointer}
+.svc-sm img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--e)}
+.svc-sm:hover img{transform:scale(1.05)}
+.svc-sm::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(20,20,19,.6) 0%,transparent 60%)}
+.svc-sm-body{position:absolute;bottom:0;left:0;right:0;padding:clamp(18px,2vw,28px);z-index:2}
+.svc-sm-body h4{font-family:var(--h);font-size:clamp(18px,1.8vw,24px);font-weight:400;color:var(--white);margin-bottom:2px}
+.svc-sm-body p{font-size:11px;color:rgba(255,255,255,.45);font-weight:300}
+
+/* Second row */
+.svc-row2{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1340px;margin:16px auto 0}
+.svc-card{border-radius:18px;overflow:hidden;position:relative;min-height:clamp(200px,18vw,280px);cursor:pointer}
+.svc-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--e)}
+.svc-card:hover img{transform:scale(1.05)}
+.svc-card::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(20,20,19,.6) 0%,transparent 55%)}
+.svc-card-body{position:absolute;bottom:0;left:0;right:0;padding:clamp(18px,2vw,28px);z-index:2}
+.svc-card-body h4{font-family:var(--h);font-size:clamp(16px,1.5vw,22px);font-weight:400;color:var(--white)}
+.svc-card-body p{font-size:11px;color:rgba(255,255,255,.4);font-weight:300;margin-top:2px}
+
+/* ═══ QUOTE ═══ */
+.quote-s{padding:clamp(120px,16vw,240px) clamp(24px,5vw,72px);text-align:center;position:relative;background:var(--cream)}
+.quote-s::before{content:'';position:absolute;top:-200px;right:-100px;width:600px;height:600px;border-radius:50%;background:rgba(42,157,143,.02);pointer-events:none}
+.quote-mark{font-family:var(--h);font-size:64px;color:var(--teal);opacity:.2;line-height:1;margin-bottom:8px}
+.quote-text{font-family:var(--h);font-size:clamp(22px,3vw,40px);font-weight:300;font-style:italic;line-height:1.35;color:var(--ink);max-width:800px;margin:0 auto 28px;letter-spacing:-.01em}
+.quote-author{font-size:12px;color:var(--ink-l);font-weight:400}
+.quote-author strong{color:var(--ink);font-weight:500}
+
+/* ═══ CTA ═══ */
+.cta{position:relative;padding:clamp(160px,22vw,300px) clamp(24px,5vw,72px);text-align:center;overflow:hidden}
+.cta-bg{position:absolute;inset:0;background:linear-gradient(160deg,var(--teal),var(--teal-deep))}
+.cta-orb{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.03)}
+.cta-orb:nth-child(1){width:400px;height:400px;top:50%;left:50%;transform:translate(-50%,-50%)}
+.cta-orb:nth-child(2){width:700px;height:700px;top:50%;left:50%;transform:translate(-50%,-50%)}
+.cta-orb:nth-child(3){width:1050px;height:1050px;top:50%;left:50%;transform:translate(-50%,-50%)}
+.cta h2{font-family:var(--h);font-size:clamp(48px,9vw,120px);font-weight:200;line-height:.86;color:var(--white);margin-bottom:24px;position:relative;z-index:1;letter-spacing:-.04em}
+.cta h2 em{font-style:italic;color:var(--blush-s);font-weight:400}
+.cta>p{font-size:15px;color:rgba(255,255,255,.3);margin-bottom:44px;position:relative;z-index:1;font-weight:300}
+.cta-btn{display:inline-flex;background:var(--white);color:var(--teal-deep);padding:20px 56px;border-radius:100px;font-size:14px;font-weight:600;position:relative;z-index:1;transition:all .5s var(--eo)}
+.cta-btn:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 24px 56px rgba(0,0,0,.15)}
+.cta-phone{display:block;margin-top:28px;font-family:var(--h);font-size:clamp(18px,2.5vw,24px);color:rgba(255,255,255,.15);position:relative;z-index:1;font-weight:300;transition:color .3s}
+.cta-phone:hover{color:rgba(255,255,255,.5)}
+
+/* ═══ FOOTER ═══ */
+.footer{background:var(--ink);padding:72px clamp(24px,5vw,72px) 32px}
+.ft{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px;padding-bottom:48px;border-bottom:1px solid rgba(255,255,255,.04)}
+.f-brand{font-family:var(--h);color:var(--white);margin-bottom:12px;display:flex;flex-direction:column;line-height:1.15}
+.f-brand-t1{font-size:10px;font-weight:400;color:rgba(255,255,255,.45);letter-spacing:.12em;text-transform:uppercase}
+.f-brand-t2{font-size:22px;font-weight:200;letter-spacing:.01em}
+.f-brand em{font-style:italic;color:var(--teal);opacity:.6}
+.f-desc{font-size:12px;color:rgba(255,255,255,.16);line-height:1.8;max-width:260px;margin-bottom:18px;font-weight:300}
+.f-soc{display:flex;gap:10px}
+.f-soc a{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.15);transition:all .3s}
+.f-soc a:hover{background:var(--teal);color:var(--white)}
+.f-soc svg{width:14px;height:14px}
+.fc h4{font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.08);margin-bottom:16px}
+.fc ul{list-style:none}.fc li{margin-bottom:8px}
+.fc a{font-size:12px;color:rgba(255,255,255,.22);transition:color .3s;font-weight:300}.fc a:hover{color:rgba(255,255,255,.6)}
+.fb{display:flex;justify-content:space-between;align-items:center;padding-top:24px;flex-wrap:wrap;gap:12px}
+.fb-c{font-size:10px;color:rgba(255,255,255,.07);font-weight:300}
+
+/* BTT */
+.btt{position:fixed;bottom:32px;right:32px;width:44px;height:44px;border-radius:50%;background:var(--ink);color:var(--white);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(12px);transition:all .4s var(--e);z-index:900;box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.btt.show{opacity:1;transform:none}.btt:hover{background:var(--teal)}
+
+/* ═══ SCROLL REVEAL ═══ */
+.rv{opacity:0;transform:translateY(48px);transition:opacity 1.1s var(--e),transform 1.1s var(--e)}.rv.vis{opacity:1;transform:none}
+.rvl{opacity:0;transform:translateX(-60px);transition:opacity 1.1s var(--e),transform 1.1s var(--e)}.rvl.vis{opacity:1;transform:none}
+.rvr{opacity:0;transform:translateX(60px);transition:opacity 1.1s var(--e),transform 1.1s var(--e)}.rvr.vis{opacity:1;transform:none}
+
+/* Clip reveal for images */
+.clip-rv{clip-path:inset(100% 0 0 0);transition:clip-path 1.4s var(--ex)}.clip-rv.vis{clip-path:inset(0)}
+.clip-rv-r{clip-path:inset(0 100% 0 0);transition:clip-path 1.4s var(--ex)}.clip-rv-r.vis{clip-path:inset(0)}
+
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}.d4{transition-delay:.4s}
+
+
+/* ═══ FULL SERVICES GRID ═══ */
+.svc-full{max-width:1340px;margin:clamp(60px,8vw,100px) auto 0;padding-top:clamp(48px,6vw,80px);border-top:1px solid var(--sand)}
+.svc-full-h{font-family:var(--h);font-size:clamp(24px,2.5vw,36px);font-weight:200;color:var(--ink);margin-bottom:clamp(36px,4vw,56px);letter-spacing:-.01em}
+.svc-full-h em{font-style:italic;color:var(--teal);font-weight:400}
+.svc-cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:32px 48px}
+.svc-cat-h{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--sand)}
+.svc-list{list-style:none}
+.svc-list li{border-bottom:1px solid rgba(0,0,0,.03)}
+.svc-list a{display:block;padding:14px 0;color:var(--ink);transition:all .3s var(--e);position:relative;padding-right:24px}
+.svc-list a::after{content:'→';position:absolute;right:0;top:50%;transform:translateY(-50%) translateX(-4px);opacity:0;color:var(--teal);font-size:14px;transition:all .3s var(--e)}
+.svc-list a:hover{color:var(--teal);padding-left:6px}
+.svc-list a:hover::after{opacity:1;transform:translateY(-50%) translateX(0)}
+.svc-list a span{display:block;font-size:11px;color:var(--ink-l);font-weight:300;margin-top:2px;transition:color .3s}
+.svc-list a:hover span{color:var(--teal-d)}
+
+/* ═══ MOBILE MENU CTA ═══ */
+.mm-cta{display:inline-block;margin-top:32px;padding:16px 44px;border-radius:100px;background:var(--teal);color:var(--white)!important;font-family:var(--b)!important;font-size:14px!important;font-weight:500!important;letter-spacing:.02em;transition:all .4s var(--eo)}
+.mm-cta:hover{background:var(--teal-d);transform:scale(1.03)}
+
+/* ═══ INFO SECTION ═══ */
+.info-s{padding:clamp(100px,14vw,200px) clamp(24px,5vw,72px);background:var(--cream)}
+.info-inner{max-width:1340px;margin:0 auto}
+.info-head{margin-bottom:clamp(48px,6vw,72px)}
+.info-head h2{font-family:var(--h);font-size:clamp(40px,5vw,72px);font-weight:200;color:var(--ink);letter-spacing:-.02em}
+.info-head h2 em{font-style:italic;color:var(--teal);font-weight:400}
+.info-sub{font-size:15px;color:var(--ink-l);font-weight:300;margin-top:12px;max-width:480px}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.info-card{background:var(--white);border-radius:20px;padding:clamp(28px,3vw,40px);border:1px solid transparent;transition:all .6s var(--e);display:flex;flex-direction:column}
+.info-card:hover{transform:translateY(-8px);box-shadow:0 32px 64px rgba(0,0,0,.05);border-color:rgba(42,157,143,.1)}
+.info-icon{width:48px;height:48px;border-radius:14px;background:var(--teal-g);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.info-icon svg{width:22px;height:22px;color:var(--teal)}
+.info-card h4{font-family:var(--h);font-size:20px;font-weight:400;color:var(--ink);margin-bottom:8px}
+.info-card h4 sup{font-size:11px}
+.info-card p{font-size:13px;color:var(--ink-l);line-height:1.7;font-weight:300;flex:1}
+.info-link{font-size:11px;font-weight:500;color:var(--teal);margin-top:16px;letter-spacing:.02em;transition:letter-spacing .3s}
+.info-card:hover .info-link{letter-spacing:.06em}
+
+/* ═══ MAP SECTION ═══ */
+.map-s{padding:clamp(80px,10vw,140px) clamp(24px,5vw,72px);background:var(--white)}
+.map-inner{max-width:1340px;margin:0 auto;display:grid;grid-template-columns:1fr 1.2fr;gap:clamp(40px,5vw,80px);align-items:center}
+.map-h{font-family:var(--h);font-size:clamp(36px,4vw,56px);font-weight:200;color:var(--ink);letter-spacing:-.02em;margin-bottom:28px}
+.map-h em{font-style:italic;color:var(--teal);font-weight:400}
+.map-addr{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;font-size:14px;color:var(--ink-m);line-height:1.6}
+.map-addr strong{color:var(--ink);font-weight:500}
+.map-addr a{color:var(--ink);transition:color .3s}.map-addr a:hover{color:var(--teal)}
+.map-hours{margin-top:28px}
+.map-hours h4{font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin-bottom:12px}
+.hrs-table{font-size:13px;border-collapse:collapse}
+.hrs-table td{padding:6px 0;color:var(--ink-m);font-weight:300}
+.hrs-table td:first-child{font-weight:400;color:var(--ink);width:100px}
+.hrs-table td:last-child{padding-left:20px}
+.hrs-closed td{color:var(--ink-xl)}
+.map-embed{min-height:400px;border-radius:20px;overflow:hidden;background:var(--cream)}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:1100px){
+  .story{grid-template-columns:1fr;min-height:auto}
+  .story-media{min-height:50vh}
+  .story.flip{direction:ltr}
+  .team-row{grid-template-columns:repeat(2,1fr)}
+  .svc-grid{grid-template-columns:1fr}
+  .svc-row2{grid-template-columns:1fr 1fr}
+  .info-grid{grid-template-columns:repeat(2,1fr)}
+  .map-inner{grid-template-columns:1fr}
+  .map-embed{min-height:300px}
+}
+@media(max-width:768px){
+  .n-links,.n-tel{display:none}.n-cta{display:none}.ham{display:block}
+  .n-logo-tooth{width:20px;height:24px}
+  .n-logo-t1{font-size:8px}
+  .n-logo-t2{font-size:13px}
+  .hero{min-height:90vh;align-items:center;padding-bottom:80px}
+  .hero-vid{object-position:center center}
+  .hero-scroll{display:none}
+  .marq{display:none}
+  .story-media{min-height:40vh}
+  .team-row{grid-template-columns:1fr 1fr;gap:14px}
+  .svc-row2{grid-template-columns:1fr}
+  .ft{grid-template-columns:1fr 1fr}
+  .fb{flex-direction:column;text-align:center}
+  .svc-head{flex-direction:column;align-items:flex-start}
+  .info-grid{grid-template-columns:1fr}
+  .svc-cats{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div class="loader" id="loader"><div class="loader-mark"><span class="loader-t1">Centre Dentaire</span><span class="loader-t2">Familial <em>Richelieu</em></span></div><div class="loader-bar"></div></div>
+<div class="cur" id="cur"></div>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <a href="https://centredentairerichelieu.com/" class="n-logo" aria-label="Centre Dentaire Familial Richelieu">
+    <svg class="n-logo-tooth" viewBox="0 0 28 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2C10.5 2 8.5 3.5 7 5.5C5.5 7.5 5 10 5 12.5C5 15 5.5 17 6 19C6.5 21 7 23 7.5 25C8 27 8.5 29 10 30C11 28 11.5 25 12 23C12.5 21 13 19.5 14 19.5C15 19.5 15.5 21 16 23C16.5 25 17 28 18 30C19.5 29 20 27 20.5 25C21 23 21.5 21 22 19C22.5 17 23 15 23 12.5C23 10 22.5 7.5 21 5.5C19.5 3.5 17.5 2 14 2Z" fill="var(--teal)" opacity=".15" stroke="var(--teal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span class="n-logo-txt"><span class="n-logo-t1">Centre Dentaire</span><span class="n-logo-t2">Familial <em>Richelieu</em></span></span>
+  </a>
+  <ul class="n-links">
+    <li><a href="https://centredentairerichelieu.com/la-clinique/" data-h>La Clinique</a></li>
+    <li><a href="https://centredentairerichelieu.com/equipe/" data-h>Équipe</a></li>
+    <li><a href="https://centredentairerichelieu.com/services/" data-h>Services</a></li>
+    <li><a href="https://centredentairerichelieu.com/informations/" data-h>Informations</a></li>
+    <li><a href="https://centredentairerichelieu.com/nous-joindre/" data-h>Nous joindre</a></li>
+  </ul>
+  <div class="n-right">
+    <a href="tel:4504477776" class="n-tel" data-h>450 · 447 · 7776</a>
+    <a href="https://centredentairerichelieu.com/rendez-vous/" class="n-cta" data-h>Rendez-vous</a>
+    <button class="ham" aria-label="Menu" aria-expanded="false"><s></s><s></s><s></s></button>
+  </div>
+</nav>
+<div class="mm" id="mm"><a href="https://centredentairerichelieu.com/la-clinique/">La Clinique</a><a href="https://centredentairerichelieu.com/equipe/">Équipe</a><a href="https://centredentairerichelieu.com/services/">Services</a><a href="https://centredentairerichelieu.com/informations/">Informations</a><a href="https://centredentairerichelieu.com/nous-joindre/">Nous joindre</a><a href="https://centredentairerichelieu.com/rendez-vous/" class="mm-cta">Prendre rendez-vous</a><a href="tel:4504477776" class="mm-bottom">(450) 447-7776</a></div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg">
+    <video class="hero-vid" autoplay muted loop playsinline preload="auto" poster="https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1920&q=80">
+      <source src="https://cdn.pixabay.com/video/2019/03/11/21936-322869299_large.mp4" type="video/mp4">
+    </video>
+    <div class="hero-grad"></div>
+  </div>
+  <div class="hero-inner">
+    <div class="hero-tag"><span>Centre dentaire familial · Richelieu, Québec</span></div>
+    <h1 class="hero-h1">
+      <span class="ln"><span>Votre sourire,</span></span>
+      <span class="ln"><span>notre <em>passion</em></span></span>
+    </h1>
+    <p class="hero-sub">Depuis plus de 20 ans, nous accueillons les familles de Richelieu dans un environnement où votre confort est notre priorité absolue.</p>
+    <div class="hero-acts">
+      <a href="https://centredentairerichelieu.com/rendez-vous/" class="btn-p" data-h><span>Prendre rendez-vous</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      <a href="tel:4504477776" class="btn-g" data-h>(450) 447-7776</a>
+    </div>
+  </div>
+  <div class="hero-scroll"><span>Défiler</span><div class="scrl"></div></div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marq">
+  <div class="marq-track">
+    <span class="marq-i"><span class="marq-dot"></span>4 dentistes</span><span class="marq-i"><span class="marq-dot"></span>20+ professionnels</span><span class="marq-i"><span class="marq-dot"></span>20+ ans d'expérience</span><span class="marq-i"><span class="marq-dot"></span>Technologie CEREC</span><span class="marq-i"><span class="marq-dot"></span>Urgences acceptées</span><span class="marq-i"><span class="marq-dot"></span>Toute la famille</span><span class="marq-i"><span class="marq-dot"></span>Radiographie numérique</span><span class="marq-i"><span class="marq-dot"></span>Soins en douceur</span>
+    <span class="marq-i"><span class="marq-dot"></span>4 dentistes</span><span class="marq-i"><span class="marq-dot"></span>20+ professionnels</span><span class="marq-i"><span class="marq-dot"></span>20+ ans d'expérience</span><span class="marq-i"><span class="marq-dot"></span>Technologie CEREC</span><span class="marq-i"><span class="marq-dot"></span>Urgences acceptées</span><span class="marq-i"><span class="marq-dot"></span>Toute la famille</span><span class="marq-i"><span class="marq-dot"></span>Radiographie numérique</span><span class="marq-i"><span class="marq-dot"></span>Soins en douceur</span>
+  </div>
+</div>
+
+<!-- STORY 1: Exclusive Experience -->
+<section class="story">
+  <div class="story-media clip-rv" data-h>
+    <img src="https://images.pexels.com/photos/3845810/pexels-photo-3845810.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" alt="Patient souriant lors d'une consultation dentaire" loading="lazy">
+  </div>
+  <div class="story-text">
+    <div class="story-label rvr">Expérience exclusive</div>
+    <h2 class="story-h rvr d1">Chaleureux, humain<br>et <em>attentionné</em></h2>
+    <p class="story-p rvr d2">Nous mettons l'accent sur votre confort et la qualité des soins pour chaque intervention. Nous vous accueillons dans une ambiance chaleureuse et nous nous engageons à assurer le bien-être et la satisfaction de chaque patient.</p>
+    <a href="https://centredentairerichelieu.com/la-clinique/" class="story-link rvr d3" data-h>Découvrir la clinique <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+  </div>
+</section>
+
+<!-- STORY 2: Clinical Mastery -->
+<section class="story flip story-cream">
+  <div class="story-media clip-rv-r" data-h>
+    <img src="https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=1200&q=85" alt="Technologie CEREC" loading="lazy">
+  </div>
+  <div class="story-text">
+    <div class="story-label rvl">Maîtrise clinique</div>
+    <h2 class="story-h rvl d1">Technologies <em>de pointe</em></h2>
+    <p class="story-p rvl d2">Incrustation CEREC, radiographie numérique, caméra intra-orale — nous investissons dans les outils les plus avancés pour des soins précis et un confort optimal.</p>
+    <a href="https://centredentairerichelieu.com/services/" class="story-link rvl d3" data-h>Nos technologies <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+  </div>
+</section>
+
+<!-- STORY 3: Concierge Care -->
+<section class="story story-white">
+  <div class="story-media clip-rv" data-h>
+    <img src="https://images.unsplash.com/photo-1616391182219-e080b4d1043a?w=1200&q=85" alt="Salle de soins dentaires" loading="lazy">
+  </div>
+  <div class="story-text">
+    <div class="story-label rvr">Soins personnalisés</div>
+    <h2 class="story-h rvr d1">4 dentistes, <em>une mission</em></h2>
+    <p class="story-p rvr d2">De la petite enfance au vieillissement dentaire, notre équipe de 20+ professionnels vous accompagne avec un seul objectif : votre sourire et votre bien-être.</p>
+    <a href="https://centredentairerichelieu.com/equipe/" class="story-link rvr d3" data-h>Rencontrer l'équipe <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="svc" id="services">
+  <div class="svc-head">
+    <div>
+      <div class="story-label rv">Services</div>
+      <h2 class="rv d1" style="font-family:var(--h);font-size:clamp(40px,5vw,72px);font-weight:200;color:var(--ink);letter-spacing:-.02em">Nos <em style="font-style:italic;color:var(--teal);font-weight:400">expertises</em></h2>
+    </div>
+    <a href="https://centredentairerichelieu.com/services/" class="svc-all rv d2" data-h>Tous les détails <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+  </div>
+  <div class="svc-grid">
+    <div class="svc-big rv" data-h>
+      <img src="https://images.pexels.com/photos/3845766/pexels-photo-3845766.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" alt="Implants dentaires" loading="lazy">
+      <div class="svc-tag">Populaire</div>
+      <div class="svc-big-body"><h3>Implants dentaires</h3><p>Une solution permanente et naturelle pour remplacer une ou plusieurs dents manquantes.</p></div>
+    </div>
+    <div class="svc-stack">
+      <div class="svc-sm rv d1" data-h>
+        <img src="https://images.pexels.com/photos/3845625/pexels-photo-3845625.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" alt="Blanchiment" loading="lazy">
+        <div class="svc-sm-body"><h4>Blanchiment</h4><p>Sourire éclatant avec gouttières sur mesure</p></div>
+      </div>
+      <div class="svc-sm rv d2" data-h>
+        <img src="https://images.pexels.com/photos/6502023/pexels-photo-6502023.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" alt="CEREC" loading="lazy">
+        <div class="svc-sm-body"><h4>Incrustation CEREC</h4><p>Restauration numérique en une visite</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="svc-row2">
+    <div class="svc-card rv" data-h><img src="https://images.unsplash.com/photo-1571772996211-2f02c9727629?w=1200&q=85" alt="Dents de sagesse" loading="lazy"><div class="svc-card-body"><h4>Dents de sagesse</h4><p>Extraction sécuritaire</p></div></div>
+    <div class="svc-card rv d1" data-h><img src="https://images.pexels.com/photos/4269694/pexels-photo-4269694.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" alt="AlloDerm" loading="lazy"><div class="svc-card-body"><h4>AlloDerm (greffe)</h4><p>Correction gingivale</p></div></div>
+    <div class="svc-card rv d2" data-h><img src="https://images.pexels.com/photos/6812460/pexels-photo-6812460.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" alt="Endodontie" loading="lazy"><div class="svc-card-body"><h4>Endodontie</h4><p>Traitement de canal</p></div></div>
+  </div>
+
+  <!-- FULL 20 SERVICES GRID -->
+  <div class="svc-full">
+    <h3 class="svc-full-h rv">Tous nos services — <em>20 expertises</em></h3>
+    <div class="svc-cats">
+      <div class="svc-cat rv">
+        <h4 class="svc-cat-h"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" width="18" height="18"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Soins préventifs</h4>
+        <ul class="svc-list">
+          <li><a href="https://centredentairerichelieu.com/carie/" data-h>Carie <span>Maladie infectieuse de la dent</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/gingivite-vs-parodontie/" data-h>Gingivite & Parodontie <span>Maladies des gencives</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/halitose/" data-h>Halitose <span>Traitement de la mauvaise haleine</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/scellant-dentaire/" data-h>Scellant dentaire <span>Protection contre la carie chez l'enfant</span></a></li>
+        </ul>
+      </div>
+      <div class="svc-cat rv d1">
+        <h4 class="svc-cat-h"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" width="18" height="18"><path d="M12 3v1m0 16v1m-7.07-2.93l.71-.71M4.22 4.22l.71.71m14.14 0l.71-.71M19.07 18.36l.71.71M3 12h1m16 0h1m-9 4a4 4 0 100-8 4 4 0 000 8z"/></svg>Esthétique</h4>
+        <ul class="svc-list">
+          <li><a href="https://centredentairerichelieu.com/blanchiment-a-la-maison/" data-h>Blanchiment à la maison <span>Gouttières sur mesure</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/facette/" data-h>Facette <span>Restauration esthétique</span></a></li>
+        </ul>
+      </div>
+      <div class="svc-cat rv d2">
+        <h4 class="svc-cat-h"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" width="18" height="18"><path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>Restaurations</h4>
+        <ul class="svc-list">
+          <li><a href="https://centredentairerichelieu.com/incrustation-cerec-restauration-de-ceramique/" data-h>Incrustation CEREC <span>Restauration en une visite</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/couronne-laboratoire/" data-h>Couronne laboratoire <span>Restauration de dent détériorée</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/endodontie/" data-h>Endodontie <span>Traitement de canal</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/pont-fixe/" data-h>Pont fixe <span>Remplacement permanent</span></a></li>
+        </ul>
+      </div>
+      <div class="svc-cat rv d3">
+        <h4 class="svc-cat-h"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" width="18" height="18"><path d="M4.5 12.75l6 6 9-13.5"/></svg>Chirurgie & Implants</h4>
+        <ul class="svc-list">
+          <li><a href="https://centredentairerichelieu.com/implants/" data-h>Implants dentaires <span>Solution permanente et naturelle</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/dents-de-sagesse/" data-h>Dents de sagesse <span>Extraction sécuritaire</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/alloderm/" data-h>AlloDerm (greffe) <span>Correction de déchaussement</span></a></li>
+        </ul>
+      </div>
+      <div class="svc-cat rv d4">
+        <h4 class="svc-cat-h"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" width="18" height="18"><path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>Prothèses</h4>
+        <ul class="svc-list">
+          <li><a href="https://centredentairerichelieu.com/prothese-amovible-sur-implant/" data-h>Prothèse sur implant <span>Amélioration de la mastication</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/prothese-complete/" data-h>Prothèse complète <span>Remplacement de toutes les dents</span></a></li>
+        </ul>
+      </div>
+      <div class="svc-cat rv d4">
+        <h4 class="svc-cat-h"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" width="18" height="18"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Technologies</h4>
+        <ul class="svc-list">
+          <li><a href="https://centredentairerichelieu.com/camera-intra-orale/" data-h>Caméra intra-orale <span>Diagnostic visuel précis</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/radiographie-numerique/" data-h>Radiographie numérique <span>Moins de radiation, plus de précision</span></a></li>
+        </ul>
+      </div>
+      <div class="svc-cat rv d4">
+        <h4 class="svc-cat-h"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" width="18" height="18"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Autres soins</h4>
+        <ul class="svc-list">
+          <li><a href="https://centredentairerichelieu.com/bruxisme/" data-h>Bruxisme <span>Grincement et serrement des dents</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/articulation-temporo-mandibulaire-atm/" data-h>ATM <span>Troubles de l'articulation</span></a></li>
+          <li><a href="https://centredentairerichelieu.com/mainteneur-despace/" data-h>Mainteneur d'espace <span>Pour dent perdue prématurément</span></a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INFORMATIONS PRATIQUES -->
+<section class="info-s">
+  <div class="info-inner">
+    <div class="info-head">
+      <div class="story-label rv">Informations</div>
+      <h2 class="rv d1">Avant votre <em>visite</em></h2>
+      <p class="info-sub rv d2">Tout ce dont vous avez besoin avant votre rendez-vous ou après une intervention.</p>
+    </div>
+    <div class="info-grid">
+      <a href="https://centredentairerichelieu.com/formulaire-de-1ere-visite/" class="info-card rv" data-h>
+        <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></div>
+        <h4>1<sup>ère</sup> visite</h4>
+        <p>Nouveau patient? Remplissez votre dossier médical en ligne avant votre rendez-vous.</p>
+        <span class="info-link">Ouvrir un dossier →</span>
+      </a>
+      <a href="https://centredentairerichelieu.com/rendez-vous/" class="info-card rv d1" data-h>
+        <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <h4>Rendez-vous</h4>
+        <p>En ligne ou par téléphone. Confirmation en moins de 24 heures par courriel ou téléphone.</p>
+        <span class="info-link">Prendre rendez-vous →</span>
+      </a>
+      <a href="https://centredentairerichelieu.com/assurance/" class="info-card rv d2" data-h>
+        <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
+        <h4>Assurance</h4>
+        <p>Nous acceptons la plupart des régimes d'assurance dentaire. Réclamation directe disponible.</p>
+        <span class="info-link">En savoir plus →</span>
+      </a>
+      <a href="https://centredentairerichelieu.com/apres-une-chirurgie-buccale-mineure/" class="info-card rv d3" data-h>
+        <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg></div>
+        <h4>Conseils post-op</h4>
+        <p>Instructions de rétablissement après une chirurgie buccale pour une guérison optimale.</p>
+        <span class="info-link">Lire les conseils →</span>
+      </a>
+      <a href="https://centredentairerichelieu.com/la-premiere-visite-de-votre-enfant/" class="info-card rv d4" data-h>
+        <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+        <h4>Enfants</h4>
+        <p>Première visite de votre enfant? Des bases solides pour des dents en santé dès le plus jeune âge.</p>
+        <span class="info-link">Guide parents →</span>
+      </a>
+      <a href="https://centredentairerichelieu.com/informations/" class="info-card rv d4" data-h>
+        <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+        <h4>Formulaires</h4>
+        <p>Téléchargez nos formulaires pour minimiser le temps en salle d'attente.</p>
+        <span class="info-link">Voir les formulaires →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="team-s">
+  <div class="team-s-head">
+    <div class="story-label rv">L'équipe</div>
+    <h2 class="rv d1">Nos <em>dentistes</em></h2>
+    <p class="team-s-sub rv d2">Avec passion, minutie et empathie — découvrez les visages derrière vos soins.</p>
+  </div>
+  <div class="team-row">
+    <div class="tc rv" data-h><div class="tc-img"><img src="https://centredentairerichelieu.com/wp-content/uploads/elementor/thumbs/CentreDentaireRichelieu-Photographescommercial-18-qjry033q79vogo752i3h39x2v3w0piqczgo86hkqp8.jpg" alt="Dre Aurore Fonderflick" width="393" height="638" loading="lazy"></div><div class="tc-info"><div class="tc-nm">Dre Aurore Fonderflick</div><div class="tc-rl">Chirurgienne dentiste · Propriétaire</div><div class="tc-bio">Passionnée par la qualité des soins, elle sait établir des relations solides avec ses patients pour une expérience toujours plus agréable.</div></div></div>
+    <div class="tc rv d1" data-h><div class="tc-img"><img src="https://centredentairerichelieu.com/wp-content/uploads/elementor/thumbs/CentreDentaireRichelieu-Photographescommercial-20-qjry05x8rrzjfi31m1bcsr7gn9i4cm1jzumombgk6k.jpg" alt="Dr Nicolas Laliberté" width="393" height="638" loading="lazy"></div><div class="tc-info"><div class="tc-nm">Dr Nicolas Laliberté</div><div class="tc-rl">Chirurgien dentiste</div><div class="tc-bio">Pratiquant dans sa ville de résidence, reconnu pour son souci de la perfection et son empathie. Il sait faire rire autant les petits que les grands.</div></div></div>
+    <div class="tc rv d2" data-h><div class="tc-img"><img src="https://centredentairerichelieu.com/wp-content/uploads/elementor/thumbs/CentreDentaireRichelieu-Photographescommercial-19-qjry041ke3wysa5rx0i3nrojghrdx7u3blbpnrjcj0.jpg" alt="Dre Valérie Laliberté" width="393" height="638" loading="lazy"></div><div class="tc-info"><div class="tc-nm">Dre Valérie Laliberté</div><div class="tc-rl">Chirurgienne dentiste</div><div class="tc-bio">Clientèle fidèle sur plusieurs générations. Reconnue pour sa bonne humeur, sa douceur, sa bonne écoute et sa volonté d'offrir le meilleur.</div></div></div>
+    <div class="tc rv d3" data-h><div class="tc-img"><img src="https://centredentairerichelieu.com/wp-content/uploads/elementor/thumbs/CentreDentaireRichelieu-Photographescommercial-17-qjry04zekxy93w4eriwq89g01vmr4wxtnpz751hycs.jpg" alt="Dr Jean Alexandre Côté" width="393" height="638" loading="lazy"></div><div class="tc-info"><div class="tc-nm">Dr Jean Alexandre Côté</div><div class="tc-rl">Chirurgien dentiste</div><div class="tc-bio">À l'équipe depuis 2014. Expertise accrue en greffes gingivales AlloDerm et en restaurations CEREC. Approche douce et rassurante.</div></div></div>
+  </div>
+</section>
+
+<!-- QUOTE -->
+<section class="quote-s">
+  <div class="quote-mark rv">"</div>
+  <blockquote class="quote-text rv d1">Toute la famille va chez Centre Dentaire Richelieu depuis des années. L'équipe est toujours accueillante et les soins sont excellents. On se sent vraiment en confiance.</blockquote>
+  <p class="quote-author rv d2"><strong>Marie-Josée L.</strong> — Patiente depuis 12 ans</p>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="cta-bg"><div class="cta-orb"></div><div class="cta-orb"></div><div class="cta-orb"></div></div>
+  <h2 class="rv">Votre sourire<br>commence <em>ici</em></h2>
+  <p class="rv d1">Prenez rendez-vous avec notre équipe.</p>
+  <a href="https://centredentairerichelieu.com/rendez-vous/" class="cta-btn rv d2" data-h>Prendre rendez-vous</a>
+  <a href="tel:4504477776" class="cta-phone rv d3">(450) 447-7776</a>
+</section>
+
+
+<!-- MAP & HOURS -->
+<section class="map-s">
+  <div class="map-inner">
+    <div class="map-info rv">
+      <div class="story-label">Nous trouver</div>
+      <h2 class="map-h">Au cœur de <em>Richelieu</em></h2>
+      <div class="map-addr">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" width="18" height="18"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <div>
+          <strong>1300, chemin des Patriotes</strong><br>
+          Richelieu, QC J3L 4S6
+        </div>
+      </div>
+      <div class="map-addr">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" width="18" height="18"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+        <div><a href="tel:4504477776"><strong>(450) 447-7776</strong></a></div>
+      </div>
+      <div class="map-hours">
+        <h4>Horaires</h4>
+        <table class="hrs-table">
+          <tr><td>Lundi</td><td>9h00 – 20h30</td></tr>
+          <tr><td>Mardi</td><td>8h30 – 20h30</td></tr>
+          <tr><td>Mercredi</td><td>8h00 – 20h30</td></tr>
+          <tr><td>Jeudi</td><td>8h30 – 16h00</td></tr>
+          <tr><td>Vendredi</td><td>8h30 – 16h00</td></tr>
+          <tr class="hrs-closed"><td>Sam – Dim</td><td>Fermé</td></tr>
+        </table>
+      </div>
+      <a href="https://centredentairerichelieu.com/rendez-vous/" class="btn-p rv d1" data-h style="margin-top:32px;display:inline-flex"><span>Prendre rendez-vous</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+    <div class="map-embed rv d1">
+      <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2810.5!2d-73.1705!3d45.4464!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4cc9a0f29d7f76e7%3A0x8c2d91f05cb9e6a3!2s1300%20Chem.%20des%20Patriotes%2C%20Richelieu%2C%20QC%20J3L%204S6!5e0!3m2!1sfr!2sca!4v1708200000000!5m2!1sfr!2sca" width="100%" height="100%" style="border:0;border-radius:20px" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="ft">
+    <div><div class="f-brand"><span class="f-brand-t1">Centre Dentaire</span><span class="f-brand-t2">Familial <em>Richelieu</em></span></div><p class="f-desc">Centre dentaire familial — soins attentionnés pour toute la famille depuis plus de 20 ans au cœur de Richelieu.</p><div class="f-soc"><a href="https://www.facebook.com/centredentairerichelieu/" target="_blank" rel="noopener" aria-label="Facebook" data-h><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a><a href="https://www.instagram.com/centredentairerichelieu/" target="_blank" rel="noopener" aria-label="Instagram" data-h><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5"/></svg></a><a href="https://www.google.com/maps/place/1300+Chem.+des+Patriotes,+Richelieu,+QC+J3L+4S6" target="_blank" rel="noopener" aria-label="Google Maps" data-h><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></a></div></div>
+    <div class="fc"><h4>Navigation</h4><ul><li><a href="https://centredentairerichelieu.com/la-clinique/">La Clinique</a></li><li><a href="https://centredentairerichelieu.com/equipe/">Équipe</a></li><li><a href="https://centredentairerichelieu.com/services/">Services</a></li><li><a href="https://centredentairerichelieu.com/informations/">Informations</a></li><li><a href="https://centredentairerichelieu.com/nous-joindre/">Nous joindre</a></li><li><a href="https://centredentairerichelieu.com/rendez-vous/">Rendez-vous</a></li></ul></div>
+    <div class="fc"><h4>Services</h4><ul><li><a href="https://centredentairerichelieu.com/blanchiment-a-la-maison/">Blanchiment</a></li><li><a href="https://centredentairerichelieu.com/implants/">Implants</a></li><li><a href="https://centredentairerichelieu.com/incrustation-cerec-restauration-de-ceramique/">CEREC</a></li><li><a href="https://centredentairerichelieu.com/alloderm/">AlloDerm</a></li><li><a href="https://centredentairerichelieu.com/endodontie/">Endodontie</a></li></ul></div>
+    <div class="fc"><h4>Coordonnées</h4><ul><li><a href="tel:4504477776">(450) 447-7776</a></li><li><a href="https://www.google.com/maps/place/1300+Chem.+des+Patriotes,+Richelieu,+QC+J3L+4S6" target="_blank">1300 ch. des Patriotes<br>Richelieu, QC J3L 4S6</a></li></ul><h4 style="margin-top:24px">Horaires</h4><ul><li>Lun : 9h00 – 20h30</li><li>Mar : 8h30 – 20h30</li><li>Mer : 8h00 – 20h30</li><li>Jeu : 8h30 – 16h00</li><li>Ven : 8h30 – 16h00</li></ul></div>
+  </div>
+  <div class="fb"><p class="fb-c">© 2025 Centre dentaire familial du Richelieu · Tous droits réservés</p></div>
+</footer>
+
+<button class="btt" id="btt" aria-label="Retour en haut"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg></button>
+
+<script>
+(()=>{
+  // Loader
+  const L=document.getElementById('loader');
+  window.addEventListener('load',()=>setTimeout(()=>L.classList.add('done'),1400));
+  setTimeout(()=>L.classList.add('done'),3000);
+
+  // Cursor
+  const C=document.getElementById('cur');let cx=0,cy=0,tx=0,ty=0;
+  document.addEventListener('mousemove',e=>{tx=e.clientX;ty=e.clientY;if(!C.classList.contains('v'))C.classList.add('v')});
+  document.addEventListener('mouseleave',()=>C.classList.remove('v'));
+  (function lp(){cx+=(tx-cx)*.09;cy+=(ty-cy)*.09;C.style.left=cx+'px';C.style.top=cy+'px';requestAnimationFrame(lp)})();
+  document.querySelectorAll('[data-h],a,button').forEach(el=>{el.addEventListener('mouseenter',()=>C.classList.add('h'));el.addEventListener('mouseleave',()=>C.classList.remove('h'))});
+
+  // Nav
+  const nav=document.getElementById('nav');
+  window.addEventListener('scroll',()=>nav.classList.toggle('solid',scrollY>80),{passive:true});
+
+  // Mobile
+  const ham=document.querySelector('.ham'),mm=document.getElementById('mm');
+  ham.addEventListener('click',()=>{const o=mm.classList.toggle('open');ham.classList.toggle('open');ham.setAttribute('aria-expanded',o);document.body.style.overflow=o?'hidden':''});
+  mm.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mm.classList.remove('open');ham.classList.remove('open');document.body.style.overflow=''}));
+
+  // Scroll reveal
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target)}}),{threshold:.03,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.rv,.rvl,.rvr,.clip-rv,.clip-rv-r').forEach(el=>io.observe(el));
+
+  // Parallax on story images
+  const stories=document.querySelectorAll('.story-media img');
+  window.addEventListener('scroll',()=>{stories.forEach(img=>{const r=img.parentElement.getBoundingClientRect();if(r.top<window.innerHeight&&r.bottom>0){const p=(r.top/window.innerHeight-.5)*-30;img.style.transform=`translateY(${p}px) scale(1.04)`}})},{passive:true});
+
+  // BTT
+  const btt=document.getElementById('btt');
+  window.addEventListener('scroll',()=>btt.classList.toggle('show',scrollY>600),{passive:true});
+  btt.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+})();
+</script>
+</body>
+</html>
