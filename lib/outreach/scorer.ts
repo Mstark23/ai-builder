@@ -1,9 +1,16 @@
 // lib/outreach/scorer.ts
 // FREE: Google PageSpeed API — 25K requests/day, no key needed
 
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { createClient } from '@supabase/supabase-js';
 
 const PAGESPEED_KEY = process.env.GOOGLE_PAGESPEED_API_KEY;
+
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 async function getScore(url: string): Promise<{ score: number; issues: string[] }> {
   try {
@@ -38,7 +45,9 @@ async function getScore(url: string): Promise<{ score: number; issues: string[] 
 }
 
 export async function scoreNewLeads(batchSize: number = 50) {
-  const { data: leads, error: queryErr } = await supabaseAdmin
+  const supabase = getSupabase();
+
+  const { data: leads, error: queryErr } = await supabase
     .from('outreach_leads')
     .select('id, company_website, company_name')
     .eq('status', 'new')
@@ -52,7 +61,7 @@ export async function scoreNewLeads(batchSize: number = 50) {
   let scored = 0, qualified = 0, disqualified = 0;
 
   for (const lead of leads) {
-    await supabaseAdmin.from('outreach_leads').update({ status: 'scoring' }).eq('id', lead.id);
+    await supabase.from('outreach_leads').update({ status: 'scoring' }).eq('id', lead.id);
 
     const { score, issues } = await getScore(lead.company_website);
 
@@ -61,7 +70,7 @@ export async function scoreNewLeads(batchSize: number = 50) {
     else if (score < 70) { priority = 'warm'; status = 'qualified'; qualified++; }
     else { priority = 'low'; status = 'disqualified'; disqualified++; }
 
-    await supabaseAdmin.from('outreach_leads').update({
+    await supabase.from('outreach_leads').update({
       site_score: score, site_issues: issues, priority, status,
       updated_at: new Date().toISOString(),
     }).eq('id', lead.id);
