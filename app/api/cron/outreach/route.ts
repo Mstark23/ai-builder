@@ -27,11 +27,6 @@ export async function GET(request: NextRequest) {
       if (process.env.APOLLO_API_KEY) {
         try {
           const { extractLeads } = await import('@/lib/outreach/apollo');
-          const { data: campaigns } = await supabase
-            .from('outreach_leads')
-            .select('*')
-            .limit(0);
-
           const { data: camps } = await supabase
             .from('outreach_campaigns')
             .select('*')
@@ -58,15 +53,13 @@ export async function GET(request: NextRequest) {
       }
       console.log(`[Pipeline] Import: ${totalImported} leads`);
 
-      // 2. Score leads — fetch ALL then filter in JS to debug
-      const { data: allLeads, error: fetchErr } = await supabase
+      // 2. Score leads — fetch all, filter in JS
+      const { data: allLeads } = await supabase
         .from('outreach_leads')
         .select('id, company_website, company_name, status');
 
-      console.log(`[DEBUG] All leads fetched: ${allLeads?.length || 0}, error: ${fetchErr?.message || 'none'}`);
-      
       const newLeads = (allLeads || []).filter(l => l.status === 'new');
-      console.log(`[Scorer] Found ${newLeads.length} new leads (filtered from ${allLeads?.length || 0} total)`);
+      console.log(`[Scorer] Found ${newLeads.length} new leads`);
 
       let scored = 0, qualified = 0, disqualified = 0;
 
@@ -77,19 +70,31 @@ export async function GET(request: NextRequest) {
           let perf = 0;
           const issues: string[] = [];
           try {
-            const params = new URLSearchParams({ url: lead.company_website, strategy: 'mobile', category: 'performance' });
-            const res = await fetch(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${params}`, { signal: AbortSignal.timeout(25000) });
+            const url = lead.company_website.startsWith('http') ? lead.company_website : `https://${lead.company_website}`;
+            const params = new URLSearchParams({ url, strategy: 'mobile', category: 'performance' });
+            const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${params}`;
+            const res = await fetch(apiUrl, { signal: AbortSignal.timeout(25000) });
+            console.log(`[PageSpeed] ${lead.company_name}: status=${res.status}`);
+            
             if (res.ok) {
               const data = await res.json();
               const lh = data.lighthouseResult;
-              perf = Math.round((lh?.categories?.performance?.score || 0) * 100);
-              if (perf < 30) issues.push(`Extremely slow — ${perf}/100`);
-              else if (perf < 50) issues.push(`Slow — ${perf}/100`);
-              else if (perf < 70) issues.push(`Below average — ${perf}/100`);
+              if (lh) {
+                perf = Math.round((lh.categories?.performance?.score || 0) * 100);
+                if (perf < 30) issues.push(`Extremely slow — ${perf}/100`);
+                else if (perf < 50) issues.push(`Slow — ${perf}/100`);
+                else if (perf < 70) issues.push(`Below average — ${perf}/100`);
+              } else {
+                console.log(`[PageSpeed] ${lead.company_name}: no lighthouseResult in response`);
+                issues.push('Could not analyze site');
+              }
             } else {
+              const errText = await res.text();
+              console.log(`[PageSpeed] ${lead.company_name}: HTTP ${res.status} — ${errText.slice(0, 200)}`);
               issues.push('Site unreachable');
             }
-          } catch {
+          } catch (e: any) {
+            console.log(`[PageSpeed] ${lead.company_name}: error — ${e.message}`);
             issues.push('Site timed out');
           }
 
@@ -111,18 +116,16 @@ export async function GET(request: NextRequest) {
 
       console.log(`[Pipeline] Score: ${qualified} qualified`);
 
-      // 3. Assign sequences
-      const { data: qualifiedLeads } = await supabase
+      // 3. Assign sequences — also fetch all and filter in JS
+      const { data: allLeads2 } = await supabase
         .from('outreach_leads')
-        .select('id, first_name, company_name, email, phone, site_score, industry')
-        .eq('status', 'qualified')
-        .is('sequence_step', null)
-        .limit(100);
+        .select('id, first_name, company_name, email, phone, site_score, industry, status, sequence_step');
 
-      console.log(`[Sequence] ${qualifiedLeads?.length || 0} qualified leads need sequences`);
+      const qualifiedLeads = (allLeads2 || []).filter(l => l.status === 'qualified' && !l.sequence_step);
+      console.log(`[Sequence] ${qualifiedLeads.length} qualified leads need sequences`);
 
       let assigned = 0;
-      if (qualifiedLeads?.length) {
+      if (qualifiedLeads.length) {
         const now = new Date();
         for (const lead of qualifiedLeads) {
           if (!lead.phone && !lead.email) continue;
