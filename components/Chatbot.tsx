@@ -18,11 +18,6 @@ export default function Chatbot() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Hide on admin pages
-  if (pathname?.startsWith('/admin') || pathname?.startsWith('/portal') || pathname?.startsWith('/login')) {
-    return null;
-  }
-
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -34,6 +29,11 @@ export default function Chatbot() {
       inputRef.current.focus();
     }
   }, [open]);
+
+  // Hide on admin pages
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/portal') || pathname?.startsWith('/login')) {
+    return null;
+  }
 
   const sendMessage = async () => {
     const text = input.trim();
