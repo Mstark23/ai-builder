@@ -23,7 +23,7 @@ VektorLabs is a premium website and business growth agency. We studied the faste
 
 We're not a template shop. Every site is built from scratch using real intelligence from companies that went from $0 to dominating their market. The result is a website that doesn't just look good — it converts visitors into customers.
 
-Beyond websites, we offer AI-powered business automation: chatbots, missed call text-back, automated follow-ups, appointment booking, review requests, and monthly reporting dashboards.
+Beyond websites, we handle everything that keeps your business running when you're not there: instant customer responses, missed call follow-ups, automated appointment booking, review collection, and monthly reporting dashboards.
 
 ═══ HOW IT'S DIFFERENT FROM WIX/SQUARESPACE ═══
 
@@ -42,7 +42,7 @@ Our strongest results right now are with service businesses — construction com
 - Free website preview: $0, no commitment. Answer 3 questions, get a custom preview in 24 hours.
 - Professional website: $2,000 – $5,000 (one-time). Done-for-you, strategy-driven, built from scratch.
 - Website + basic automation: $5,000 – $10,000 setup + monthly management.
-- Full growth system (website + AI automation + campaigns): $10,000 – $20,000/year managed service.
+- Full growth system (website + automation + campaigns): $10,000 – $20,000/year managed service.
 - We don't do cheap. We build premium websites for businesses that are serious about growth.
 - Payment plans are available. Typically a deposit to start, rest on delivery.
 - No hidden monthly fees for the website itself. Automation packages have monthly management fees.
