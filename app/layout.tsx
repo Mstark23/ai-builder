@@ -10,34 +10,34 @@ const baseUrl = appUrl.startsWith('http') ? appUrl : `https://${appUrl}`;
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: 'VektorLabs — AI Website Builder',
+    default: 'VektorLabs — Your Business, Running Without You',
     template: '%s | VektorLabs',
   },
   description:
-    'Strategic AI website builder that generates conversion-optimized websites using intelligence from billion-dollar brands.',
+    'We build premium websites and automated systems that bring your business customers — even when you\u0027re not there. Free preview in 24 hours.',
   keywords: [
-    'AI website builder',
-    'custom website',
-    'web design',
-    'conversion optimization',
+    'business automation',
+    'premium website',
+    'small business growth',
+    'customer follow-up system',
     'business website',
-    'e-commerce website',
+    'lead generation',
   ],
   authors: [{ name: 'VektorLabs' }],
   openGraph: {
     type: 'website',
     locale: 'en_US',
     siteName: 'VektorLabs',
-    title: 'VektorLabs — AI Website Builder',
+    title: 'VektorLabs — Your Business, Running Without You',
     description:
-      'Strategic AI website builder that generates conversion-optimized websites using intelligence from billion-dollar brands.',
+      'We build premium websites and automated systems that bring your business customers. Free preview in 24 hours.',
     images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'VektorLabs' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'VektorLabs — AI Website Builder',
+    title: 'VektorLabs — Your Business, Running Without You',
     description:
-      'Conversion-optimized websites powered by billion-dollar brand intelligence.',
+      'Premium websites and automated systems that bring your business customers. Free preview in 24 hours.',
     images: ['/og-image.png'],
   },
   robots: { index: true, follow: true },
