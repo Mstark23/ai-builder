@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skibo — Growth Made Simple</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --blue:#2a98d7;
+  --blue-light:#3daae8;
+  --blue-dark:#1d7bb5;
+  --blue-glow:rgba(42,152,215,0.12);
+  --dark:#06080c;
+  --dark-2:#0b0d12;
+  --dark-3:#10131a;
+  --dark-4:#161a24;
+  --border:rgba(42,152,215,0.06);
+  --border-hover:rgba(42,152,215,0.18);
+  --white:#eef0f4;
+  --white-dim:rgba(238,240,244,0.7);
+  --gray:#6b7a8d;
+  --gray-dark:#3a4555;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'Outfit','Helvetica Neue',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--dark);color:var(--gray);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+/* GRAIN */
+body::after{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.35;
+background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E")}
+
+/* ═══════ LOADER ═══════ */
+.loader{position:fixed;inset:0;z-index:10000;background:var(--dark);display:flex;align-items:center;justify-content:center;transition:opacity 0.6s,visibility 0.6s}
+.loader.done{opacity:0;visibility:hidden;pointer-events:none}
+.loader-bar{width:120px;height:2px;background:var(--dark-4);border-radius:2px;overflow:hidden}
+.loader-fill{width:0;height:100%;background:var(--blue);border-radius:2px;animation:load 1.8s ease-out forwards}
+@keyframes load{to{width:100%}}
+
+/* ═══════ NAV ═══════ */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:1.75rem 5rem;display:flex;justify-content:space-between;align-items:center;transition:all 0.5s cubic-bezier(0.16,1,0.3,1)}
+.nav.scrolled{background:rgba(6,8,12,0.88);backdrop-filter:blur(40px) saturate(1.8);border-bottom:1px solid var(--border);padding:1rem 5rem}
+.nav-logo img{height:30px;opacity:0.92;transition:all 0.4s}
+.nav.scrolled .nav-logo img{height:26px}
+.nav-links{display:flex;gap:2.5rem;align-items:center}
+.nav-links a{font-size:0.72rem;font-weight:500;color:rgba(238,240,244,0.4);text-decoration:none;letter-spacing:0.14em;text-transform:uppercase;transition:all 0.3s;position:relative}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;background:var(--blue);transition:width 0.3s}
+.nav-links a:hover{color:var(--blue)}
+.nav-links a:hover::after{width:100%}
+.nav-cta{color:var(--blue)!important;border:1px solid rgba(42,152,215,0.25)!important;padding:0.5rem 1.5rem!important;border-radius:1px}
+.nav-cta::after{display:none!important}
+.nav-cta:hover{background:rgba(42,152,215,0.06)!important;border-color:var(--blue)!important}
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:0.5rem}
+.hamburger span{display:block;width:22px;height:1.5px;background:var(--white);margin:5px 0;transition:0.3s}
+
+/* ═══════ HERO ═══════ */
+.hero{position:relative;height:100vh;min-height:850px;display:flex;align-items:center;overflow:hidden}
+.hero-video{position:absolute;top:50%;left:50%;min-width:100%;min-height:100%;transform:translate(-50%,-50%);object-fit:cover;filter:brightness(0.7)}
+.hero-grad{position:absolute;inset:0;background:
+  linear-gradient(135deg,rgba(6,8,12,0.85) 0%,rgba(6,8,12,0.4) 45%,rgba(6,8,12,0.6) 100%),
+  radial-gradient(ellipse at 20% 80%,rgba(42,152,215,0.08),transparent 60%)}
+.hero-line{position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 5%,var(--blue) 50%,transparent 95%);opacity:0.5}
+.hero-content{position:relative;z-index:2;padding:0 5rem;max-width:950px}
+.hero-eyebrow{font-size:0.68rem;font-weight:600;letter-spacing:0.4em;text-transform:uppercase;color:var(--blue);margin-bottom:2.5rem;
+  opacity:0;transform:translateY(30px);animation:heroIn 1s 2s forwards}
+.hero-title{font-family:var(--serif);font-size:clamp(3.5rem,8vw,7rem);font-weight:300;color:var(--white);line-height:1;margin-bottom:2rem;
+  opacity:0;transform:translateY(40px);animation:heroIn 1s 2.2s forwards}
+.hero-title em{font-style:italic;color:var(--blue);font-weight:300}
+.hero-sub{font-size:1.05rem;font-weight:300;color:rgba(238,240,244,0.5);line-height:1.8;max-width:520px;margin-bottom:3.5rem;
+  opacity:0;transform:translateY(30px);animation:heroIn 1s 2.4s forwards}
+.hero-btns{display:flex;gap:1.25rem;flex-wrap:wrap;
+  opacity:0;transform:translateY(20px);animation:heroIn 1s 2.6s forwards}
+@keyframes heroIn{to{opacity:1;transform:translateY(0)}}
+
+.btn-b{display:inline-flex;align-items:center;gap:0.6rem;padding:1rem 2.5rem;background:var(--blue);color:#fff;font-size:0.75rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border:none;border-radius:1px;cursor:pointer;transition:all 0.4s;font-family:var(--sans);position:relative;overflow:hidden}
+.btn-b::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent);opacity:0;transition:opacity 0.3s}
+.btn-b:hover::before{opacity:1}
+.btn-b:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(42,152,215,0.3)}
+.btn-b svg{width:14px;height:14px;transition:transform 0.3s}
+.btn-b:hover svg{transform:translateX(3px)}
+.btn-o{display:inline-block;padding:1rem 2.5rem;border:1px solid rgba(238,240,244,0.12);color:rgba(238,240,244,0.6);font-size:0.75rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border-radius:1px;transition:all 0.4s;font-family:var(--sans)}
+.btn-o:hover{border-color:rgba(238,240,244,0.35);color:var(--white)}
+
+/* ═══════ PROOF ═══════ */
+.proof{padding:2.5rem 5rem;display:flex;justify-content:center;gap:5rem;flex-wrap:wrap;background:var(--dark-2);border-bottom:1px solid var(--border)}
+.pf{text-align:center}
+.pf-n{font-family:var(--serif);font-size:2.2rem;font-weight:300;color:var(--white)}
+.pf-l{font-size:0.62rem;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:var(--gray-dark);margin-top:0.2rem}
+
+/* ═══════ SHARED ═══════ */
+.sec{padding:9rem 5rem;max-width:1400px;margin:0 auto}
+.lbl{font-size:0.62rem;font-weight:600;letter-spacing:0.35em;text-transform:uppercase;color:var(--blue);margin-bottom:1.75rem}
+.hdg{font-family:var(--serif);font-size:clamp(2.2rem,4.5vw,4rem);font-weight:300;color:var(--white);line-height:1.1;margin-bottom:1.25rem}
+.sub{font-size:1rem;font-weight:300;color:var(--gray);line-height:1.8;max-width:600px}
+
+/* ═══════ ABOUT ═══════ */
+.about{text-align:center;position:relative}
+.about::before{content:'';position:absolute;top:0;left:50%;width:1px;height:80px;background:linear-gradient(180deg,var(--blue),transparent);transform:translateX(-50%);opacity:0.3}
+.about .sub{margin:0 auto}
+
+/* ═══════ AUDIENCE ═══════ */
+.aud-wrap{background:var(--dark-2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.aud-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:4rem}
+.aud-card{padding:3.5rem;border-right:1px solid var(--border);position:relative;transition:all 0.5s}
+.aud-card:last-child{border-right:none}
+.aud-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--blue-light));transform:scaleX(0);transition:transform 0.5s cubic-bezier(0.16,1,0.3,1);transform-origin:left}
+.aud-card:hover::after{transform:scaleX(1)}
+.aud-card:hover{background:rgba(42,152,215,0.02)}
+.aud-img{width:100%;height:220px;object-fit:cover;border-radius:2px;margin-bottom:2rem;filter:grayscale(40%) brightness(0.85);transition:all 0.5s}
+.aud-card:hover .aud-img{filter:grayscale(0%) brightness(1)}
+.aud-name{font-family:var(--serif);font-size:1.7rem;font-weight:400;color:var(--white);margin-bottom:0.75rem}
+.aud-desc{font-size:0.88rem;color:var(--gray);line-height:1.75}
+
+/* ═══════ PROMISE ═══════ */
+.promise-strip{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border)}
+.promise-cell{padding:3rem 3.5rem;border-right:1px solid var(--border);text-align:center;transition:background 0.3s}
+.promise-cell:last-child{border-right:none}
+.promise-cell:hover{background:rgba(42,152,215,0.02)}
+.promise-for{font-size:0.62rem;font-weight:600;letter-spacing:0.25em;text-transform:uppercase;color:var(--blue);margin-bottom:0.6rem}
+.promise-txt{font-size:0.92rem;color:rgba(238,240,244,0.5);line-height:1.6}
+
+/* ═══════ THESIS ═══════ */
+.thesis{display:grid;grid-template-columns:1fr 1fr;min-height:700px}
+.thesis-vis{position:relative;overflow:hidden}
+.thesis-vis img{width:100%;height:100%;object-fit:cover;filter:brightness(0.6)}
+.thesis-vis::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 50%,var(--dark) 100%)}
+.thesis-body{padding:6rem 5rem;display:flex;flex-direction:column;justify-content:center}
+.thesis-body .hdg{font-size:clamp(1.8rem,3vw,2.8rem)}
+.m-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:3rem}
+.m-box{padding:1.5rem;border:1px solid var(--border);border-radius:2px;transition:all 0.4s;position:relative;overflow:hidden}
+.m-box::before{content:'';position:absolute;top:0;left:0;width:0;height:1px;background:var(--blue);transition:width 0.5s}
+.m-box:hover::before{width:100%}
+.m-box:hover{border-color:var(--border-hover)}
+.m-val{font-family:var(--serif);font-size:2.2rem;font-weight:300;color:var(--blue)}
+.m-desc{font-size:0.7rem;color:var(--gray-dark);letter-spacing:0.06em;margin-top:0.2rem}
+
+/* ═══════ CINEMATIC ═══════ */
+.cine{position:relative;height:50vh;min-height:400px;overflow:hidden;display:flex;align-items:center;justify-content:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.cine video{position:absolute;top:50%;left:50%;min-width:100%;min-height:100%;transform:translate(-50%,-50%);object-fit:cover;filter:brightness(0.5)}
+.cine-ov{position:absolute;inset:0;background:rgba(6,8,12,0.55)}
+.cine-body{position:relative;z-index:2;text-align:center;max-width:700px;padding:0 2rem}
+.cine-q{font-family:var(--serif);font-size:clamp(1.5rem,3vw,2.4rem);font-weight:300;color:var(--white);line-height:1.4;font-style:italic}
+.cine-a{font-size:0.68rem;color:var(--blue);letter-spacing:0.3em;text-transform:uppercase;margin-top:1.75rem}
+
+/* ═══════ LEADERS ═══════ */
+.leaders-wrap{background:var(--dark-2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.l-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3rem;margin-top:5rem}
+.l-card{text-align:center;position:relative}
+.l-ring{width:130px;height:130px;border-radius:50%;margin:0 auto 1.75rem;display:flex;align-items:center;justify-content:center;position:relative;
+  background:linear-gradient(135deg,rgba(42,152,215,0.06),rgba(42,152,215,0.01));
+  border:1.5px solid rgba(42,152,215,0.1);transition:all 0.5s cubic-bezier(0.16,1,0.3,1)}
+.l-card:hover .l-ring{border-color:rgba(42,152,215,0.35);box-shadow:0 0 60px rgba(42,152,215,0.08);transform:scale(1.04)}
+.l-init{font-family:var(--serif);font-size:2rem;font-weight:300;color:var(--blue);letter-spacing:0.06em}
+.l-name{font-family:var(--serif);font-size:1.15rem;font-weight:500;color:var(--white)}
+.l-role{font-size:0.68rem;color:var(--blue);letter-spacing:0.08em;margin-top:0.3rem;font-weight:500}
+.l-hl{font-size:0.78rem;color:var(--gray);margin-top:0.6rem;line-height:1.5}
+.l-bio{display:none;text-align:left;font-size:0.8rem;color:var(--gray);line-height:1.75;margin-top:1.25rem;padding:1.5rem;
+  background:rgba(42,152,215,0.02);border:1px solid var(--border);border-radius:2px}
+.l-card.open .l-bio{display:block}
+.l-btn{font-size:0.65rem;color:rgba(42,152,215,0.5);cursor:pointer;margin-top:0.75rem;background:none;border:none;font-family:var(--sans);letter-spacing:0.12em;text-transform:uppercase;transition:all 0.3s;padding:0.3rem 0}
+.l-btn:hover{color:var(--blue)}
+
+/* ═══════ TEMPUS ═══════ */
+.tempus{position:relative;padding:9rem 5rem;overflow:hidden}
+.tempus::before{content:'';position:absolute;top:0;left:0;width:50%;height:50%;background:radial-gradient(ellipse at top left,rgba(42,152,215,0.04),transparent 70%)}
+.t-inner{max-width:1400px;margin:0 auto;position:relative}
+.t-header{text-align:center;margin-bottom:5rem}
+.t-split{display:grid;grid-template-columns:1fr 1fr;gap:3.5rem;align-items:start}
+.t-img{position:relative;border-radius:2px;overflow:hidden;height:450px;border:1px solid var(--border)}
+.t-img img{width:100%;height:100%;object-fit:cover;transition:transform 8s ease;filter:brightness(0.85)}
+.t-img:hover img{transform:scale(1.05)}
+.t-badges{position:absolute;bottom:1.5rem;left:1.5rem;display:flex;gap:0.6rem}
+.tbdg{padding:0.45rem 1.1rem;background:rgba(6,8,12,0.85);backdrop-filter:blur(20px);border:1px solid rgba(42,152,215,0.15);font-size:0.62rem;font-weight:600;color:var(--blue);letter-spacing:0.14em;text-transform:uppercase;border-radius:1px}
+.t-det h3{font-family:var(--serif);font-size:1.5rem;font-weight:400;color:var(--white);margin-bottom:0.75rem}
+.t-txt{font-size:0.9rem;color:var(--gray);line-height:1.75;margin-bottom:2rem}
+.met-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2.5rem}
+.met{padding:1.25rem;border:1px solid var(--border);border-radius:2px;transition:all 0.4s}
+.met:hover{border-color:var(--border-hover)}
+.met-n{font-family:var(--serif);font-size:1.7rem;font-weight:300;color:var(--blue)}
+.met-l{font-size:0.65rem;color:var(--gray-dark);letter-spacing:0.06em;margin-top:0.15rem}
+
+/* PHASES */
+.ph-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:3rem}
+.ph{padding:2.75rem;border:1px solid var(--border);border-radius:2px;position:relative;overflow:hidden;transition:all 0.4s}
+.ph:hover{border-color:var(--border-hover)}
+.ph::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:linear-gradient(180deg,var(--blue),rgba(42,152,215,0.2))}
+.ph-tag{font-size:0.62rem;font-weight:600;letter-spacing:0.3em;text-transform:uppercase;color:var(--blue);margin-bottom:1.25rem}
+.ph-name{font-family:var(--serif);font-size:1.25rem;font-weight:400;color:var(--white);margin-bottom:1.25rem}
+.ph-list{list-style:none;padding:0}
+.ph-list li{font-size:0.84rem;color:var(--gray);padding:0.4rem 0 0.4rem 1.5rem;position:relative;line-height:1.55}
+.ph-list li::before{content:'';position:absolute;left:0;top:0.7rem;width:5px;height:5px;border-radius:50%;border:1px solid rgba(42,152,215,0.3)}
+
+/* RISK */
+.risk-g{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:3rem}
+.rsk{padding:2rem;border:1px solid var(--border);border-radius:2px;transition:all 0.4s}
+.rsk:hover{border-color:var(--border-hover)}
+.rsk-t{font-size:0.88rem;font-weight:600;color:var(--white);margin-bottom:0.4rem}
+.rsk-d{font-size:0.82rem;color:var(--gray);line-height:1.55}
+
+/* ═══════ RETURNS ═══════ */
+.ret-wrap{background:var(--dark-2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.ret-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin-top:3.5rem}
+.ret{padding:3rem;text-align:center;border:1px solid var(--border);border-radius:2px;transition:all 0.4s;position:relative;overflow:hidden}
+.ret::before{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--blue);transform:scaleX(0);transition:transform 0.5s;transform-origin:center}
+.ret:hover::before{transform:scaleX(1)}
+.ret:hover{border-color:var(--border-hover);background:rgba(42,152,215,0.015)}
+.ret-n{font-family:var(--serif);font-size:3rem;font-weight:300;color:var(--white)}
+.ret-l{font-size:0.82rem;color:var(--gray);margin-top:0.3rem}
+.ret-note{font-size:0.7rem;color:rgba(42,152,215,0.5);margin-top:0.75rem}
+.exit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:2.5rem}
+.exit{padding:1.75rem;text-align:center;border:1px solid var(--border);border-radius:2px}
+.exit-t{font-size:0.62rem;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:0.4rem}
+.exit-v{font-family:var(--serif);font-size:1.15rem;color:var(--white)}
+
+/* ═══════ NDFC ═══════ */
+.ndfc{padding:4.5rem 5rem;border-bottom:1px solid var(--border);background:var(--dark-3)}
+.ndfc-in{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:3rem;flex-wrap:wrap}
+.ndfc-txt{flex:1;min-width:280px}
+.ndfc-t{font-family:var(--serif);font-size:1.6rem;font-weight:400;color:var(--white);margin-bottom:0.5rem}
+.ndfc-d{font-size:0.88rem;color:var(--gray);line-height:1.7}
+.ndfc-stats{display:flex;gap:3.5rem}
+.ndfc-sn{font-family:var(--serif);font-size:2.5rem;font-weight:300;color:var(--white)}
+.ndfc-sl{font-size:0.62rem;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--gray-dark)}
+
+/* ═══════ SELLER ═══════ */
+.seller{border-top:1px solid var(--border)}
+.timeline{margin-top:5rem;max-width:850px}
+.stp{display:flex;gap:2.5rem;margin-bottom:3.5rem;align-items:flex-start}
+.stp-m{flex-shrink:0;width:56px;height:56px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(42,152,215,0.15);border-radius:50%;font-family:var(--serif);font-size:1.3rem;font-weight:300;color:var(--blue);transition:all 0.4s}
+.stp:hover .stp-m{background:rgba(42,152,215,0.04);border-color:rgba(42,152,215,0.35);box-shadow:0 0 30px rgba(42,152,215,0.06)}
+.stp-t{font-family:var(--serif);font-size:1.2rem;font-weight:400;color:var(--white);margin-bottom:0.4rem}
+.stp-d{font-size:0.88rem;color:var(--gray);line-height:1.65}
+
+/* ═══════ CTA ═══════ */
+.cta{padding:10rem 5rem;text-align:center;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;top:50%;left:50%;width:600px;height:600px;background:radial-gradient(circle,rgba(42,152,215,0.05),transparent 70%);transform:translate(-50%,-50%);border-radius:50%}
+.cta-title{font-family:var(--serif);font-size:clamp(2.5rem,5.5vw,4.5rem);font-weight:300;color:var(--white);margin-bottom:1.25rem;position:relative}
+.cta-desc{font-size:1rem;color:var(--gray);max-width:450px;margin:0 auto 3.5rem;position:relative}
+.cta-btns{display:flex;gap:1.25rem;justify-content:center;flex-wrap:wrap;position:relative}
+.btn-gb{display:inline-block;padding:1rem 2.5rem;border:1px solid rgba(42,152,215,0.25);color:var(--blue);font-size:0.75rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border-radius:1px;transition:all 0.4s;font-family:var(--sans)}
+.btn-gb:hover{background:rgba(42,152,215,0.05);border-color:var(--blue)}
+
+/* ═══════ FOOTER ═══════ */
+.foot{padding:3.5rem 5rem;border-top:1px solid var(--border);text-align:center}
+.foot p{font-size:0.7rem;color:var(--gray-dark);letter-spacing:0.1em}
+
+/* ═══════ ANIMATIONS ═══════ */
+.rv{opacity:0;transform:translateY(30px);transition:opacity 0.8s cubic-bezier(0.16,1,0.3,1),transform 0.8s cubic-bezier(0.16,1,0.3,1)}
+.rv.vis{opacity:1;transform:translateY(0)}
+.rv-d1{transition-delay:0.1s}.rv-d2{transition-delay:0.2s}.rv-d3{transition-delay:0.3s}.rv-d4{transition-delay:0.4s}
+
+/* ═══════ RESPONSIVE ═══════ */
+@media(max-width:1024px){
+  .nav{padding:1.25rem 2rem}.nav.scrolled{padding:0.75rem 2rem}
+  .nav-links{display:none}
+  .hamburger{display:block}
+  .sec{padding:6rem 2rem}
+  .hero-content{padding:0 2rem}
+  .aud-grid,.l-grid{grid-template-columns:repeat(2,1fr)}
+  .aud-card{border-right:none;border-bottom:1px solid var(--border)}
+  .thesis{grid-template-columns:1fr}.thesis-vis{height:350px}
+  .thesis-body{padding:4rem 2rem}
+  .t-split,.ph-grid,.ret-grid,.exit-grid,.risk-g{grid-template-columns:1fr}
+  .promise-strip{grid-template-columns:1fr}
+  .promise-cell{border-right:none;border-bottom:1px solid var(--border)}
+  .met-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:640px){
+  .sec{padding:5rem 1.5rem}
+  .hero-content{padding:0 1.5rem}
+  .hero-title{font-size:clamp(2.8rem,10vw,4rem)}
+  .proof{gap:2rem;padding:2rem 1.5rem}
+  .aud-grid,.l-grid,.m-grid,.met-grid{grid-template-columns:1fr}
+  .stp{flex-direction:column;gap:1rem}
+  .ndfc{padding:3rem 1.5rem}.ndfc-in{flex-direction:column;text-align:center}
+  .ndfc-stats{justify-content:center}
+  .tempus{padding:6rem 1.5rem}
+  .cta{padding:6rem 1.5rem}
+  .foot{padding:2.5rem 1.5rem}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div class="loader" id="loader"><div class="loader-bar"><div class="loader-fill"></div></div></div>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <a href="#" class="nav-logo"><img src="https://img1.wsimg.com/isteam/ip/fb8a0158-fc0c-446f-84b8-84f7710cd0c0/FullColor_onDark.png/:/rs=h:40,cg:true,m/qt=q:100/ll" alt="Skibo"></a>
+  <div class="nav-links">
+    <a href="#about">About</a>
+    <a href="#leadership">Leadership</a>
+    <a href="#tempus">Project Tempus</a>
+    <a href="#sellers">Sellers</a>
+    <a href="#invest" class="nav-cta">Invest Now</a>
+  </div>
+  <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').style.display=document.querySelector('.nav-links').style.display==='flex'?'none':'flex'">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <video class="hero-video" autoplay muted loop playsinline poster="https://images.unsplash.com/photo-1540962351504-03099e0a754b?w=1920&q=80">
+    <source src="https://videos.pexels.com/video-files/5778859/5778859-uhd_2560_1440_24fps.mp4" type="video/mp4">
+    <source src="https://videos.pexels.com/video-files/5778857/5778857-uhd_2560_1440_24fps.mp4" type="video/mp4">
+  </video>
+  <div class="hero-grad"></div>
+  <div class="hero-line"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">A Holding Company for Exceptional Businesses</div>
+    <h1 class="hero-title">Growth made<br><em>simple.</em></h1>
+    <p class="hero-sub">We buy exceptional companies serving sophisticated individuals and families with discerning taste.</p>
+    <div class="hero-btns">
+      <a href="#tempus" class="btn-b">Current Opportunity <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      <a href="#sellers" class="btn-o">Partner With Us</a>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF -->
+<div class="proof">
+  <div class="pf"><div class="pf-n" data-count="3500">0</div><div class="pf-l">Deals via NDFC</div></div>
+  <div class="pf"><div class="pf-n" data-count="1000">0</div><div class="pf-l">Board Acquisitions</div></div>
+  <div class="pf"><div class="pf-n" data-count="20" data-prefix="$" data-suffix="B+">0</div><div class="pf-l">Transaction Experience</div></div>
+  <div class="pf"><div class="pf-n" data-count="30" data-suffix="+">0</div><div class="pf-l">Years Deal-Making</div></div>
+</div>
+
+<!-- ABOUT -->
+<section class="sec about rv" id="about">
+  <div class="lbl">About Skibo</div>
+  <h2 class="hdg">We're focused on<br>the exceptional.</h2>
+  <p class="sub">At Skibo, we're creating something special — a family of high-quality companies that serve sophisticated clients. We invest for the long-term, maintain high standards, and foster connections across our businesses, allowing each to flourish while providing unmatched value and service.</p>
+  <p class="sub" style="margin-top:1.25rem">From private aviation and exclusive clubs to estate staffing and luxury goods, we connect trusted companies with discerning customers who value quality, privacy, and excellence.</p>
+</section>
+
+<!-- AUDIENCE -->
+<section class="aud-wrap" id="audience">
+  <div class="sec">
+    <div class="lbl rv">Who We Serve</div>
+    <h2 class="hdg rv">Three commitments.<br>One standard of excellence.</h2>
+    <div class="aud-grid">
+      <div class="aud-card rv rv-d1">
+        <img class="aud-img" src="https://images.unsplash.com/photo-1614846384571-1e31322ed3a9?w=800&q=80" alt="Business Owners">
+        <div class="aud-name">Business Owners</div>
+        <p class="aud-desc">Selling your business is personal. At Skibo, we respect what you've built and make the acquisition process straightforward, transparent, and fast. We protect your legacy, retain your team, and ensure your company thrives for the long term.</p>
+      </div>
+      <div class="aud-card rv rv-d2">
+        <img class="aud-img" src="https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=800&q=80" alt="Customers">
+        <div class="aud-name">Customers</div>
+        <p class="aud-desc">Our clients expect the best. That's why we carefully select and nurture businesses that consistently deliver exceptional services and experiences. From exclusive travel to luxury lifestyle services, our companies exceed your highest expectations.</p>
+      </div>
+      <div class="aud-card rv rv-d3">
+        <img class="aud-img" src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800&q=80" alt="Employees">
+        <div class="aud-name">Employees</div>
+        <p class="aud-desc">We believe great service starts with great people. Working at a Skibo company means being valued, supported, and rewarded. We offer competitive pay, excellent benefits, and a culture that encourages both personal and professional growth.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROMISE -->
+<div class="promise-strip">
+  <div class="promise-cell rv"><div class="promise-for">Sellers</div><p class="promise-txt">Quick, fair deals with flexible terms and complete transparency.</p></div>
+  <div class="promise-cell rv rv-d1"><div class="promise-for">Customers</div><p class="promise-txt">Access to exclusive, high-quality lifestyle services you can trust.</p></div>
+  <div class="promise-cell rv rv-d2"><div class="promise-for">Employees</div><p class="promise-txt">Opportunities for meaningful careers in supportive environments.</p></div>
+</div>
+
+<!-- THESIS -->
+<section class="thesis" id="thesis">
+  <div class="thesis-vis"><img src="https://images.unsplash.com/photo-1474302770737-173ee21bab63?w=1200&q=80" alt="Private jet at sunset"></div>
+  <div class="thesis-body">
+    <div class="lbl rv">Investment Thesis</div>
+    <h2 class="hdg rv">The luxury service economy is fragmented. That's our opportunity.</h2>
+    <p class="sub rv" style="margin-top:1rem">Skibo is building the Billionaire Lifestyles platform — strategically acquiring and integrating high-net-worth lifestyle service companies into a single ecosystem. With NDFC as our execution partner, we leverage a disciplined roll-up strategy to deliver exceptional returns.</p>
+    <div class="m-grid rv">
+      <div class="m-box"><div class="m-val">$21.2B</div><div class="m-desc">Private aviation market 2024</div></div>
+      <div class="m-box"><div class="m-val">$40.9B</div><div class="m-desc">Projected by 2029</div></div>
+      <div class="m-box"><div class="m-val">93%</div><div class="m-desc">Market fragmentation</div></div>
+      <div class="m-box"><div class="m-val">2×</div><div class="m-desc">Wealth expansion</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CINEMATIC -->
+<div class="cine">
+  <video autoplay muted loop playsinline poster="https://images.unsplash.com/photo-1474302770737-173ee21bab63?w=1920&q=80"><source src="https://videos.pexels.com/video-files/6700091/6700091-uhd_2560_1440_25fps.mp4" type="video/mp4"></video>
+  <div class="cine-ov"></div>
+  <div class="cine-body">
+    <div class="cine-q rv">"We are committed to responsibly stewarding your legacy, safeguarding your business, and providing impactful opportunities for talented professionals across our growing network."</div>
+    <div class="cine-a rv rv-d1">Skibo Leadership</div>
+  </div>
+</div>
+
+<!-- LEADERSHIP -->
+<section class="leaders-wrap" id="leadership">
+  <div class="sec">
+    <div style="text-align:center">
+      <div class="lbl rv">Board of Directors</div>
+      <h2 class="hdg rv">Our Commitment</h2>
+      <p class="sub rv" style="margin:0 auto">Our team has successfully led over 1,000 acquisitions and managed billions in enterprise value. We build lasting value through integrity and deep respect for the businesses we partner with.</p>
+    </div>
+    <div class="l-grid">
+      <div class="l-card rv rv-d1"><div class="l-ring"><span class="l-init">YM</span></div><div class="l-name">Yoven Moorooven</div><div class="l-role">Chairman</div><div class="l-hl">CEO, ENGIE Asia Pacific &amp; Head of LNG</div><button class="l-btn" onclick="this.parentElement.classList.toggle('open')">Read Bio</button><div class="l-bio">CEO of ENGIE Asia Pacific and Head of LNG. Exceptional international experience in business development across commodity and utility industries. Senior positions at Macquarie Bank and Deutsche Bank. Instrumental in developing Macquarie's energy markets division. ENGIE Africa won "International Company of the Year" at Africa CEO Forum 2018. Awarded Rising Star at S&amp;P Global Platts Global Energy Awards 2019.</div></div>
+      <div class="l-card rv rv-d2"><div class="l-ring"><span class="l-init">JB</span></div><div class="l-name">Joe Breen</div><div class="l-role">Board Member &amp; Strategic Advisor</div><div class="l-hl">SecureWorks: $1M → $650M acquisition by Dell</div><button class="l-btn" onclick="this.parentElement.classList.toggle('open')">Read Bio</button><div class="l-bio">Proven C-level executive. At SecureWorks (SCWX), drove revenues from $1M to $300M, growing clients from 100 to 3,500+, resulting in $650M acquisition by Dell. CEO of Ostendio. CRO at Lumu — NAV leader in Forrester Wave 2023, bookings up 50%. At Nuspire, revenue $28M to $52M in 3.5 years. Second employee at PointClear, scaling 0 to $6M in 30 months.</div></div>
+      <div class="l-card rv rv-d3"><div class="l-ring"><span class="l-init">GS</span></div><div class="l-name">Gary Samson</div><div class="l-role">Board Member</div><div class="l-hl">Retired Partner, McGuireWoods LLP</div><button class="l-btn" onclick="this.parentElement.classList.toggle('open')">Read Bio</button><div class="l-bio">Retired partner of McGuireWoods LLP. Represented major banks on sophisticated syndicated and non-syndicated loans. Named Lawyer of the Year for Banking and Finance, Los Angeles by Best Lawyers. President, Financial Lawyers Conference of California. UC Hastings College of Law, JD, Order of the Coif.</div></div>
+      <div class="l-card rv rv-d4"><div class="l-ring"><span class="l-init">GG</span></div><div class="l-name">Greg Gailius</div><div class="l-role">Board Member</div><div class="l-hl">Retired PwC Partner — 50+ acquisitions/year × 30 years</div><button class="l-btn" onclick="this.parentElement.classList.toggle('open')">Read Bio</button><div class="l-bio">Retired Transaction Services Partner at PwC. Joined 1977. 50+ acquisitions annually, $10M to $20B+ across industries. Led numerous IPOs and debt/equity offerings. Chairman of PwC's US Partner Admissions Committee.</div></div>
+      <div class="l-card rv rv-d1"><div class="l-ring"><span class="l-init">RF</span></div><div class="l-name">Randy Franklin</div><div class="l-role">Board Member</div><div class="l-hl">VP &amp; GM, Terazo · Former CIO, Premier Healthcare</div><button class="l-btn" onclick="this.parentElement.classList.toggle('open')">Read Bio</button><div class="l-bio">VP/Market GM at Terazo. Previously VP/CIO at Premier Healthcare Alliance (PINC), largest healthcare GPO in America — $60B+ in annual purchasing. Led enterprise IT turnaround, cybersecurity acceleration, and cloud migration. Leadership roles at Peak 10, Inc.</div></div>
+      <div class="l-card rv rv-d2"><div class="l-ring"><span class="l-init">KM</span></div><div class="l-name">Dr. Kevin McKenzie</div><div class="l-role">Board Member</div><div class="l-hl">VP IT &amp; CISO, Dollar Tree</div><button class="l-btn" onclick="this.parentElement.classList.toggle('open')">Read Bio</button><div class="l-bio">VP for IT and CISO at Dollar Tree. Information Security Executive of the Year (North America) by T.E.N. ISLA Award for the Americas by (ISC)². Previous CISO at Clemson University and Health Sciences of South Carolina. "Roaring 10" Alumni, Clemson.</div></div>
+      <div class="l-card rv rv-d3"><div class="l-ring"><span class="l-init">JH</span></div><div class="l-name">Dr. Jeffrey Hoos</div><div class="l-role">Board Member</div><div class="l-hl">Top 1% dental practices worldwide</div><button class="l-btn" onclick="this.parentElement.classList.toggle('open')">Read Bio</button><div class="l-bio">40 years experience. Tufts School of Dental Medicine. Top 1% globally. Developed H&amp;H Impression Method. Top dental lecturer 10 years running. Founded Dental Insights. Yale Smilow Cancer Board. President, Jewish Federation of Greater New Haven.</div></div>
+      <div class="l-card rv rv-d4"><div class="l-ring"><span class="l-init">RJ</span></div><div class="l-name">Ryan Johnson</div><div class="l-role">Founder &amp; Managing Director</div><div class="l-hl">Duke Energy · Wells Fargo · BofA · Coca-Cola</div><button class="l-btn" onclick="this.parentElement.classList.toggle('open')">Read Bio</button><div class="l-bio">Founder and Managing Director. Technologist by training, operator by practice. Advised Duke Energy, Wells Fargo, Bank of America, Lowe's, Belk, Coca-Cola. UNC Chapel Hill (BA), Wake Forest (MBA). Charlotte City Club. 2019 Rising Stars Award, Carolinas Freedom Foundation.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TEMPUS -->
+<section class="tempus" id="tempus">
+  <div class="t-inner">
+    <div class="t-header">
+      <div class="lbl rv">Current Opportunity</div>
+      <h2 class="hdg rv">Project Tempus</h2>
+      <p class="sub rv" style="margin:0 auto;text-align:center">A premier private aviation company with three complementary business lines and two decades of operational excellence.</p>
+    </div>
+    <div class="t-split rv">
+      <div class="t-img"><img src="https://images.unsplash.com/photo-1540962351504-03099e0a754b?w=900&q=80" alt="Private jet"><div class="t-badges"><span class="tbdg">ARG/US Platinum</span><span class="tbdg">IS-BAO Stage II</span></div></div>
+      <div class="t-det">
+        <h3>The Opportunity</h3>
+        <p class="t-txt">Project Tempus is a premier private aviation services company generating ~$100M in revenue and ~$9M in EBITDA, operating for over 20 years with client retention of ~90–95%. ARG/US Platinum and IS-BAO Stage II certified. Three business lines: charter, aircraft management, and aircraft sales.</p>
+        <div class="met-grid">
+          <div class="met"><div class="met-n">~$100M</div><div class="met-l">Annual Revenue</div></div>
+          <div class="met"><div class="met-n">~$9M</div><div class="met-l">EBITDA</div></div>
+          <div class="met"><div class="met-n">20+</div><div class="met-l">Years Operating</div></div>
+          <div class="met"><div class="met-n">90–95%</div><div class="met-l">Client Retention</div></div>
+        </div>
+        <h3>Why Now</h3>
+        <p class="t-txt" style="margin-bottom:0">Private aviation is projected to grow from $21.2B (2024) to $40.9B (2029), driven by wealth expansion, demand for flexibility, and fragmentation — ideal for consolidation.</p>
+      </div>
+    </div>
+    <div style="margin-top:5rem"><div class="lbl rv" style="text-align:center">Investment Structure</div>
+      <div class="ph-grid rv">
+        <div class="ph"><div class="ph-tag">Phase 1</div><div class="ph-name">Commitment Fee Raise — $900K</div><ul class="ph-list"><li>1% SPE equity per $150K invested</li><li>8% preferred annual return</li><li>Capital rolls to next deal if this one does not close</li><li>Exclusive access to full diligence</li><li>$450K investment = 10 hrs flight time</li><li>$900K investment = 25 hrs flight time</li></ul></div>
+        <div class="ph"><div class="ph-tag">Phase 2</div><div class="ph-name">Acquisition Capital — ~$5M</div><ul class="ph-list"><li>1% SPE equity per $250K invested</li><li>8% preferred annual return</li><li>Fly free for life of ownership with full $5M</li><li>Full institutional-grade diligence from NDFC</li></ul></div>
+      </div>
+    </div>
+    <div style="margin-top:4rem"><div class="lbl rv" style="text-align:center">Risk Mitigation</div>
+      <div class="risk-g rv">
+        <div class="rsk"><div class="rsk-t">Institutional-Grade Diligence</div><div class="rsk-d">Full process powered by NDFC's 3,500+ deal track record</div></div>
+        <div class="rsk"><div class="rsk-t">Management Retention</div><div class="rsk-d">Incentives for key management ensuring operational continuity</div></div>
+        <div class="rsk"><div class="rsk-t">Client Relationships</div><div class="rsk-d">Strong brand loyalty and 90–95% client retention rate</div></div>
+        <div class="rsk"><div class="rsk-t">Revenue Diversification</div><div class="rsk-d">Three complementary business lines with cross-service expansion</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RETURNS -->
+<section class="ret-wrap" id="returns">
+  <div class="sec">
+    <div style="text-align:center"><div class="lbl rv">Projected Returns</div><h2 class="hdg rv">Modeled conservatively.</h2></div>
+    <div class="ret-grid rv">
+      <div class="ret"><div class="ret-n">8%</div><div class="ret-l">Annual Cash Yield</div><div class="ret-note">Preferred annual return</div></div>
+      <div class="ret"><div class="ret-n">28–45%+</div><div class="ret-l">Projected IRRs</div><div class="ret-note">Depending on exit strategy</div></div>
+      <div class="ret"><div class="ret-n">3×–17×</div><div class="ret-l">Equity Multiples</div><div class="ret-note">At exit</div></div>
+    </div>
+    <div style="margin-top:3.5rem"><div class="lbl rv" style="text-align:center">Exit Scenarios</div>
+      <div class="exit-grid rv">
+        <div class="exit"><div class="exit-t">Strategic Sale</div><div class="exit-v">Year 5 · 8–10× EBITDA</div></div>
+        <div class="exit"><div class="exit-t">IPO</div><div class="exit-v">Year 7 · 15–18× EBITDA</div></div>
+        <div class="exit"><div class="exit-t">Recapitalization</div><div class="exit-v">Year 4 · 6–8× EBITDA</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NDFC -->
+<div class="ndfc">
+  <div class="ndfc-in rv">
+    <div class="ndfc-txt"><div class="lbl">Execution Partner</div><div class="ndfc-t">NDFC — Institutional-Grade Deal Execution</div><p class="ndfc-d">Our execution partner brings rigorous diligence and disciplined underwriting to every acquisition.</p></div>
+    <div class="ndfc-stats"><div><div class="ndfc-sn">3,500+</div><div class="ndfc-sl">Completed Deals</div></div><div><div class="ndfc-sn">30+</div><div class="ndfc-sl">Years Active</div></div></div>
+  </div>
+</div>
+
+<!-- SELLER -->
+<section class="seller" id="sellers">
+  <div class="sec">
+    <div class="lbl rv">For Business Owners</div>
+    <h2 class="hdg rv">A responsible steward<br>of your legacy.</h2>
+    <p class="sub rv">Selling your business is more than a financial transaction — it's personal. Skibo offers a seller-focused approach, providing fair value and significant input into protecting your legacy.</p>
+    <div class="timeline">
+      <div class="stp rv"><div class="stp-m">1</div><div><div class="stp-t">Initial Conversation &amp; Preparatory Phase</div><div class="stp-d">We learn about your business, your goals, and what matters most. No pressure — just an honest conversation about fit.</div></div></div>
+      <div class="stp rv"><div class="stp-m">2</div><div><div class="stp-t">Initial Diligence &amp; Agreement on Deal Terms</div><div class="stp-d">Preliminary review and agreement on terms. Transparent, fair, and flexible.</div></div></div>
+      <div class="stp rv"><div class="stp-m">3</div><div><div class="stp-t">Business &amp; Legal Diligence, Purchase Agreement</div><div class="stp-d">Full diligence, purchase agreement finalization, and transition planning. NDFC ensures institutional-grade rigor.</div></div></div>
+      <div class="stp rv"><div class="stp-m">4</div><div><div class="stp-t">Deal Closing &amp; Onboarding Employees</div><div class="stp-d">We welcome your employees into the Skibo family and work closely with them to enhance and grow what you've created.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta" id="invest">
+  <div class="lbl rv">Next Steps</div>
+  <h2 class="cta-title rv">Ready to explore?</h2>
+  <p class="cta-desc rv">Whether you're looking to invest, sell, or learn more — we'd welcome the conversation.</p>
+  <div class="cta-btns rv">
+    <a href="#" class="btn-b">Request Investor Packet</a>
+    <a href="#" class="btn-gb">Schedule a Call</a>
+    <a href="#" class="btn-gb">Prospective Sellers</a>
+  </div>
+</section>
+
+<footer class="foot"><p>© 2026 Skibo. All Rights Reserved.</p></footer>
+
+<script>
+// Loader
+window.addEventListener('load',()=>{setTimeout(()=>{document.getElementById('loader').classList.add('done')},2000)});
+
+// Nav
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>{nav.classList.toggle('scrolled',window.scrollY>80)});
+
+// Reveal on scroll
+const io=new IntersectionObserver(e=>{e.forEach(el=>{if(el.isIntersecting){el.target.classList.add('vis');io.unobserve(el.target)}})},{threshold:0.06,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+// Animated counters
+let counted=false;
+const countObs=new IntersectionObserver(e=>{
+  if(e[0].isIntersecting&&!counted){
+    counted=true;
+    document.querySelectorAll('[data-count]').forEach(el=>{
+      const target=+el.dataset.count;
+      const prefix=el.dataset.prefix||'';
+      const suffix=el.dataset.suffix||'+';
+      const dur=2000;
+      const start=performance.now();
+      function tick(now){
+        const p=Math.min((now-start)/dur,1);
+        const ease=1-Math.pow(1-p,3);
+        const val=Math.round(ease*target);
+        el.textContent=prefix+(val>=1000?val.toLocaleString():val)+(p>=1?suffix:'');
+        if(p<1)requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+},{threshold:0.5});
+const proofEl=document.querySelector('.proof');
+if(proofEl)countObs.observe(proofEl);
+
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',function(e){
+    e.preventDefault();
+    const t=document.querySelector(this.getAttribute('href'));
+    if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+});
+
+// Parallax on hero (subtle)
+window.addEventListener('scroll',()=>{
+  const v=document.querySelector('.hero-video');
+  if(v&&window.scrollY<window.innerHeight){
+    v.style.transform=`translate(-50%,-50%) scale(${1+window.scrollY*0.0002})`;
+  }
+});
+</script>
+</body>
+</html>
